@@ -701,7 +701,7 @@ function getOrCreateStudentKey(){
 function nowTs(){ return Date.now(); }
 
 const STUDENT = {
-  studentKey: getOrCreateStudentKey()
+ studentKey: null
 };
 
 const P = {
@@ -712,6 +712,24 @@ const P = {
   lessonStageDone: (studentKey, grade, lesson, stage)=> `lessonProgress/${studentKey}/${grade}/${lesson}/${stage}`,
   wordsGrade: (grade)=> `words/${grade}`,
 };
+
+
+// ✅ 名前から studentKey を作る（同じ名前なら同じ進行になる）
+// Firebaseキーで使えない文字 . # $ [ ] / を避ける
+function safeKey(s){
+  return encodeURIComponent(String(s).trim())
+    .replaceAll(".", "%2E")
+    .replaceAll("#", "%23")
+    .replaceAll("$", "%24")
+    .replaceAll("[", "%5B")
+    .replaceAll("]", "%5D")
+    .replaceAll("/", "%2F");
+}
+function studentKeyFromName(name){
+  return "name_" + safeKey(name);
+}
+
+
 
 /* =========================
    ★ ここだけ触れば「後で柔軟に変更」できる設定
@@ -727,7 +745,7 @@ const QUIZ_RULES = {
 /* =========================
    ★ デバッグ表示 ON/OFF
 ========================= */
-const DEBUG_STAGE_RATES = true;
+const DEBUG_STAGE_RATES = false;
 
 /* =========================
    ★ 学年の最大値（ここを増やす）
@@ -1894,12 +1912,16 @@ async function startFlow(){
   if (STARTING) return;
   STARTING = true;
   try{
-    const name = normName(stuName.value);
-    if (!name){ setStuStatus("名前を入力して。", false); return; }
-    localStorage.setItem(NAME_KEY, name);
+const name = normName(stuName.value);
+if (!name){ setStuStatus("名前を入力して。", false); return; }
+localStorage.setItem(NAME_KEY, name);
 
-    setStuStatus("入室中…", true);
-    const j = await apiEnter(name);
+// ✅ ここが重要：同じ名前なら同じ studentKey になる
+STUDENT.studentKey = studentKeyFromName(name);
+
+setStuStatus("入室中…", true);
+const j = await apiEnter(name);
+
     if (!j.ok){
       setStuStatus(`入室失敗：${j.error||"unknown"}`, false);
       return;
@@ -2302,13 +2324,13 @@ function drawLessonTrapezoids(){
         lessonSvg.appendChild(tri);
       }
 
-      const labelY = topY + safeTrapH*0.36;
+      const labelY = topY + safeTrapH*0.47;
       const label = sEl("text");
       label.setAttribute("x", cx);
       label.setAttribute("y", labelY);
       label.setAttribute("text-anchor", "middle");
       label.setAttribute("dominant-baseline", "middle");
-      label.setAttribute("font-size", 14);
+      label.setAttribute("font-size", 17);
       label.setAttribute("font-weight", "900");
       label.setAttribute("fill", "#111");
       label.style.pointerEvents = "none";
