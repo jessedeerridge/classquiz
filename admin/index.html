@@ -1,0 +1,1161 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Yuko Wordlog（教師管理）</title>
+  <style>
+    :root{
+      --bg:#0f1220;
+      --card:#151a2e;
+      --card2:#101427;
+      --text:#f2f3f8;
+      --muted:rgba(242,243,248,.70);
+      --line:rgba(255,255,255,.10);
+      --accent:#7deB24;
+      --danger:#ff5a7a;
+      --warn:#ffcc66;
+      --btn:#ffffff;
+      --btnText:#101427;
+      --chip:#222a4a;
+      --chipText:#e9ecff;
+      --shadow: 0 18px 50px rgba(0,0,0,.45);
+      --r:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+      background:
+        radial-gradient(900px 500px at 20% 15%, rgba(125,235,36,.12), transparent 60%),
+        radial-gradient(700px 450px at 80% 30%, rgba(140,120,255,.12), transparent 60%),
+        linear-gradient(180deg, #0b0e1a, #0f1220);
+      color:var(--text);
+    }
+    a{color:inherit}
+    header{
+      position:sticky; top:0; z-index:50;
+      backdrop-filter: blur(10px);
+      background: rgba(10,12,22,.55);
+      border-bottom:1px solid var(--line);
+    }
+    .wrap{max-width:1200px;margin:0 auto;padding:14px 16px}
+    .row{display:flex; gap:12px; align-items:center; flex-wrap:wrap}
+    .space{flex:1}
+    h1{font-size:16px;margin:0;font-weight:950;letter-spacing:.2px}
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 12px; border:1px solid var(--line);
+      border-radius:999px; background: rgba(255,255,255,.04);
+      color:var(--muted); font-weight:850; font-size:12px;
+    }
+    .pill b{color:var(--text)}
+    .tabs{
+      display:flex; gap:8px; flex-wrap:wrap;
+    }
+    .tab{
+      padding:10px 12px; border-radius:999px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      color:var(--muted);
+      cursor:pointer; font-weight:950;
+    }
+    .tab.active{
+      background: rgba(255,255,255,.92);
+      color:#101427;
+      border-color: rgba(255,255,255,.92);
+    }
+
+    main{max-width:1200px;margin:0 auto;padding:16px}
+    .grid2{display:grid; grid-template-columns: 1.1fr .9fr; gap:14px}
+    @media (max-width: 980px){ .grid2{grid-template-columns:1fr; } }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border:1px solid var(--line);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .cardHead{
+      padding:14px 14px;
+      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+      border-bottom:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+    }
+    .cardHead h2{margin:0;font-size:14px;font-weight:950}
+    .cardBody{padding:14px}
+    .muted{color:var(--muted);font-size:12px;font-weight:800}
+    .btn{
+      border:0; cursor:pointer;
+      background: rgba(255,255,255,.92);
+      color: #101427;
+      font-weight:950;
+      padding:10px 12px;
+      border-radius: 12px;
+    }
+    .btn.secondary{
+      background: rgba(255,255,255,.08);
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
+    .btn.danger{
+      background: rgba(255,90,122,.15);
+      color: #ffd6de;
+      border: 1px solid rgba(255,90,122,.35);
+    }
+    .btn:active{transform:scale(.99)}
+    input,select,textarea{
+      width:100%;
+      padding:10px 12px;
+      border-radius: 12px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      outline:none;
+      font-weight:850;
+    }
+    textarea{min-height:92px; resize:vertical}
+    label{display:block; font-size:12px; font-weight:950; color:var(--muted); margin:0 0 6px}
+    .formRow{display:grid; grid-template-columns: 1fr 1fr; gap:10px}
+    @media (max-width: 700px){ .formRow{grid-template-columns:1fr;} }
+    .hr{height:1px;background:var(--line);margin:12px 0}
+    .chip{
+      display:inline-flex; gap:8px; align-items:center;
+      padding:7px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.04);
+      color: var(--chipText);
+      font-weight:950;
+      font-size:12px;
+    }
+    .chip .dot{
+      width:8px;height:8px;border-radius:999px;background:var(--accent);
+      box-shadow:0 0 0 3px rgba(125,235,36,.15);
+    }
+    .chip.warn .dot{background:var(--warn); box-shadow:0 0 0 3px rgba(255,204,102,.15)}
+    .chip.bad .dot{background:var(--danger); box-shadow:0 0 0 3px rgba(255,90,122,.15)}
+    .kpi{
+      display:grid; grid-template-columns: repeat(4, 1fr);
+      gap:10px;
+    }
+    @media (max-width: 900px){ .kpi{grid-template-columns:repeat(2,1fr)} }
+    .k{
+      padding:12px; border-radius: 16px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.04);
+    }
+    .k .v{font-size:18px;font-weight:980}
+    .k .t{font-size:12px;color:var(--muted);font-weight:900;margin-top:4px}
+
+    table{width:100%; border-collapse: collapse}
+    th,td{padding:10px 10px; border-bottom:1px solid rgba(255,255,255,.08); vertical-align: top}
+    th{font-size:12px;color:var(--muted);font-weight:950;text-align:left}
+    td{font-size:13px;font-weight:800}
+    .trBtn{cursor:pointer}
+    .trBtn:hover{background: rgba(255,255,255,.04)}
+    .right{text-align:right}
+    .small{font-size:12px;color:var(--muted);font-weight:850}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px}
+    .pct{font-weight:980}
+    .pct.good{color: #baf78a}
+    .pct.mid{color: #ffd48a}
+    .pct.bad{color: #ff9ab0}
+    .tag{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:6px 10px; border-radius:999px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      font-size:12px; font-weight:950; color:var(--muted);
+      white-space:nowrap;
+    }
+
+    /* modal */
+    .back{
+      position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+      background: rgba(0,0,0,.55); z-index:100;
+      padding:16px;
+    }
+    .modal{
+      width:min(980px, 100%);
+      max-height: 88vh;
+      overflow:auto;
+      border-radius: 18px;
+      border:1px solid var(--line);
+      background: rgba(15,18,32,.92);
+      box-shadow: 0 24px 80px rgba(0,0,0,.55);
+    }
+    .modalHead{
+      position:sticky; top:0; z-index:2;
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+      padding:14px;
+      border-bottom:1px solid var(--line);
+      background: rgba(10,12,22,.78);
+      backdrop-filter: blur(10px);
+    }
+    .modalHead h3{margin:0;font-size:14px;font-weight:980}
+    .modalBody{padding:14px}
+    .notice{
+      padding:10px 12px;
+      border-radius: 14px;
+      border:1px solid rgba(255,204,102,.30);
+      background: rgba(255,204,102,.10);
+      color: #ffe7b8;
+      font-weight:900;
+      font-size:12px;
+    }
+    .okline{
+      padding:10px 12px;
+      border-radius: 14px;
+      border:1px solid rgba(125,235,36,.26);
+      background: rgba(125,235,36,.10);
+      color: #dfffc8;
+      font-weight:900;
+      font-size:12px;
+    }
+    .badline{
+      padding:10px 12px;
+      border-radius: 14px;
+      border:1px solid rgba(255,90,122,.26);
+      background: rgba(255,90,122,.10);
+      color: #ffd6de;
+      font-weight:900;
+      font-size:12px;
+    }
+
+    /* login overlay */
+    #loginBack{display:flex}
+    .loginCard{
+      width:min(520px, 100%);
+      border-radius: 18px;
+      border:1px solid var(--line);
+      background: rgba(15,18,32,.92);
+      box-shadow: 0 24px 80px rgba(0,0,0,.55);
+      overflow:hidden;
+    }
+    .loginHead{
+      padding:16px;
+      border-bottom:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+    }
+    .loginHead .t1{font-weight:980}
+    .loginBody{padding:16px}
+    .loginFoot{padding:16px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+  </style>
+</head>
+
+<body>
+<header>
+  <div class="wrap">
+    <div class="row">
+      <h1>Yuko Wordlog（教師管理）</h1>
+      <span class="pill">DB: <b id="dbHost">-</b></span>
+      <span class="pill">ログイン: <b id="who">未</b></span>
+      <div class="space"></div>
+      <div class="tabs" id="tabs" style="display:none">
+        <button class="tab active" data-tab="students" type="button">学生管理</button>
+        <button class="tab" data-tab="words" type="button">単語管理</button>
+      </div>
+      <button class="btn secondary" id="btnReload" type="button" style="display:none">再読込</button>
+      <button class="btn danger" id="btnLogout" type="button" style="display:none">ログアウト</button>
+    </div>
+  </div>
+</header>
+
+<main id="app" style="display:none">
+  <!-- Students Tab -->
+  <section id="tab_students">
+    <div class="grid2">
+      <div class="card">
+        <div class="cardHead">
+          <h2>学生一覧</h2>
+          <span class="muted">クリックで詳細（課/単語ごとの成績）</span>
+          <div class="space"></div>
+          <div style="min-width:160px">
+            <select id="stuGradeSel">
+              <option value="1">1年</option>
+              <option value="2">2年</option>
+              <option value="3">3年</option>
+              <option value="4">4年</option>
+            </select>
+          </div>
+          <div style="min-width:220px">
+            <input id="stuSearch" placeholder="名前で検索（部分一致）" />
+          </div>
+          <button class="btn secondary" id="btnRefreshStudents" type="button">更新</button>
+        </div>
+        <div class="cardBody">
+          <div class="kpi" id="stuKpi">
+            <div class="k"><div class="v" id="kStuCount">-</div><div class="t">学生数</div></div>
+            <div class="k"><div class="v" id="kActive24">-</div><div class="t">24時間以内アクセス</div></div>
+            <div class="k"><div class="v" id="kLessons">-</div><div class="t">課数（選択学年）</div></div>
+            <div class="k"><div class="v" id="kWords">-</div><div class="t">単語数（選択学年）</div></div>
+          </div>
+          <div class="hr"></div>
+          <div id="stuMsg" class="muted">読み込み待ち…</div>
+          <div style="overflow:auto;margin-top:10px">
+            <table>
+              <thead>
+                <tr>
+                  <th style="min-width:190px">学生</th>
+                  <th style="min-width:140px">最終アクセス</th>
+                  <th style="min-width:160px">進捗サマリ（選択学年）</th>
+                  <th class="right" style="min-width:120px">操作</th>
+                </tr>
+              </thead>
+              <tbody id="stuTbody"></tbody>
+            </table>
+          </div>
+          <div class="small" style="margin-top:10px">
+            ※ 進捗サマリは「pre1+pre2 の mastered / 総数」を学年内で合算して表示します。詳細は学生をクリック。
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="cardHead">
+          <h2>メモ</h2>
+          <div class="space"></div>
+          <span class="chip warn"><span class="dot"></span>重要</span>
+        </div>
+        <div class="cardBody">
+          <div class="notice">
+            この管理ページは「Firebase Auth（メール/パスワード）」でログイン必須です。<br>
+            さらに <b>ログイン状態は保存しません</b>（リロードで毎回ログイン）。<br>
+            DBルールを「教師のみ書き込み可」にしたい場合は、下の手順（このページ下部の説明）に従って設定してください。
+          </div>
+          <div class="hr"></div>
+          <div class="muted">
+            学年（1〜4）は学生ページ側で選ぶ仕様のため、教師側でも「学年フィルタ」で切り替えて集計します。<br>
+            （もし学生の「現在学年」をDBに保存したいなら、学生ページの enterStudent() に grade を書き足すだけでOK。）
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Words Tab -->
+  <section id="tab_words" style="display:none">
+    <div class="grid2">
+      <div class="card">
+        <div class="cardHead">
+          <h2>単語リスト</h2>
+          <div class="space"></div>
+          <div style="min-width:140px">
+            <select id="wGradeSel">
+              <option value="1">1年</option>
+              <option value="2">2年</option>
+              <option value="3">3年</option>
+              <option value="4">4年</option>
+            </select>
+          </div>
+          <div style="min-width:220px">
+            <input id="wLessonSel" placeholder="課（例: 1, 2, L1 など）" />
+          </div>
+          <div style="min-width:140px">
+            <select id="wStageSel">
+              <option value="pre1">pre1（単語1）</option>
+              <option value="pre2">pre2（単語2）</option>
+              <option value="review">review（復習）</option>
+            </select>
+          </div>
+          <button class="btn secondary" id="btnLoadWords" type="button">読み込み</button>
+        </div>
+        <div class="cardBody">
+          <div id="wordsMsg" class="muted">学年・課・stage を指定して「読み込み」</div>
+          <div style="overflow:auto;margin-top:10px">
+            <table>
+              <thead>
+                <tr>
+                  <th style="min-width:160px">単語（表示）</th>
+                  <th style="min-width:240px">正解（meaning）</th>
+                  <th style="min-width:340px">誤選択肢（wrongs）</th>
+                  <th class="right" style="min-width:150px">操作</th>
+                </tr>
+              </thead>
+              <tbody id="wordsTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="cardHead">
+          <h2>単語を追加</h2>
+          <div class="space"></div>
+          <span class="chip"><span class="dot"></span>簡単追加</span>
+        </div>
+        <div class="cardBody">
+          <div class="formRow">
+            <div>
+              <label>単語（word）</label>
+              <input id="addWord" placeholder="例：苹果 / 学生に見せる語" />
+            </div>
+            <div>
+              <label>正解（meaning）</label>
+              <input id="addMeaning" placeholder="例：りんご" />
+            </div>
+          </div>
+          <div style="margin-top:10px">
+            <label>誤選択肢（wrongs）※ 2個以上、改行 or カンマ区切りOK</label>
+            <textarea id="addWrongs" placeholder="例：みかん, ぶどう, もも"></textarea>
+          </div>
+          <div class="hr"></div>
+          <div class="row">
+            <button class="btn" id="btnAddWord" type="button">追加</button>
+            <button class="btn secondary" id="btnClearAdd" type="button">クリア</button>
+            <div class="space"></div>
+            <span class="muted">追加先：<span id="addPath" class="mono">-</span></span>
+          </div>
+          <div id="addMsg" class="muted" style="margin-top:10px">—</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Student Detail Modal -->
+<div class="back" id="detailBack" aria-label="student detail">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modalHead">
+      <h3 id="detailTitle">学生詳細</h3>
+      <span class="tag" id="detailGradeTag">-</span>
+      <span class="tag" id="detailSumTag">-</span>
+      <div class="space"></div>
+      <button class="btn secondary" id="btnDetailClose" type="button">閉じる</button>
+    </div>
+    <div class="modalBody">
+      <div id="detailMsg" class="muted">読み込み中…</div>
+      <div class="hr"></div>
+      <div id="detailBody"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Login Overlay -->
+<div class="back" id="loginBack" aria-label="login" style="display:flex">
+  <div class="loginCard" role="dialog" aria-modal="true">
+    <div class="loginHead">
+      <div class="t1">教師ログイン</div>
+      <div class="muted">メール/パスワード（Firebase Authentication）</div>
+    </div>
+    <div class="loginBody">
+      <div class="formRow">
+        <div>
+          <label>メール</label>
+          <input id="loginEmail" placeholder="teacher@example.com" />
+        </div>
+        <div>
+          <label>パスワード</label>
+          <input id="loginPass" type="password" placeholder="••••••••" />
+        </div>
+      </div>
+      <div id="loginMsg" class="muted" style="margin-top:10px">—</div>
+      <div class="hr"></div>
+      <div class="small">
+        ※ ログイン状態は保存しません（ブラウザを更新すると再ログインが必要）。<br>
+        ※ 学生ページ側には教師導線はありません（URL直打ちのみ）。
+      </div>
+    </div>
+    <div class="loginFoot">
+      <button class="btn secondary" id="btnLoginTest" type="button">接続テスト</button>
+      <button class="btn" id="btnLogin" type="button">ログイン</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+  import {
+    getDatabase, ref, get, set, update, remove, push
+  } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+  import {
+    getAuth, setPersistence, inMemoryPersistence,
+    signInWithEmailAndPassword, signOut, onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+
+  /* ========= Firebase設定（学生ページと同じにする） ========= */
+  const firebaseConfig = {
+    apiKey: "AIzaSyARne6Jb4ePPe7vbvLryE_P-jZ2umI3LFc",
+    authDomain: "kakapo-8d297.firebaseapp.com",
+    databaseURL: "https://kakapo-8d297-default-rtdb.firebaseio.com",
+    projectId: "kakapo-8d297",
+    storageBucket: "kakapo-8d297.firebasestorage.app",
+    messagingSenderId: "702767130857",
+    appId: "1:702767130857:web:54472c8d5ea09bd3cf6878"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getDatabase(app);
+  const auth = getAuth(app);
+
+  // ログイン状態を保存しない（リロードで必ず再ログイン）
+  await setPersistence(auth, inMemoryPersistence);
+
+  const MAX_GRADE = 4;
+
+  const P = {
+    students: (sk)=> `students/${sk}`,
+    studentsRoot: ()=> `students`,
+    wordsGrade: (g)=> `words/${g}`,
+    wordsStage: (g, lesson, stage)=> `words/${g}/${lesson}/${stage}`,
+    progressGrade: (sk,g)=> `progress/${sk}/${g}`,
+  };
+
+  const $ = (id)=> document.getElementById(id);
+  const esc = (s)=> String(s ?? "")
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;").replaceAll("'","&#39;");
+  const clamp = (v,a,b)=> Math.max(a, Math.min(b, v));
+  const nowTs = ()=> Date.now();
+
+  function fmtTime(ts){
+    if (!ts) return "-";
+    try{
+      const d = new Date(ts);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth()+1).padStart(2,"0");
+      const dd = String(d.getDate()).padStart(2,"0");
+      const hh = String(d.getHours()).padStart(2,"0");
+      const mi = String(d.getMinutes()).padStart(2,"0");
+      return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+    }catch(e){ return "-"; }
+  }
+  function pctClass(p){
+    if (!Number.isFinite(p)) return "bad";
+    if (p >= 0.8) return "good";
+    if (p >= 0.45) return "mid";
+    return "bad";
+  }
+  function pctText01(p){
+    if (!Number.isFinite(p)) return "--%";
+    return `${Math.round(clamp(p,0,1)*100)}%`;
+  }
+
+  async function dbGet(path){
+    const snap = await get(ref(db, path));
+    return snap.exists() ? snap.val() : null;
+  }
+  async function dbSet(path, v){ await set(ref(db, path), v); }
+  async function dbUpdate(path, patch){ await update(ref(db, path), patch); }
+  async function dbRemove(path){ await remove(ref(db, path)); }
+
+  // UI refs
+  const dbHost = $("dbHost");
+  const who = $("who");
+  const tabs = $("tabs");
+  const btnReload = $("btnReload");
+  const btnLogout = $("btnLogout");
+
+  const tab_students = $("tab_students");
+  const tab_words = $("tab_words");
+
+  const loginBack = $("loginBack");
+  const loginEmail = $("loginEmail");
+  const loginPass  = $("loginPass");
+  const loginMsg   = $("loginMsg");
+  const btnLogin   = $("btnLogin");
+  const btnLoginTest = $("btnLoginTest");
+
+  const appRoot = $("app");
+
+  // Students
+  const stuGradeSel = $("stuGradeSel");
+  const stuSearch = $("stuSearch");
+  const btnRefreshStudents = $("btnRefreshStudents");
+  const stuMsg = $("stuMsg");
+  const stuTbody = $("stuTbody");
+  const kStuCount = $("kStuCount");
+  const kActive24 = $("kActive24");
+  const kLessons  = $("kLessons");
+  const kWords    = $("kWords");
+
+  // Detail modal
+  const detailBack = $("detailBack");
+  const detailTitle = $("detailTitle");
+  const detailGradeTag = $("detailGradeTag");
+  const detailSumTag = $("detailSumTag");
+  const detailMsg = $("detailMsg");
+  const detailBody = $("detailBody");
+  const btnDetailClose = $("btnDetailClose");
+
+  // Words
+  const wGradeSel = $("wGradeSel");
+  const wLessonSel = $("wLessonSel");
+  const wStageSel = $("wStageSel");
+  const btnLoadWords = $("btnLoadWords");
+  const wordsMsg = $("wordsMsg");
+  const wordsTbody = $("wordsTbody");
+
+  const addWord = $("addWord");
+  const addMeaning = $("addMeaning");
+  const addWrongs = $("addWrongs");
+  const btnAddWord = $("btnAddWord");
+  const btnClearAdd = $("btnClearAdd");
+  const addPath = $("addPath");
+  const addMsg = $("addMsg");
+
+  // show db host
+  try{
+    const url = new URL(firebaseConfig.databaseURL);
+    dbHost.textContent = url.host;
+  }catch(e){
+    dbHost.textContent = "RealtimeDB";
+  }
+
+  function setTab(name){
+    [...tabs.querySelectorAll(".tab")].forEach(b=>{
+      b.classList.toggle("active", b.dataset.tab === name);
+    });
+    tab_students.style.display = (name==="students") ? "" : "none";
+    tab_words.style.display = (name==="words") ? "" : "none";
+  }
+  tabs.addEventListener("click", (e)=>{
+    const b = e.target.closest(".tab");
+    if (!b) return;
+    setTab(b.dataset.tab);
+  });
+
+  btnReload.onclick = ()=> location.reload();
+  btnLogout.onclick = async ()=>{
+    try{ await signOut(auth); }catch(e){}
+  };
+
+  // login
+  function setLoginMsg(s, ok=true){
+    loginMsg.textContent = s;
+    loginMsg.className = ok ? "okline" : "badline";
+  }
+  btnLoginTest.onclick = async ()=>{
+    try{
+      setLoginMsg("DB接続テスト中…");
+      await dbGet("words"); // 読めるか試す
+      setLoginMsg("OK：DBに接続できました");
+    }catch(e){
+      setLoginMsg("NG：DBに接続できません（ルール/ネット制限/URL間違い）", false);
+    }
+  };
+  btnLogin.onclick = async ()=>{
+    const email = String(loginEmail.value||"").trim();
+    const pass  = String(loginPass.value||"");
+    if (!email || !pass){
+      setLoginMsg("メールとパスワードを入力して", false);
+      return;
+    }
+    try{
+      setLoginMsg("ログイン中…");
+      await signInWithEmailAndPassword(auth, email, pass);
+      // onAuthStateChangedで画面切替
+    }catch(e){
+      setLoginMsg("ログイン失敗：メール/パスワード、またはAuth未設定", false);
+    }
+  };
+
+  onAuthStateChanged(auth, async (user)=>{
+    if (!user){
+      who.textContent = "未";
+      tabs.style.display = "none";
+      btnReload.style.display = "none";
+      btnLogout.style.display = "none";
+      appRoot.style.display = "none";
+      loginBack.style.display = "flex";
+      setLoginMsg("—", true);
+      return;
+    }
+    who.textContent = user.email || "teacher";
+    tabs.style.display = "";
+    btnReload.style.display = "";
+    btnLogout.style.display = "";
+    appRoot.style.display = "";
+    loginBack.style.display = "none";
+    setTab("students");
+
+    // 初回ロード
+    await refreshStudents();
+  });
+
+  // ---------- Students ----------
+  let _wordsCacheByGrade = new Map(); // grade -> wordsGradeObj
+  function parseLessonKeys(wordsGradeObj){
+    if (!wordsGradeObj || typeof wordsGradeObj !== "object") return [];
+    return Object.keys(wordsGradeObj).map(x=>String(x).trim()).filter(Boolean).sort((a,b)=>{
+      const ax = parseFloat(a.replace(/[^\d.]/g,"")) || 9999;
+      const bx = parseFloat(b.replace(/[^\d.]/g,"")) || 9999;
+      return ax - bx;
+    });
+  }
+  function countWordsInGrade(wordsGradeObj){
+    const lessons = parseLessonKeys(wordsGradeObj);
+    let totalWords = 0;
+    for (const lesson of lessons){
+      const obj = wordsGradeObj?.[lesson] || {};
+      for (const st of ["pre1","pre2","review"]){
+        const sObj = obj?.[st] || {};
+        if (sObj && typeof sObj === "object") totalWords += Object.keys(sObj).length;
+      }
+    }
+    return { lessonCount: lessons.length, wordCount: totalWords, lessons };
+  }
+
+  async function getWordsGradeCached(grade){
+    grade = String(grade);
+    if (_wordsCacheByGrade.has(grade)) return _wordsCacheByGrade.get(grade);
+    const wg = await dbGet(P.wordsGrade(grade)) || {};
+    _wordsCacheByGrade.set(grade, wg);
+    return wg;
+  }
+
+  function sumProgressForGrade(wordsGradeObj, progressGradeObj){
+    // 合算サマリ：pre1+pre2 の mastered / 総数
+    const lessons = parseLessonKeys(wordsGradeObj);
+    let total = 0;
+    let mastered = 0;
+
+    for (const lesson of lessons){
+      const wLesson = wordsGradeObj?.[lesson] || {};
+      for (const st of ["pre1","pre2"]){
+        const stWords = wLesson?.[st] || {};
+        const stIds = (stWords && typeof stWords === "object") ? Object.keys(stWords) : [];
+        total += stIds.length;
+
+        const pStage = progressGradeObj?.[lesson]?.[st] || {};
+        for (const wid of stIds){
+          if (pStage?.[wid]?.mastered === true) mastered += 1;
+        }
+      }
+    }
+    const rate = total>0 ? clamp(mastered/total,0,1) : 0;
+    return { total, mastered, rate };
+  }
+
+  function filterByName(list, q){
+    q = String(q||"").trim().toLowerCase();
+    if (!q) return list;
+    return list.filter(x=>{
+      const n = String(x?.name||"").toLowerCase();
+      return n.includes(q);
+    });
+  }
+
+  async function refreshStudents(){
+    const grade = Number(stuGradeSel.value || "1");
+    const q = String(stuSearch.value || "").trim();
+
+    stuMsg.textContent = "読み込み中…";
+    stuTbody.innerHTML = "";
+    kStuCount.textContent = "-";
+    kActive24.textContent = "-";
+    kLessons.textContent = "-";
+    kWords.textContent = "-";
+
+    const wg = await getWordsGradeCached(grade);
+    const { lessonCount, wordCount } = countWordsInGrade(wg);
+    kLessons.textContent = String(lessonCount);
+    kWords.textContent = String(wordCount);
+
+    const studentsObj = await dbGet(P.studentsRoot()) || {};
+    let list = [];
+    if (studentsObj && typeof studentsObj === "object"){
+      for (const sk of Object.keys(studentsObj)){
+        const s = studentsObj[sk];
+        if (!s) continue;
+        list.push({
+          studentKey: sk,
+          name: String(s.name||""),
+          lastSeenAt: Number(s.lastSeenAt||0),
+          createdAt: Number(s.createdAt||0),
+        });
+      }
+    }
+    list.sort((a,b)=> (b.lastSeenAt||0) - (a.lastSeenAt||0));
+    list = filterByName(list, q);
+
+    const since24 = nowTs() - 24*60*60*1000;
+    const active24 = list.filter(x => (x.lastSeenAt||0) >= since24).length;
+
+    kStuCount.textContent = String(list.length);
+    kActive24.textContent = String(active24);
+
+    // progress 合算を軽量に出す（学生ごとに progress/{sk}/{grade} を読む）
+    const rows = [];
+    for (const s of list){
+      let sum = { total:0, mastered:0, rate:0 };
+      try{
+        const pg = await dbGet(P.progressGrade(s.studentKey, grade)) || {};
+        sum = sumProgressForGrade(wg, pg);
+      }catch(e){}
+      rows.push({ ...s, sum });
+    }
+
+    if (rows.length === 0){
+      stuMsg.textContent = "学生がいません（students にデータなし）";
+      return;
+    }
+    stuMsg.textContent = `表示：${rows.length} 人（${grade}年）`;
+
+    for (const r of rows){
+      const tr = document.createElement("tr");
+      tr.className = "trBtn";
+      tr.innerHTML = `
+        <td>
+          <div style="font-weight:980">${esc(r.name || "(no name)")}</div>
+          <div class="mono small">${esc(r.studentKey)}</div>
+        </td>
+        <td>
+          <div>${esc(fmtTime(r.lastSeenAt))}</div>
+          <div class="small">作成: ${esc(fmtTime(r.createdAt))}</div>
+        </td>
+        <td>
+          <span class="pct ${pctClass(r.sum.rate)}">${esc(pctText01(r.sum.rate))}</span>
+          <span class="small">（${r.sum.mastered}/${r.sum.total}）</span>
+        </td>
+        <td class="right">
+          <button class="btn secondary" data-act="detail" type="button">詳細</button>
+        </td>
+      `;
+      tr.addEventListener("click", async (e)=>{
+        const b = e.target.closest("button");
+        if (b && b.dataset.act === "detail"){
+          e.stopPropagation();
+        }
+        await openStudentDetail(r.studentKey, r.name, grade, wg);
+      });
+      stuTbody.appendChild(tr);
+    }
+  }
+
+  btnRefreshStudents.onclick = refreshStudents;
+  stuGradeSel.onchange = refreshStudents;
+  stuSearch.oninput = ()=>{
+    // 入力中の重い再計算を避けるため軽いデバウンス
+    if (window.__t) clearTimeout(window.__t);
+    window.__t = setTimeout(refreshStudents, 350);
+  };
+
+  // ---------- Student Detail Modal ----------
+  btnDetailClose.onclick = ()=>{ detailBack.style.display = "none"; };
+  detailBack.addEventListener("click", (e)=>{
+    if (e.target === detailBack) detailBack.style.display = "none";
+  });
+
+  async function openStudentDetail(studentKey, name, grade, wordsGradeObj){
+    detailBack.style.display = "flex";
+    detailTitle.textContent = `学生詳細：${name || "(no name)"}`;
+    detailGradeTag.textContent = `${grade}年`;
+    detailSumTag.textContent = "集計中…";
+    detailMsg.textContent = "読み込み中…";
+    detailBody.innerHTML = "";
+
+    const pg = await dbGet(P.progressGrade(studentKey, grade)) || {};
+    const lessons = parseLessonKeys(wordsGradeObj);
+
+    // KPI
+    let totalWordsPre = 0, masteredPre = 0;
+    let totalAll = 0, masteredAll = 0;
+
+    // build lesson cards
+    const parts = [];
+
+    for (const lesson of lessons){
+      const wLesson = wordsGradeObj?.[lesson] || {};
+      const pLesson = pg?.[lesson] || {};
+
+      const stageRows = [];
+      for (const st of ["pre1","pre2","review"]){
+        const wStage = wLesson?.[st] || {};
+        const ids = (wStage && typeof wStage === "object") ? Object.keys(wStage) : [];
+        const total = ids.length;
+
+        let mastered = 0;
+        const pStage = pLesson?.[st] || {};
+        for (const wid of ids){
+          if (pStage?.[wid]?.mastered === true) mastered += 1;
+        }
+
+        const rate = total>0 ? mastered/total : 0;
+
+        if (st === "pre1" || st === "pre2"){
+          totalWordsPre += total;
+          masteredPre += mastered;
+        }
+        totalAll += total;
+        masteredAll += mastered;
+
+        stageRows.push({ st, total, mastered, rate });
+      }
+
+      const preRate = (stageRows[0].total + stageRows[1].total) > 0
+        ? (stageRows[0].mastered + stageRows[1].mastered) / (stageRows[0].total + stageRows[1].total)
+        : 0;
+
+      // word detail (lazy: only show when requested button)
+      parts.push(`
+        <div class="card" style="margin-bottom:12px">
+          <div class="cardHead">
+            <h2>課：${esc(lesson)}</h2>
+            <span class="tag">pre1+pre2：<b class="pct ${pctClass(preRate)}" style="margin-left:6px">${esc(pctText01(preRate))}</b></span>
+            <div class="space"></div>
+            <button class="btn secondary" data-openwords="${esc(lesson)}" type="button">単語詳細を表示</button>
+          </div>
+          <div class="cardBody">
+            <div style="overflow:auto">
+              <table>
+                <thead>
+                  <tr>
+                    <th>stage</th>
+                    <th>達成度</th>
+                    <th>mastered/total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${stageRows.map(x=>`
+                    <tr>
+                      <td><span class="mono">${esc(x.st)}</span></td>
+                      <td><span class="pct ${pctClass(x.rate)}">${esc(pctText01(x.rate))}</span></td>
+                      <td>${x.mastered}/${x.total}</td>
+                    </tr>
+                  `).join("")}
+                </tbody>
+              </table>
+            </div>
+            <div id="words_${esc(lesson)}" style="display:none;margin-top:12px"></div>
+          </div>
+        </div>
+      `);
+    }
+
+    // Summary tags
+    const sum = totalWordsPre>0 ? masteredPre/totalWordsPre : 0;
+    detailSumTag.textContent = `学年サマリ pre1+pre2：${pctText01(sum)}（${masteredPre}/${totalWordsPre}）`;
+    detailMsg.textContent = (lessons.length ? "" : "この学年に単語（words）がありません。単語管理で追加してください。");
+    detailBody.innerHTML = parts.join("");
+
+    // bind "単語詳細"
+    [...detailBody.querySelectorAll("button[data-openwords]")].forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        const lesson = btn.dataset.openwords;
+        const box = $("words_"+lesson);
+        if (!box) return;
+        if (box.dataset.loaded === "1"){
+          box.style.display = (box.style.display === "none") ? "" : "none";
+          return;
+        }
+        btn.disabled = true;
+        btn.textContent = "読み込み中…";
+        try{
+          const html = buildWordDetailTable(wordsGradeObj, pg, lesson);
+          box.innerHTML = html;
+          box.dataset.loaded = "1";
+          box.style.display = "";
+          btn.textContent = "単語詳細を隠す";
+        }catch(e){
+          box.innerHTML = `<div class="badline">単語詳細の生成に失敗</div>`;
+          box.style.display = "";
+          btn.textContent = "単語詳細を表示";
+        }finally{
+          btn.disabled = false;
+        }
+      });
+    });
+  }
+
+  function buildWordDetailTable(wordsGradeObj, progressGradeObj, lesson){
+    const wLesson = wordsGradeObj?.[lesson] || {};
+    const pLesson = progressGradeObj?.[lesson] || {};
+
+    const rows = [];
+    for (const st of ["pre1","pre2","review"]){
+      const wStage = wLesson?.[st] || {};
+      const ids = (wStage && typeof wStage === "object") ? Object.keys(wStage) : [];
+      const pStage = pLesson?.[st] || {};
+      for (const wid of ids){
+        const w = wStage?.[wid] || {};
+        const p = pStage?.[wid] || {};
+        const word = String(w.word||"");
+        const meaning = String(w.meaning||"");
+        const cc = Number(p.correctCount||0);
+        const wc = Number(p.wrongCount||0);
+        const mastered = (p.mastered===true);
+        rows.push({ st, wid, word, meaning, cc, wc, mastered, lastAt: Number(p.lastAt||0) });
+      }
+    }
+    rows.sort((a,b)=> (b.lastAt||0) - (a.lastAt||0));
+
+    if (rows.length === 0){
+      return `<div class="notice">この課には単語がありません（または進捗がまだありません）。</div>`;
+    }
+
+    return `
+      <div style="overflow:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>stage</th>
+              <th>単語</th>
+              <th>正解</th>
+              <th class="right">正解数</th>
+              <th class="right">誤答数</th>
+              <th>mastered</th>
+              <th>最終</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(r=>`
+              <tr>
+                <td><span class="mono">${esc(r.st)}</span></td>
+                <td>${esc(r.word)}</td>
+                <td>${esc(r.meaning)}</td>
+                <td class="right">${r.cc}</td>
+                <td class="right">${r.wc}</td>
+                <td>${r.mastered ? '<span class="pct good">true</span>' : '<span class="pct bad">false</span>'}</td>
+                <td class="small">${esc(fmtTime(r.lastAt))}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  // ---------- Words ----------
+  function currentWordsPath(){
+    const g = String(wGradeSel.value||"1").trim();
+    const lesson = String(wLessonSel.value||"").trim();
+    const st = String(wStageSel.value||"pre1").trim();
+    if (!lesson) return null;
+    return P.wordsStage(g, lesson, st);
+  }
+  function updateAddPath(){
+    const p = currentWordsPath();
+    addPath.textContent = p ? p : "(学年/課/stage を指定)";
+  }
+  wGradeSel.onchange = updateAddPath;
+  wLessonSel.oninput = updateAddPath;
+  wStageSel.onchange = updateAddPath;
+  updateAddPath();
+
+  function parseWrongs(text){
+    const raw = String(text||"").replaceAll("，", ",");
+    const lines = raw.split(/\n|,/).map(x=>x.trim()).filter(Boolean);
+    // 重複除去
+    const out = [];
+    const seen = new Set();
+    for (const s of lines){
+      const k = s.toLowerCase();
+      if (seen.has(k)) continue;
+      seen.add(k);
+      out.push(s);
+    }
+    return out;
+  }
+
+  btnLoadWords.onclick = async ()=>{
+    const p = currentWordsPath();
+    wordsTbody.innerHTML = "";
+    if (!p){
+      wordsMsg.textContent = "課（lesson）を入力してください";
+      return;
+    }
+    wordsMsg.textContent = "読み込み中…";
+    try{
+      const obj = await dbGet(p) || {};
+      const ids = (obj && typeof obj === "object") ? Object.keys(obj) : [];
+      if (ids.length === 0){
+        wordsMsg.textContent = "単語がありません（追加してください）";
+        return;
+      }
+      wordsMsg.textContent = `単語：${ids.length} 件`;
+
+      for (const id of ids){
+        const w = obj[id] || {};
+        const word = String(w.word||"");
+        const meaning = String(w.meaning||"");
+        const wrongs = Array.isArray(w.wrongs) ? w.wrongs : [];
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><input data-k="word" value="${esc(word)}"></td>
+          <td><input data-k="meaning" value="${esc(meaning)}"></td>
+          <td><input data-k="wrongs" value="${esc(wrongs.join(", "))}"></td>
+          <td class="right">
+            <button class="btn secondary" data-act="save" type="button">保存</button>
+            <button class="btn danger" data-act="del" type="button">削除</button>
+          </td>
+        `;
+        tr.querySelector('button[data-act="save"]').onclick = async ()=>{
+          const w2 = tr.querySelector('input[data-k="word"]').value.trim();
+          const m2 = tr.querySelector('input[data-k="meaning"]').value.trim();
+          const ws = parseWrongs(tr.querySelector('input[data-k="wrongs"]').value);
+          if (!w2 || !m2 || ws.length < 2){
+            wordsMsg.textContent = "保存NG：word/meaning と wrongs(2個以上) が必要";
+            return;
+          }
+          wordsMsg.textContent = "保存中…";
+          try{
+            await dbSet(p + "/" + id, { word:w2, meaning:m2, wrongs: ws });
+            wordsMsg.textContent = "保存OK";
+          }catch(e){
+            wordsMsg.textContent = "保存失敗（DBルール/ネット制限）";
+          }
+        };
+        tr.querySelector('button[data-act="del"]').onclick = async ()=>{
+          if (!confirm("削除しますか？（元に戻せません）")) return;
+          wordsMsg.textContent = "削除中…";
+          try{
+            await dbRemove(p + "/" + id);
+            tr.remove();
+            wordsMsg.textContent = "削除OK";
+          }catch(e){
+            wordsMsg.textContent = "削除失敗（DBルール/ネット制限）";
+          }
+        };
+        wordsTbody.appendChild(tr);
+      }
+    }catch(e){
+      wordsMsg.textContent = "読み込み失敗（DBルール/ネット制限）";
+    }
+  };
+
+  btnAddWord.onclick = async ()=>{
+    const p = currentWordsPath();
+    if (!p){
+      addMsg.textContent = "追加NG：課（lesson）を入力して";
+      addMsg.className = "badline";
+      return;
+    }
+    const w = String(addWord.value||"").trim();
+    const m = String(addMeaning.value||"").trim();
+    const ws = parseWrongs(addWrongs.value);
+    if (!w || !m || ws.length < 2){
+      addMsg.textContent = "追加NG：word/meaning と wrongs(2個以上) が必要";
+      addMsg.className = "badline";
+      return;
+    }
+    addMsg.textContent = "追加中…";
+    addMsg.className = "notice";
+    try{
+      const key = push(ref(db, p)).key;
+      await dbSet(p + "/" + key, { word:w, meaning:m, wrongs: ws });
+      addMsg.textContent = "追加OK（一覧を再読み込みして確認して）";
+      addMsg.className = "okline";
+      addWord.value = "";
+      addMeaning.value = "";
+      addWrongs.value = "";
+    }catch(e){
+      addMsg.textContent = "追加失敗（DBルール/ネット制限）";
+      addMsg.className = "badline";
+    }
+  };
+
+  btnClearAdd.onclick = ()=>{
+    addWord.value = "";
+    addMeaning.value = "";
+    addWrongs.value = "";
+    addMsg.textContent = "—";
+    addMsg.className = "muted";
+  };
+
+</script>
+</body>
+</html>
