@@ -387,6 +387,31 @@
           <span class="chip"><span class="dot"></span>簡単追加</span>
         </div>
         <div class="cardBody">
+
+          <!-- ✅ 一括追加 -->
+          <div>
+            <label>一括追加（1行=1問 / 「、」区切り）</label>
+            <textarea id="bulkAddText" placeholder="例：
+苹果、りんご、みかん、ぶどう
+学生、学生、先生、図書館
+跑步、走る、食べる、寝る"></textarea>
+            <div class="small" style="margin-top:6px">
+              形式：<span class="mono">問題、正解、誤答1、誤答2（誤答は2個以上）</span>　※誤答は3個以上もOK
+            </div>
+            <div class="row" style="margin-top:10px">
+              <button class="btn secondary" id="btnBulkPreview" type="button">プレビュー</button>
+              <button class="btn" id="btnBulkAdd" type="button">一括追加</button>
+              <button class="btn secondary" id="btnBulkClear" type="button">クリア</button>
+              <div class="space"></div>
+              <span class="muted">追加先：<span id="addPath" class="mono">-</span></span>
+            </div>
+            <div id="bulkMsg" class="muted" style="margin-top:10px">—</div>
+            <div id="bulkPreview" style="margin-top:10px"></div>
+          </div>
+
+          <div class="hr"></div>
+
+          <!-- ✅ 1件ずつ追加（従来） -->
           <div class="formRow">
             <div>
               <label>単語（word）</label>
@@ -398,7 +423,7 @@
             </div>
           </div>
           <div style="margin-top:10px">
-            <label>誤選択肢（wrongs）※ 2個以上、改行 or カンマ区切りOK</label>
+            <label>誤選択肢（wrongs）※ 2個以上、改行 or カンマ（, / 、）区切りOK</label>
             <textarea id="addWrongs" placeholder="例：みかん, ぶどう, もも"></textarea>
           </div>
           <div class="hr"></div>
@@ -406,7 +431,7 @@
             <button class="btn" id="btnAddWord" type="button">追加</button>
             <button class="btn secondary" id="btnClearAdd" type="button">クリア</button>
             <div class="space"></div>
-            <span class="muted">追加先：<span id="addPath" class="mono">-</span></span>
+            <span class="muted">追加先：<span class="mono" id="addPath2">（上の一括追加と同じ）</span></span>
           </div>
           <div id="addMsg" class="muted" style="margin-top:10px">—</div>
         </div>
@@ -541,6 +566,7 @@
   async function dbSet(path, v){ await set(ref(db, path), v); }
   async function dbUpdate(path, patch){ await update(ref(db, path), patch); }
   async function dbRemove(path){ await remove(ref(db, path)); }
+  async function dbMultiUpdate(patch){ await update(ref(db), patch); } // ✅ 複数パスを一括更新
 
   // UI refs
   const dbHost = $("dbHost");
@@ -589,13 +615,23 @@
   const wordsMsg = $("wordsMsg");
   const wordsTbody = $("wordsTbody");
 
+  // Add single
   const addWord = $("addWord");
   const addMeaning = $("addMeaning");
   const addWrongs = $("addWrongs");
   const btnAddWord = $("btnAddWord");
   const btnClearAdd = $("btnClearAdd");
-  const addPath = $("addPath");
+  const addPath = $("addPath");     // ✅ 一括追加の表示も兼ねる
+  const addPath2 = $("addPath2");   // ✅ 1件追加側の表示
   const addMsg = $("addMsg");
+
+  // Bulk
+  const bulkAddText = $("bulkAddText");
+  const btnBulkPreview = $("btnBulkPreview");
+  const btnBulkAdd = $("btnBulkAdd");
+  const btnBulkClear = $("btnBulkClear");
+  const bulkMsg = $("bulkMsg");
+  const bulkPreview = $("bulkPreview");
 
   // show db host
   try{
@@ -829,7 +865,6 @@
   btnRefreshStudents.onclick = refreshStudents;
   stuGradeSel.onchange = refreshStudents;
   stuSearch.oninput = ()=>{
-    // 入力中の重い再計算を避けるため軽いデバウンス
     if (window.__t) clearTimeout(window.__t);
     window.__t = setTimeout(refreshStudents, 350);
   };
@@ -851,11 +886,8 @@
     const pg = await dbGet(P.progressGrade(studentKey, grade)) || {};
     const lessons = parseLessonKeys(wordsGradeObj);
 
-    // KPI
     let totalWordsPre = 0, masteredPre = 0;
-    let totalAll = 0, masteredAll = 0;
 
-    // build lesson cards
     const parts = [];
 
     for (const lesson of lessons){
@@ -880,8 +912,6 @@
           totalWordsPre += total;
           masteredPre += mastered;
         }
-        totalAll += total;
-        masteredAll += mastered;
 
         stageRows.push({ st, total, mastered, rate });
       }
@@ -890,7 +920,6 @@
         ? (stageRows[0].mastered + stageRows[1].mastered) / (stageRows[0].total + stageRows[1].total)
         : 0;
 
-      // word detail (lazy: only show when requested button)
       parts.push(`
         <div class="card" style="margin-bottom:12px">
           <div class="cardHead">
@@ -926,13 +955,11 @@
       `);
     }
 
-    // Summary tags
     const sum = totalWordsPre>0 ? masteredPre/totalWordsPre : 0;
     detailSumTag.textContent = `学年サマリ pre1+pre2：${pctText01(sum)}（${masteredPre}/${totalWordsPre}）`;
     detailMsg.textContent = (lessons.length ? "" : "この学年に単語（words）がありません。単語管理で追加してください。");
     detailBody.innerHTML = parts.join("");
 
-    // bind "単語詳細"
     [...detailBody.querySelectorAll("button[data-openwords]")].forEach(btn=>{
       btn.addEventListener("click", async ()=>{
         const lesson = btn.dataset.openwords;
@@ -1029,27 +1056,214 @@
   }
   function updateAddPath(){
     const p = currentWordsPath();
-    addPath.textContent = p ? p : "(学年/課/stage を指定)";
+    const text = p ? p : "(学年/課/stage を指定)";
+    addPath.textContent = text;
+    addPath2.textContent = text;
   }
   wGradeSel.onchange = updateAddPath;
   wLessonSel.oninput = updateAddPath;
   wStageSel.onchange = updateAddPath;
   updateAddPath();
 
-  function parseWrongs(text){
-    const raw = String(text||"").replaceAll("，", ",");
-    const lines = raw.split(/\n|,/).map(x=>x.trim()).filter(Boolean);
-    // 重複除去
+  function normalizeDelims(text){
+    return String(text||"")
+      .replaceAll("，", ",")
+      .replaceAll("、", ","); // ✅ 「、」もカンマ扱い
+  }
+
+  function uniqStrings(list){
     const out = [];
     const seen = new Set();
-    for (const s of lines){
-      const k = s.toLowerCase();
+    for (const s of list){
+      const v = String(s||"").trim();
+      if (!v) continue;
+      const k = v.toLowerCase();
       if (seen.has(k)) continue;
       seen.add(k);
-      out.push(s);
+      out.push(v);
     }
     return out;
   }
+
+  function parseWrongs(text){
+    const raw = normalizeDelims(text);
+    const parts = raw.split(/\n|,/).map(x=>x.trim()).filter(Boolean);
+    return uniqStrings(parts);
+  }
+
+  // ✅ 1行「問題、正解、A、B...」を解釈
+  function parseBulkLine(line){
+    const raw = normalizeDelims(line).trim();
+    if (!raw) return { ok:false, reason:"空行", line };
+    // カンマ split（= 「、」も含まれる）
+    const parts = raw.split(",").map(x=>x.trim()).filter(Boolean);
+    if (parts.length < 4){
+      return { ok:false, reason:"項目不足（問題、正解、誤答1、誤答2 が必要）", line };
+    }
+    const word = parts[0];
+    const meaning = parts[1];
+    let wrongs = uniqStrings(parts.slice(2));
+
+    // 正解が誤答に混ざってたら消す（ありがち）
+    wrongs = wrongs.filter(w => w.toLowerCase() !== meaning.toLowerCase());
+
+    if (!word || !meaning || wrongs.length < 2){
+      return { ok:false, reason:"問題/正解/誤答(2個以上) が必要", line };
+    }
+    return { ok:true, word, meaning, wrongs, line };
+  }
+
+  function parseBulkText(text){
+    const lines = String(text||"").split(/\r?\n/);
+    const ok = [];
+    const bad = [];
+    lines.forEach((ln, idx)=>{
+      const t = ln.trim();
+      if (!t) return;
+      const r = parseBulkLine(t);
+      if (r.ok) ok.push({ ...r, idx: idx+1 });
+      else bad.push({ ...r, idx: idx+1 });
+    });
+    return { ok, bad };
+  }
+
+  function setBulkMsg(s, ok=true){
+    bulkMsg.textContent = s;
+    bulkMsg.className = ok ? "okline" : "badline";
+  }
+
+  function renderBulkPreview(parsed){
+    const { ok, bad } = parsed;
+    const parts = [];
+
+    if (ok.length){
+      parts.push(`
+        <div class="okline">OK：${ok.length} 件</div>
+        <div style="overflow:auto;margin-top:10px">
+          <table>
+            <thead>
+              <tr>
+                <th style="min-width:60px">行</th>
+                <th style="min-width:180px">問題</th>
+                <th style="min-width:220px">正解</th>
+                <th>誤答</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${ok.map(x=>`
+                <tr>
+                  <td class="mono">${x.idx}</td>
+                  <td>${esc(x.word)}</td>
+                  <td>${esc(x.meaning)}</td>
+                  <td>${esc(x.wrongs.join(" / "))}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `);
+    }else{
+      parts.push(`<div class="notice">OKの行がありません（形式を確認して）</div>`);
+    }
+
+    if (bad.length){
+      parts.push(`
+        <div class="hr"></div>
+        <div class="badline">NG：${bad.length} 件（この行は追加されません）</div>
+        <div style="overflow:auto;margin-top:10px">
+          <table>
+            <thead>
+              <tr>
+                <th style="min-width:60px">行</th>
+                <th style="min-width:220px">理由</th>
+                <th>内容</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${bad.map(x=>`
+                <tr>
+                  <td class="mono">${x.idx}</td>
+                  <td>${esc(x.reason)}</td>
+                  <td class="mono">${esc(x.line)}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `);
+    }
+
+    bulkPreview.innerHTML = parts.join("");
+  }
+
+  btnBulkPreview.onclick = ()=>{
+    const p = currentWordsPath();
+    if (!p){
+      setBulkMsg("プレビューNG：課（lesson）を入力して", false);
+      bulkPreview.innerHTML = "";
+      return;
+    }
+    const parsed = parseBulkText(bulkAddText.value);
+    if (!parsed.ok.length && !parsed.bad.length){
+      setBulkMsg("何も入力されていません", false);
+      bulkPreview.innerHTML = "";
+      return;
+    }
+    setBulkMsg(`プレビュー作成：OK ${parsed.ok.length} / NG ${parsed.bad.length}`, true);
+    renderBulkPreview(parsed);
+  };
+
+  btnBulkAdd.onclick = async ()=>{
+    const p = currentWordsPath();
+    if (!p){
+      setBulkMsg("追加NG：課（lesson）を入力して", false);
+      return;
+    }
+    const parsed = parseBulkText(bulkAddText.value);
+    const ok = parsed.ok;
+    const bad = parsed.bad;
+
+    if (!ok.length){
+      setBulkMsg("追加NG：追加できる行がありません（形式を確認して）", false);
+      renderBulkPreview(parsed);
+      return;
+    }
+
+    // 念のためプレビュー表示
+    renderBulkPreview(parsed);
+
+    const msg = `OK ${ok.length} 件を追加します。NG ${bad.length} 件は無視します。実行しますか？`;
+    if (!confirm(msg)) return;
+
+    setBulkMsg("一括追加中…", true);
+
+    try{
+      // ✅ 複数pushキーを作って multi-location update（まとめて書く）
+      const patch = {};
+      for (const row of ok){
+        const key = push(ref(db, p)).key;
+        patch[`${p}/${key}`] = { word: row.word, meaning: row.meaning, wrongs: row.wrongs };
+      }
+      await dbMultiUpdate(patch);
+
+      setBulkMsg(`追加OK：${ok.length} 件（NG ${bad.length} 件）`, true);
+
+      // 入力クリア（必要ならコメントアウトしてOK）
+      bulkAddText.value = "";
+
+      // 一覧を自動再読み込み（同じ条件のとき）
+      try{ btnLoadWords.click(); }catch(e){}
+    }catch(e){
+      setBulkMsg("追加失敗（DBルール/ネット制限）", false);
+    }
+  };
+
+  btnBulkClear.onclick = ()=>{
+    bulkAddText.value = "";
+    bulkPreview.innerHTML = "";
+    bulkMsg.textContent = "—";
+    bulkMsg.className = "muted";
+  };
 
   btnLoadWords.onclick = async ()=>{
     const p = currentWordsPath();
@@ -1142,6 +1356,7 @@
       addWord.value = "";
       addMeaning.value = "";
       addWrongs.value = "";
+      try{ btnLoadWords.click(); }catch(e){}
     }catch(e){
       addMsg.textContent = "追加失敗（DBルール/ネット制限）";
       addMsg.className = "badline";
