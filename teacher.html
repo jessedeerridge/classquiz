@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Wordlog Teacher Admin</title>
+  <style>
+    :root{
+      --bg:#0b0f1a; --card:#121a2b; --line:rgba(255,255,255,.12);
+      --text:#e9eefc; --muted:rgba(233,238,252,.75);
+      --ok:#2EBC00; --ng:#ff4d4d; --accent:#7aa7ff;
+      --shadow:0 18px 40px rgba(0,0,0,.35);
+      --radius:16px;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", sans-serif;
+    }
+    body{ margin:0; background:radial-gradient(1200px 700px at 50% -10%, rgba(122,167,255,.25), transparent 60%), var(--bg); color:var(--text); }
+    .wrap{ max-width:1100px; margin:0 auto; padding:24px; }
+    h1{ margin:0 0 12px; font-size:22px; letter-spacing:.02em; }
+    .grid{ display:grid; gap:14px; }
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:16px;
+    }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .row > *{ flex:0 0 auto; }
+    label{ display:block; font-size:12px; color:var(--muted); margin:8px 0 6px; }
+    input, select, textarea{
+      background:rgba(0,0,0,.25); color:var(--text);
+      border:1px solid rgba(255,255,255,.18);
+      border-radius:12px;
+      padding:10px 12px;
+      outline:none;
+    }
+    input:focus, select:focus, textarea:focus{ border-color:rgba(122,167,255,.6); box-shadow:0 0 0 4px rgba(122,167,255,.16); }
+    textarea{ width:100%; min-height:160px; resize:vertical; }
+    .btn{
+      border:1px solid rgba(255,255,255,.18);
+      background:rgba(255,255,255,.08);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      user-select:none;
+      transition:.12s transform, .12s background;
+    }
+    .btn:hover{ background:rgba(255,255,255,.12); transform:translateY(-1px); }
+    .btn.primary{ background:rgba(122,167,255,.22); border-color:rgba(122,167,255,.4); }
+    .btn.ok{ background:rgba(46,188,0,.18); border-color:rgba(46,188,0,.35); }
+    .btn.danger{ background:rgba(255,77,77,.14); border-color:rgba(255,77,77,.35); }
+    .muted{ color:var(--muted); font-size:13px; line-height:1.55; }
+    .pill{ display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.18); background:rgba(0,0,0,.18); }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .hide{ display:none !important; }
+    .tabs{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+    .tab{ padding:8px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.18); background:rgba(0,0,0,.18); cursor:pointer; }
+    .tab.active{ background:rgba(122,167,255,.25); border-color:rgba(122,167,255,.45); }
+    table{ width:100%; border-collapse:collapse; margin-top:10px; }
+    th,td{ border-bottom:1px solid rgba(255,255,255,.12); padding:10px 8px; text-align:left; font-size:13px; vertical-align:top; }
+    th{ color:var(--muted); font-weight:600; }
+    .right{ text-align:right; }
+    .toast{ margin-top:10px; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.18); background:rgba(0,0,0,.25); }
+    .toast.ok{ border-color:rgba(46,188,0,.35); background:rgba(46,188,0,.12); }
+    .toast.ng{ border-color:rgba(255,77,77,.35); background:rgba(255,77,77,.10); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Wordlog Teacher Admin</h1>
+
+    <!-- ===== Auth Card ===== -->
+    <div class="card grid" id="authCard">
+      <div class="row">
+        <span class="pill">状態：<span id="authState" class="mono">未ログイン</span></span>
+        <span class="pill">UID：<span id="uidLabel" class="mono">-</span></span>
+        <button class="btn" id="btnCopyUid">UIDコピー</button>
+      </div>
+
+      <div class="grid" style="grid-template-columns:1fr 1fr; gap:14px;">
+        <div class="card" style="box-shadow:none;">
+          <div class="muted">ログイン</div>
+          <label>メール</label>
+          <input id="loginEmail" type="email" placeholder="teacher@example.com" style="width:100%;" />
+          <label>パスワード</label>
+          <input id="loginPass" type="password" placeholder="password" style="width:100%;" />
+          <div class="row" style="margin-top:10px;">
+            <button class="btn primary" id="btnLogin">ログイン</button>
+            <button class="btn" id="btnReset">パスワード再発行</button>
+            <button class="btn" id="btnLogout">ログアウト</button>
+          </div>
+          <div id="authMsg" class="toast hide"></div>
+        </div>
+
+        <div class="card" style="box-shadow:none;">
+          <div class="muted">新規登録（先生アカウント作成）</div>
+          <label>メール</label>
+          <input id="regEmail" type="email" placeholder="teacher@example.com" style="width:100%;" />
+          <label>パスワード（6文字以上推奨）</label>
+          <input id="regPass" type="password" placeholder="password" style="width:100%;" />
+          <div class="row" style="margin-top:10px;">
+            <button class="btn ok" id="btnRegister">登録</button>
+          </div>
+          <div class="muted" style="margin-top:8px;">
+            ※ 登録しても「管理者権限」が付くわけではありません。<br/>
+            管理者にするには、Firebase DBの <span class="mono">/admins/あなたのUID = true</span> が必要です。
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="box-shadow:none;" id="noAdminBox">
+        <div class="muted">
+          あなたはまだ管理者ではありません。<br/>
+          ① 下の「申請を送る」を押す → ② 管理者がDBで <span class="mono">/admins/UID=true</span> を設定 → ③ 再読み込みで管理画面が開きます。
+        </div>
+        <div class="row" style="margin-top:10px;">
+          <button class="btn primary" id="btnSendRequest">管理者申請を送る</button>
+          <span class="muted">申請は <span class="mono">/teacherRequests/{uid}</span> に保存されます。</span>
+        </div>
+        <div id="reqMsg" class="toast hide"></div>
+      </div>
+    </div>
+
+    <!-- ===== Admin Area ===== -->
+    <div class="card hide" id="adminArea">
+      <div class="row" style="justify-content:space-between;">
+        <div class="row">
+          <span class="pill">ADMIN：<span id="adminState" class="mono">false</span></span>
+          <span class="pill">ログインメール：<span id="emailLabel" class="mono">-</span></span>
+        </div>
+        <div class="muted">※ 権限判定はDBルールで守ってください（フロントのフラグは信用しない）</div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" data-tab="tabWords">単語登録</div>
+        <div class="tab" data-tab="tabStudents">学生</div>
+        <div class="tab" data-tab="tabProgress">進捗集計</div>
+      </div>
+
+      <!-- === Words === -->
+      <div id="tabWords" style="margin-top:12px;">
+        <div class="grid" style="grid-template-columns: 420px 1fr; gap:14px;">
+          <div class="card" style="box-shadow:none;">
+            <div class="muted">登録先</div>
+            <div class="row" style="margin-top:8px;">
+              <div>
+                <label>Grade</label>
+                <select id="selGrade">
+                  <option value="g1">g1</option>
+                  <option value="g2">g2</option>
+                  <option value="g3">g3</option>
+                  <option value="g4">g4</option>
+                </select>
+              </div>
+              <div>
+                <label>Lesson</label>
+                <input id="inpLesson" placeholder="L01 / lesson1 など" />
+              </div>
+              <div>
+                <label>Stage</label>
+                <select id="selStage">
+                  <option value="pre1">pre1</option>
+                  <option value="pre2">pre2</option>
+                  <option value="review">review</option>
+                </select>
+              </div>
+              <div>
+                <label>Class（任意）</label>
+                <input id="inpClass" placeholder="default" value="default" />
+              </div>
+            </div>
+
+            <label style="margin-top:14px;">単語データ（1行=1問）</label>
+            <div class="muted">
+              推奨フォーマット：<span class="mono">word | meaning | wrong1,wrong2,wrong3</span><br/>
+              例：<span class="mono">apple | りんご | orange,banana,grape</span>
+            </div>
+            <textarea id="taWords" placeholder="apple | りんご | orange,banana,grape&#10;cat | ねこ | dog,bird,fish"></textarea>
+
+            <div class="row" style="margin-top:10px;">
+              <button class="btn ok" id="btnUploadWords">このLessonに登録</button>
+              <button class="btn" id="btnReloadWords">一覧を更新</button>
+            </div>
+            <div id="wordsMsg" class="toast hide"></div>
+          </div>
+
+          <div class="card" style="box-shadow:none;">
+            <div class="row" style="justify-content:space-between;">
+              <div class="muted">登録済み一覧</div>
+              <div class="pill">Path：<span id="pathLabel" class="mono">-</span></div>
+            </div>
+            <div class="muted">※ 削除は即時反映されます</div>
+            <div style="overflow:auto; max-height:520px;">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width:26%;">word</th>
+                    <th style="width:34%;">meaning</th>
+                    <th>wrongs</th>
+                    <th class="right" style="width:120px;">操作</th>
+                  </tr>
+                </thead>
+                <tbody id="wordsTbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- === Students === -->
+      <div id="tabStudents" class="hide" style="margin-top:12px;">
+        <div class="card" style="box-shadow:none;">
+          <div class="row" style="justify-content:space-between;">
+            <div class="muted">学生一覧（/students）</div>
+            <button class="btn" id="btnReloadStudents">更新</button>
+          </div>
+          <div style="overflow:auto; max-height:520px;">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:240px;">student uid</th>
+                  <th>name</th>
+                  <th style="width:220px;">lastSeen</th>
+                </tr>
+              </thead>
+              <tbody id="studentsTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- === Progress === -->
+      <div id="tabProgress" class="hide" style="margin-top:12px;">
+        <div class="card" style="box-shadow:none;">
+          <div class="row" style="align-items:flex-end;">
+            <div>
+              <label>学生UID</label>
+              <input id="inpStudentUid" class="mono" style="width:360px;" placeholder="studentsのuidを貼る" />
+            </div>
+            <div>
+              <label>Grade</label>
+              <select id="selPGrade">
+                <option value="g1">g1</option>
+                <option value="g2">g2</option>
+                <option value="g3">g3</option>
+                <option value="g4">g4</option>
+              </select>
+            </div>
+            <div>
+              <label>Lesson</label>
+              <input id="inpPLesson" placeholder="L01 など" />
+            </div>
+            <div>
+              <label>Stage</label>
+              <select id="selPStage">
+                <option value="pre1">pre1</option>
+                <option value="pre2">pre2</option>
+                <option value="review">review</option>
+              </select>
+            </div>
+            <div>
+              <label>Class</label>
+              <input id="inpPClass" value="default" />
+            </div>
+            <button class="btn primary" id="btnCalc">集計</button>
+          </div>
+
+          <div class="muted" style="margin-top:10px;">
+            進捗は <span class="mono">/progress/{studentUid}/{grade}/{lesson}/{stage}/{wordId}</span> を想定。<br/>
+            <span class="mono">mastered=true</span> を「習得」として数えます（なければ correctCount>=1 等に変えてOK）。
+          </div>
+
+          <div id="progOut" class="toast hide"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import {
+      getAuth, onAuthStateChanged,
+      createUserWithEmailAndPassword, signInWithEmailAndPassword,
+      sendPasswordResetEmail, signOut
+    } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+    import {
+      getDatabase, ref, get, set, update, push, onValue, remove, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+    // ======= ここをあなたのFirebase設定に置き換え =======
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+      projectId: "YOUR_PROJECT",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    // ======= init =======
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    // ======= UI helpers =======
+    const $ = (id)=>document.getElementById(id);
+    const show = (el)=>el.classList.remove("hide");
+    const hide = (el)=>el.classList.add("hide");
+    function toast(el, msg, ok=true){
+      el.textContent = msg;
+      el.classList.remove("hide","ok","ng");
+      el.classList.add(ok ? "ok" : "ng");
+      el.classList.add("toast");
+    }
+    function getPath(){
+      const grade = $("selGrade").value.trim();
+      const lesson = $("inpLesson").value.trim();
+      const stage = $("selStage").value.trim();
+      const cls = ($("inpClass").value.trim() || "default");
+      if(!lesson) return null;
+      return `bank/${grade}/${lesson}/${stage}/${cls}`;
+    }
+    function setPathLabel(){
+      const p = getPath();
+      $("pathLabel").textContent = p || "(lesson未入力)";
+    }
+
+    // ======= security check =======
+    async function isAdmin(user){
+      if(!user) return false;
+      const s = await get(ref(db, `admins/${user.uid}`));
+      return s.exists() && s.val() === true;
+    }
+
+    // ======= auth actions =======
+    $("btnRegister").addEventListener("click", async ()=>{
+      const email = $("regEmail").value.trim();
+      const pass  = $("regPass").value;
+      try{
+        if(!email || !pass) throw new Error("メール/パスワードを入力してください。");
+        await createUserWithEmailAndPassword(auth, email, pass);
+        toast($("authMsg"), "登録しました。次にログインしてUIDを管理者に渡してください。", true);
+      }catch(e){
+        toast($("authMsg"), `登録失敗：${e?.message || e}`, false);
+      }
+    });
+
+    $("btnLogin").addEventListener("click", async ()=>{
+      const email = $("loginEmail").value.trim();
+      const pass  = $("loginPass").value;
+      try{
+        if(!email || !pass) throw new Error("メール/パスワードを入力してください。");
+        await signInWithEmailAndPassword(auth, email, pass);
+        toast($("authMsg"), "ログイン成功。", true);
+      }catch(e){
+        toast($("authMsg"), `ログイン失敗：${e?.message || e}`, false);
+      }
+    });
+
+    $("btnReset").addEventListener("click", async ()=>{
+      const email = $("loginEmail").value.trim();
+      try{
+        if(!email) throw new Error("ログイン欄のメールを入力してから押してください。");
+        await sendPasswordResetEmail(auth, email);
+        toast($("authMsg"), "パスワード再発行メールを送信しました。", true);
+      }catch(e){
+        toast($("authMsg"), `再発行失敗：${e?.message || e}`, false);
+      }
+    });
+
+    $("btnLogout").addEventListener("click", async ()=>{
+      try{
+        await signOut(auth);
+        toast($("authMsg"), "ログアウトしました。", true);
+      }catch(e){
+        toast($("authMsg"), `ログアウト失敗：${e?.message || e}`, false);
+      }
+    });
+
+    $("btnCopyUid").addEventListener("click", async ()=>{
+      const uid = $("uidLabel").textContent;
+      try{
+        await navigator.clipboard.writeText(uid);
+        toast($("authMsg"), "UIDをコピーしました。", true);
+      }catch{
+        toast($("authMsg"), "コピーできませんでした（ブラウザ制限）。UIDを手動コピーしてください。", false);
+      }
+    });
+
+    $("btnSendRequest").addEventListener("click", async ()=>{
+      const u = auth.currentUser;
+      try{
+        if(!u) throw new Error("先にログインしてください。");
+        await set(ref(db, `teacherRequests/${u.uid}`), {
+          email: u.email || null,
+          createdAt: serverTimestamp()
+        });
+        toast($("reqMsg"), "申請を送信しました。管理者が /admins に登録したら再読み込みしてください。", true);
+      }catch(e){
+        toast($("reqMsg"), `申請失敗：${e?.message || e}`, false);
+      }
+    });
+
+    // ======= Tabs =======
+    document.querySelectorAll(".tab").forEach(t=>{
+      t.addEventListener("click", ()=>{
+        document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+        t.classList.add("active");
+        const tabId = t.dataset.tab;
+        ["tabWords","tabStudents","tabProgress"].forEach(id=>{
+          if(id===tabId) show($(id)); else hide($(id));
+        });
+      });
+    });
+
+    // ======= Words: parse & upload =======
+    function parseLines(text){
+      const lines = text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+      const out = [];
+      for(const line of lines){
+        // format: word | meaning | wrong1,wrong2,wrong3
+        const parts = line.split("|").map(s=>s.trim());
+        if(parts.length < 2){
+          // fallback: tab separated
+          const p2 = line.split("\t").map(s=>s.trim()).filter(Boolean);
+          if(p2.length >= 2){
+            const wrongs = (p2.slice(2).join(",") || "").split(",").map(s=>s.trim()).filter(Boolean);
+            out.push({ word:p2[0], meaning:p2[1], wrongs });
+          }
+          continue;
+        }
+        const word = parts[0];
+        const meaning = parts[1];
+        const wrongs = (parts[2] || "").split(",").map(s=>s.trim()).filter(Boolean);
+        if(word && meaning) out.push({ word, meaning, wrongs });
+      }
+      return out;
+    }
+
+    async function reloadWords(){
+      const p = getPath();
+      setPathLabel();
+      const tbody = $("wordsTbody");
+      tbody.innerHTML = "";
+      if(!p){
+        tbody.innerHTML = `<tr><td colspan="4" class="muted">lessonを入力してください。</td></tr>`;
+        return;
+      }
+      const r = ref(db, p);
+      onValue(r, (snap)=>{
+        const v = snap.val();
+        const rows = [];
+        if(!v){
+          tbody.innerHTML = `<tr><td colspan="4" class="muted">まだありません。</td></tr>`;
+          return;
+        }
+        for(const [id, obj] of Object.entries(v)){
+          const w = obj?.word ?? "";
+          const m = obj?.meaning ?? "";
+          const wrongs = Array.isArray(obj?.wrongs) ? obj.wrongs.join(", ") : (obj?.wrongs || "");
+          rows.push(`
+            <tr>
+              <td class="mono">${escapeHtml(w)}</td>
+              <td>${escapeHtml(m)}</td>
+              <td class="muted">${escapeHtml(wrongs)}</td>
+              <td class="right">
+                <button class="btn danger" data-del="${id}">削除</button>
+              </td>
+            </tr>
+          `);
+        }
+        tbody.innerHTML = rows.join("");
+        tbody.querySelectorAll("button[data-del]").forEach(btn=>{
+          btn.addEventListener("click", async ()=>{
+            const id = btn.getAttribute("data-del");
+            if(!confirm("削除しますか？")) return;
+            try{
+              await remove(ref(db, `${p}/${id}`));
+              toast($("wordsMsg"), "削除しました。", true);
+            }catch(e){
+              toast($("wordsMsg"), `削除失敗：${e?.message || e}`, false);
+            }
+          });
+        });
+      });
+    }
+
+    function escapeHtml(s){
+      return String(s ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    $("btnUploadWords").addEventListener("click", async ()=>{
+      try{
+        const u = auth.currentUser;
+        if(!u) throw new Error("先にログインしてください。");
+        const p = getPath();
+        if(!p) throw new Error("lessonを入力してください。");
+        const items = parseLines($("taWords").value);
+        if(items.length === 0) throw new Error("登録できる行がありません。推奨フォーマットで入力してください。");
+
+        // push each
+        for(const it of items){
+          const k = push(ref(db, p)).key;
+          await set(ref(db, `${p}/${k}`), {
+            word: it.word,
+            meaning: it.meaning,
+            wrongs: it.wrongs || [],
+            createdAt: serverTimestamp(),
+            createdBy: u.uid
+          });
+        }
+        toast($("wordsMsg"), `登録しました：${items.length}件`, true);
+        $("taWords").value = "";
+      }catch(e){
+        toast($("wordsMsg"), `登録失敗：${e?.message || e}`, false);
+      }
+    });
+
+    $("btnReloadWords").addEventListener("click", reloadWords);
+    ["selGrade","inpLesson","selStage","inpClass"].forEach(id=>{
+      $(id).addEventListener("input", ()=>{ setPathLabel(); });
+      $(id).addEventListener("change", ()=>{ setPathLabel(); });
+    });
+
+    // ======= Students =======
+    async function reloadStudents(){
+      const tbody = $("studentsTbody");
+      tbody.innerHTML = "";
+      onValue(ref(db, "students"), (snap)=>{
+        const v = snap.val();
+        if(!v){
+          tbody.innerHTML = `<tr><td colspan="3" class="muted">まだ学生データがありません。</td></tr>`;
+          return;
+        }
+        const rows = [];
+        for(const [uid, obj] of Object.entries(v)){
+          rows.push(`
+            <tr>
+              <td class="mono">${escapeHtml(uid)}</td>
+              <td>${escapeHtml(obj?.name ?? "")}</td>
+              <td class="mono">${escapeHtml(obj?.lastSeen ?? "")}</td>
+            </tr>
+          `);
+        }
+        tbody.innerHTML = rows.join("");
+      });
+    }
+    $("btnReloadStudents").addEventListener("click", reloadStudents);
+
+    // ======= Progress summary =======
+    $("btnCalc").addEventListener("click", async ()=>{
+      const out = $("progOut");
+      try{
+        const studentUid = $("inpStudentUid").value.trim();
+        const grade = $("selPGrade").value.trim();
+        const lesson = $("inpPLesson").value.trim();
+        const stage = $("selPStage").value.trim();
+        const cls = ($("inpPClass").value.trim() || "default");
+
+        if(!studentUid) throw new Error("学生UIDを入力してください。");
+        if(!lesson) throw new Error("Lessonを入力してください。");
+
+        const bankPath = `bank/${grade}/${lesson}/${stage}/${cls}`;
+        const progPath = `progress/${studentUid}/${grade}/${lesson}/${stage}`;
+
+        const [bankSnap, progSnap] = await Promise.all([
+          get(ref(db, bankPath)),
+          get(ref(db, progPath))
+        ]);
+
+        const bank = bankSnap.val() || {};
+        const prog = progSnap.val() || {};
+
+        const total = Object.keys(bank).length;
+        let mastered = 0;
+
+        for(const wid of Object.keys(bank)){
+          const p = prog[wid];
+          if(p && (p.mastered === true)) mastered++;
+        }
+
+        toast(out, `集計結果： total=${total} / mastered=${mastered}（Path: ${bankPath}）`, true);
+      }catch(e){
+        toast(out, `集計失敗：${e?.message || e}`, false);
+      }
+    });
+
+    // ======= Auth state observer =======
+    onAuthStateChanged(auth, async (user)=>{
+      const authState = $("authState");
+      const uidLabel = $("uidLabel");
+      const emailLabel = $("emailLabel");
+      const adminArea = $("adminArea");
+      const noAdminBox = $("noAdminBox");
+      const adminState = $("adminState");
+
+      if(!user){
+        authState.textContent = "未ログイン";
+        uidLabel.textContent = "-";
+        emailLabel.textContent = "-";
+        adminState.textContent = "false";
+        hide(adminArea);
+        hide(noAdminBox);
+        return;
+      }
+
+      authState.textContent = "ログイン中";
+      uidLabel.textContent = user.uid;
+      emailLabel.textContent = user.email || "(no email)";
+
+      // admin check
+      const ok = await isAdmin(user);
+      adminState.textContent = String(ok);
+
+      if(ok){
+        hide(noAdminBox);
+        show(adminArea);
+        // default load
+        setPathLabel();
+        await reloadWords();
+        await reloadStudents();
+      }else{
+        hide(adminArea);
+        show(noAdminBox);
+      }
+    });
+  </script>
+</body>
+</html>
