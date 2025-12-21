@@ -3,8 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Yuko Wordlog (Firebase UID不要)</title>
-
+  <title>Yuko Wordlog (Firebase / Teacher Mode)</title>
   <style>
     :root{
       --gameW: 390px;
@@ -47,6 +46,7 @@
     button{padding:10px 14px;border:0;border-radius:12px;background:#111;color:#fff;cursor:pointer}
     button.secondary{background:#5b6472}
     button.ghost{background:#fff;color:#111;border:1px solid #ccc}
+    button:disabled{opacity:.55; cursor:not-allowed;}
     .card{background:#fff;border:1px solid #eee;border-radius:14px;padding:14px;margin:12px 0}
     .muted{opacity:.7;font-size:13px}
     .ok{color:#0a7a2f}
@@ -144,7 +144,7 @@
       z-index:1000; padding:16px;
     }
     .modal{
-      width:min(520px, 100%);
+      width:min(560px, 100%);
       background:#fff; border-radius:18px; border:1px solid #eee;
       box-shadow:0 24px 70px rgba(0,0,0,.35);
       padding:16px;
@@ -152,12 +152,12 @@
     .modal h3{margin:0 0 8px}
     .tiny{font-size:12px;opacity:.7}
 
+    /* ===== クイズ ===== */
     .quizStageWrap{
       display:flex;
       justify-content:center;
       align-items:flex-start;
     }
-
     .quiz-stage{
       position:relative;
       width: min(var(--gameW), calc(100vw - 32px));
@@ -176,7 +176,6 @@
       box-shadow:0 18px 42px rgba(0,0,0,.55);
       transition: none;
     }
-
     .quizProgressSvg{
       position:absolute;
       inset:0;
@@ -186,7 +185,6 @@
       pointer-events:none;
       z-index:1;
     }
-
     .quizCenterWord{
       position:absolute;
       left:50%; top:42%;
@@ -202,7 +200,6 @@
       user-select:none;
       z-index:3;
     }
-
     .quizOptions{
       position:absolute;
       left:0; right:0;
@@ -213,7 +210,6 @@
       gap:10px;
       z-index:3;
     }
-
     .optBtn{
       width:100%;
       padding:14px 14px;
@@ -234,38 +230,29 @@
     .optBtn:active{ transform: scale(0.99); }
     .optBtn:hover{ border-color: rgba(0,0,0,.30); background: rgba(255,255,255,.78); }
     .optBtn:disabled{ opacity: 1; cursor: default; }
-
-    .optBtn.pending{
-      filter: brightness(0.92) saturate(1.05);
-      transform: scale(0.995);
-    }
-
+    .optBtn.pending{ filter: brightness(0.92) saturate(1.05); transform: scale(0.995); }
     .optBtn.goodGreen{
       border-color: var(--okA);
       background: linear-gradient(135deg, var(--okA), var(--okB));
       color: var(--okText);
       filter:none;
     }
-
     .optBtn.badRed{
       border-color: #c40000;
       background: linear-gradient(135deg, var(--ngA), var(--ngB));
       color: var(--ngText);
       filter:none;
     }
-
     @keyframes btnShakeFast{
-      0%   { transform: translateX(0); }
-      15%  { transform: translateX(-7px); }
-      30%  { transform: translateX(7px); }
-      45%  { transform: translateX(-6px); }
-      60%  { transform: translateX(6px); }
-      75%  { transform: translateX(-3px); }
-      100% { transform: translateX(0); }
+      0%{ transform: translateX(0); }
+      15%{ transform: translateX(-7px); }
+      30%{ transform: translateX(7px); }
+      45%{ transform: translateX(-6px); }
+      60%{ transform: translateX(6px); }
+      75%{ transform: translateX(-3px); }
+      100%{ transform: translateX(0); }
     }
     .optBtn.shake{ animation: btnShakeFast .18s linear both; }
-
-    .quizHudHidden{ display:none !important; }
 
     .qTimer{
       position:fixed;
@@ -278,10 +265,7 @@
     .qTimer svg{width:100%;height:100%;display:block}
     .qTimer .bg{stroke: var(--quizTimerBg); fill:none; stroke-width:5}
     .qTimer .fg{stroke: var(--quizTimerColor); fill:none; stroke-width:5; stroke-linecap:round}
-    .qTimer svg{
-      transform: rotate(-90deg) scaleY(-1);
-      transform-origin: 50% 50%;
-    }
+    .qTimer svg{ transform: rotate(-90deg) scaleY(-1); transform-origin: 50% 50%; }
 
     .stageBadge{
       display:inline-block;
@@ -305,7 +289,6 @@
       box-shadow:0 18px 42px rgba(0,0,0,.28);
       padding:10px;
       backdrop-filter: blur(6px);
-      min-width: unset;
       width: fit-content;
       max-width: min(92vw, 320px);
     }
@@ -321,12 +304,7 @@
       text-overflow:ellipsis;
       max-width: 100%;
     }
-    .stagePop .btnRow{
-      display:grid;
-      gap:10px;
-      width: max-content;
-      max-width: 100%;
-    }
+    .stagePop .btnRow{ display:grid; gap:10px; width: max-content; max-width: 100%; }
     .stagePop .sbtn{
       width:100%;
       display:flex;
@@ -346,19 +324,6 @@
     .stagePop .sbtn.pre1{ background:#f6f8ff; }
     .stagePop .sbtn.pre2{ background:#f6fff8; }
     .stagePop .sbtn.review{ background:#fff7f6; }
-    .stagePop .sbtn:disabled{ opacity:.35; cursor:default; }
-
-    .sbtn .label{
-      display:flex;
-      align-items:center;
-      gap:6px;
-      white-space:nowrap;
-    }
-    .sbtn .icon{
-      font-size:18px;
-      line-height:1;
-      transform: translateY(1px);
-    }
 
     .dots5{
       position:relative;
@@ -381,12 +346,7 @@
     .dots5 i:nth-child(4){ left:22px; top:12px; }
     .dots5 i:nth-child(5){ left:10px; top:14px; }
 
-    .dropletLayer{
-      position:absolute;
-      inset:0;
-      pointer-events:none;
-      z-index:0;
-    }
+    .dropletLayer{ position:absolute; inset:0; pointer-events:none; z-index:0; }
     .droplet{
       position:absolute;
       left:50%;
@@ -395,7 +355,6 @@
       height:60px;
       transform: translateX(-50%) scale(1);
       opacity:0;
-      filter:none;
       will-change: transform, opacity;
     }
     .droplet::before{
@@ -410,6 +369,7 @@
       backdrop-filter: blur(6px);
     }
 
+    /* セッション結果 */
     #sessionBack .modal{
       position:relative;
       width:min(520px, 100%);
@@ -429,7 +389,7 @@
     }
     .sessionCenter .line1{ font-size:26px; }
     .sessionCenter .line2{ font-size:34px; margin-top:6px; }
-    .sessionCenter .line3{ font-size:18px; margin-top:10px; opacity:.95; text-align:left; font-weight:900; }
+    .sessionCenter .line3{ font-size:14px; margin-top:10px; opacity:.85; text-align:left; font-weight:900; }
 
     .sessionWrongList{
       margin:14px 0 0;
@@ -464,18 +424,56 @@
       font-weight:950;
       cursor:pointer;
     }
-    .sessionBackBtn:active{ transform:scale(.99); }
+
+    /* Teacher panel */
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 10px; border-radius:999px;
+      border:1px solid rgba(0,0,0,.12);
+      background:rgba(255,255,255,.9);
+      font-weight:800;
+    }
+    .danger{ background:#b00020; color:#fff; }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:12px; }
+
+    .teacherDock{
+      position:fixed;
+      left:16px; bottom:16px;
+      display:none;
+      z-index:999;
+      gap:10px;
+      align-items:center;
+      user-select:none;
+    }
+    .teacherDock .tbtn{
+      border-radius:999px;
+      border:1px solid rgba(0,0,0,.18);
+      background:#fff;
+      color:#111;
+      width:54px; height:54px;
+      display:flex; align-items:center; justify-content:center;
+      box-shadow:0 14px 30px rgba(0,0,0,.18);
+      cursor:pointer;
+      font-weight:950;
+    }
+    .teacherDock .tbtn:active{ transform:scale(.99); }
+
   </style>
 </head>
 
 <body>
+<header></header>
+
 <main>
+  <!-- Student -->
   <section id="studentSec">
     <div class="student-top" id="studentTop">
       <input id="stuName" placeholder="Enter name" />
       <button id="btnStart">スタート</button>
       <div id="stuStatus" class="muted" style="text-align:center"></div>
-      <div id="netWarn" class="muted" style="text-align:center;display:none;color:#b00020;font-weight:800"></div>
+      <div class="muted" style="text-align:center">
+        先生は左下の <b>👩‍🏫</b> からログイン
+      </div>
     </div>
 
     <div id="lessonListBox" style="display:none">
@@ -500,6 +498,7 @@
           </div>
         </div>
       </div>
+
       <div class="muted lesson-hint" style="display:none">
         課を押すとクイズが始まります。（学年は右下で切替）
       </div>
@@ -510,7 +509,7 @@
         <span class="muted" id="lessonInfo" style="font-weight:900;opacity:.9"></span>
         <span class="stageBadge" id="stageBadge" style="display:none"></span>
         <div class="muted" id="quizResult"></div>
-        <button id="btnLessonComplete" class="secondary">この段階を完了</button>
+        <button id="btnNext" class="secondary">次の問題</button>
         <button id="btnBackLessons" class="ghost">戻る</button>
       </div>
 
@@ -525,65 +524,170 @@
     </div>
   </section>
 
-  <!-- ✅ 管理者（今回は“ローカル鍵”で入る簡易版） -->
-  <section id="adminSec" class="card" style="display:none">
-    <h2 style="margin:0 0 10px">管理者ページ（簡易）</h2>
-
-    <div class="grid2">
-      <div class="card" style="margin:0">
-        <div style="font-weight:800;margin-bottom:8px">認証キー（ローカル保存）</div>
-        <div class="row">
-          <input id="adminToken" placeholder="hosi1212" style="min-width:260px" />
-          <button id="btnSaveToken" class="secondary">保存</button>
-          <button id="btnLogoutAdmin" class="ghost">管理者を終了</button>
+  <!-- Teacher Modal -->
+  <div class="modalBack" id="teacherBack" aria-label="teacher">
+    <div class="modal" role="dialog" aria-modal="true" style="max-height:90vh; overflow:auto;">
+      <div class="row" style="justify-content:space-between; align-items:flex-start">
+        <div>
+          <h3 style="margin:0 0 4px;">先生モード</h3>
+          <div class="muted" id="teacherState">未ログイン</div>
         </div>
-        <div id="adminStatus" class="muted" style="margin-top:6px"></div>
-        <div class="tiny" style="margin-top:6px">
-          ※これは「簡易」管理。厳密に守るなら、後でルール+Authにする。
+        <button class="ghost" id="btnTeacherClose">閉じる</button>
+      </div>
+
+      <div class="card" style="margin:10px 0;">
+        <div class="row" style="justify-content:space-between; align-items:center;">
+          <div class="pill">認証：<span id="teacherBadge">---</span></div>
+          <div class="row">
+            <button class="secondary" id="btnTeacherLogout" style="display:none;">ログアウト</button>
+          </div>
+        </div>
+
+        <div id="teacherLoginBox" style="margin-top:10px;">
+          <div class="muted">先生だけ：メール/パスワードでログイン（Firebase Auth）</div>
+          <div class="row" style="margin-top:8px;">
+            <input id="tEmail" placeholder="teacher@example.com" style="flex:1; min-width:220px;">
+            <input id="tPass" placeholder="password" type="password" style="flex:1; min-width:180px;">
+          </div>
+          <div class="row" style="margin-top:10px;">
+            <button id="btnTeacherLogin">ログイン</button>
+            <button class="secondary" id="btnTeacherSignup">先生アカウント作成</button>
+            <span class="muted" id="tMsg"></span>
+          </div>
+          <div class="tiny" style="margin-top:8px;">
+            ※最初の1回だけ「先生アカウント作成」を押して作ってOK。<br>
+            ※Authの「承認済みドメイン」に GitHub Pages ドメインを追加してね（Firebase Console → Authentication）。
+          </div>
         </div>
       </div>
 
-      <div class="card" style="margin:0">
-        <div style="font-weight:800;margin-bottom:8px">登録する学年 / 課 / 段階 / クラス（任意）</div>
-        <div class="row">
-          <select id="gradeSel"></select>
-          <input id="lessonSel" placeholder="課（例：1課 / L1）" style="min-width:150px" />
-          <select id="stageSel">
-            <option value="pre1">pre1</option>
-            <option value="pre2">pre2</option>
-            <option value="review">review</option>
-          </select>
-          <input id="classSel" placeholder="クラス（任意：名詞/動詞など）" style="min-width:220px" />
+      <div id="teacherPanel" style="display:none;">
+        <div class="grid2">
+          <div class="card" style="margin:0;">
+            <div style="font-weight:900; margin-bottom:8px;">① 課（Lesson）を追加</div>
+            <div class="row">
+              <select id="tGradeSel"></select>
+              <input id="tLessonId" placeholder="lessonId (例: L1)" style="min-width:160px;">
+              <input id="tLessonTitle" placeholder="表示名 (例: 1課)" style="min-width:200px;">
+            </div>
+            <div class="row" style="margin-top:10px;">
+              <button id="btnAddLesson">課を追加/更新</button>
+              <button class="secondary" id="btnDelLesson">課を削除</button>
+              <span class="muted" id="tLessonMsg"></span>
+            </div>
+            <div class="tiny" style="margin-top:8px;">
+              保存先：<span class="mono">lessons/&lt;grade&gt;/&lt;lessonId&gt;</span>
+            </div>
+          </div>
+
+          <div class="card" style="margin:0;">
+            <div style="font-weight:900; margin-bottom:8px;">② 単語を登録（CSV）</div>
+            <div class="row">
+              <select id="tStageSel">
+                <option value="pre1">pre1（単語1）</option>
+                <option value="pre2">pre2（単語2）</option>
+                <option value="review">review（復習）</option>
+              </select>
+              <input id="tWordsLessonId" placeholder="lessonId (例: L1)" style="min-width:160px;">
+            </div>
+            <div class="muted" style="margin-top:8px;">
+              1行：<b>word,meaning,wrong1,wrong2[,wrong3,wrong4,wrong5]</b>
+            </div>
+            <textarea id="tWordsCsv" rows="7" style="width:100%; margin-top:8px;"
+              placeholder="apple,りんご,みかん,ぶどう&#10;dog,犬,猫,鳥,魚"></textarea>
+            <div class="row" style="margin-top:10px;">
+              <button id="btnUploadWords">登録</button>
+              <button class="secondary" id="btnSeedAll">サンプル投入</button>
+              <span class="muted" id="tWordsMsg"></span>
+            </div>
+            <div class="tiny" style="margin-top:8px;">
+              保存先：<span class="mono">words/&lt;grade&gt;/&lt;lessonId&gt;/&lt;stage&gt;/&lt;autoId&gt;</span>
+            </div>
+          </div>
         </div>
-        <div class="muted" style="margin-top:6px">
-          1行：<b>word,meaning,wrong1,wrong2[,wrong3,wrong4,wrong5]</b>
+
+        <div class="card">
+          <div class="row" style="justify-content:space-between; align-items:flex-end;">
+            <div>
+              <div style="font-weight:900; margin-bottom:6px;">③ 学生名簿 / 進捗（一覧）</div>
+              <div class="muted">学生：名前→匿名ログインで UID は内部だけに使う（画面には出さない）</div>
+            </div>
+            <button class="secondary" id="btnRefreshRoster">更新</button>
+          </div>
+          <div style="margin-top:10px; overflow:auto;">
+            <table style="width:100%; border-collapse:collapse;">
+              <thead>
+                <tr>
+                  <th style="text-align:left; padding:8px; border-bottom:1px solid rgba(0,0,0,.1);">名前</th>
+                  <th style="text-align:left; padding:8px; border-bottom:1px solid rgba(0,0,0,.1);">最終アクセス</th>
+                  <th style="text-align:left; padding:8px; border-bottom:1px solid rgba(0,0,0,.1);">概要</th>
+                </tr>
+              </thead>
+              <tbody id="rosterBody"></tbody>
+            </table>
+          </div>
+          <div class="tiny" style="margin-top:8px;">
+            ユーザー：<span class="mono">users/&lt;uid&gt;</span> / 進捗：<span class="mono">progress/&lt;uid&gt;</span> / 完了：<span class="mono">stageComplete/&lt;uid&gt;</span>
+          </div>
         </div>
+
+        <div class="card">
+          <div class="tiny">
+            <b>重要（最初にやる設定）</b><br>
+            1) Firebase Console → Authentication → Sign-in method → <b>匿名</b> と <b>メール/パスワード</b> を有効化<br>
+            2) Authentication → Settings → Authorized domains に <b>github.io</b>（またはあなたのPagesドメイン）を追加<br>
+            3) Realtime Database → Rules を下の「推奨ルール」にする（このindex想定）<br><br>
+            <details>
+              <summary>推奨ルール（コピペ用）</summary>
+              <pre class="mono" style="white-space:pre-wrap; background:rgba(0,0,0,.06); padding:10px; border-radius:10px;">
+{
+  "rules": {
+    ".read": "auth != null",
+    "users": {
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "progress": {
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "stageComplete": {
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "lessons": {
+      ".write": "auth != null && auth.token.email != null" 
+    },
+    "words": {
+      ".write": "auth != null && auth.token.email != null"
+    }
+  }
+}
+              </pre>
+              先生（メールログイン）だけが <b>words/lessons</b> を編集できます。<br>
+              学生（匿名）は自分の <b>users/progress/stageComplete</b> だけ書けます。
+            </details>
+          </div>
+        </div>
+
       </div>
     </div>
+  </div>
 
-    <div class="card">
-      <div style="font-weight:800;margin-bottom:8px">単語リスト入力（誤答2〜5）</div>
-      <textarea id="wordsText" rows="10" style="width:100%"
-        placeholder="apple,りんご,みかん,ぶどう&#10;dog,犬,猫,鳥,魚,馬"></textarea>
-      <div class="row" style="margin-top:10px">
-        <button id="btnUploadWords">登録</button>
-        <button id="btnPreviewParse" class="ghost">プレビュー</button>
-        <span id="uploadStatus" class="muted"></span>
-      </div>
-      <div id="parsePreview" class="muted" style="margin-top:8px;white-space:pre-wrap"></div>
-    </div>
-
-    <div class="card">
-      <div style="font-weight:900;margin-bottom:8px">学生名簿（DBの students）</div>
-      <button id="btnLoadStudents" class="secondary">学生一覧を読み込み</button>
-      <div id="studentList" class="muted" style="margin-top:10px;white-space:pre-wrap"></div>
-    </div>
-  </section>
 </main>
 
+<!-- UI Buttons -->
 <div class="gradeFab" id="gradeFab" aria-label="grade selector" style="display:none"></div>
-<div class="gear" id="gearBtn" title="管理者"><span id="gearIcon">⚙</span></div>
+<div class="gear" id="gearBtn" title="戻る"><span id="gearIcon">↻</span></div>
 
+<div class="teacherDock" id="teacherDock">
+  <div class="tbtn" id="btnTeacherOpen" title="先生">👩‍🏫</div>
+</div>
+
+<!-- Session Result -->
 <div class="modalBack" id="sessionBack" aria-label="session result">
   <div class="modal" role="dialog" aria-modal="true">
     <div class="sessionCenter">
@@ -604,21 +708,31 @@
 </div>
 
 <script type="module">
-  /* =========================
-     ✅ Firebase（UID不要運用）
-     - 学生キー studentKey を localStorage 生成
-     - DBキーは studentKey を使用（UIDは使わない）
-  ========================= */
-
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
   import {
-    getDatabase, ref, child, get, set, update, push, runTransaction
+    getAuth,
+    signInAnonymously,
+    onAuthStateChanged,
+    signOut,
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword
+  } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+  import {
+    getDatabase,
+    ref,
+    get,
+    set,
+    update,
+    remove,
+    push,
+    onValue,
+    serverTimestamp,
+    query,
+    orderByChild,
+    limitToLast
   } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-  // （任意）Authを使いたいなら import して signInAnonymously を足す。
-  // 今回は「UID不要＝Authなしでも動く」設計なので、DBルール次第でAuth無しでOK。
-
-  /* ========= Firebase設定（ここをあなたのに差し替え） ========= */
+  // ===== Firebase config =====
   const firebaseConfig = {
     apiKey: "AIzaSyARne6Jb4ePPe7vbvLryE_P-jZ2umI3LFc",
     authDomain: "kakapo-8d297.firebaseapp.com",
@@ -626,58 +740,32 @@
     projectId: "kakapo-8d297",
     storageBucket: "kakapo-8d297.firebasestorage.app",
     messagingSenderId: "702767130857",
-    appId: "1:702767130857:web:54472c8d5ea09bd3cf6878"
+    appId: "1:702767130857:web:54472c8d5ea09bd3cf6878",
+    measurementId: "G-NXSRP1T826"
   };
 
+  // ===== App init =====
   const app = initializeApp(firebaseConfig);
-  const db  = getDatabase(app);
+  const auth = getAuth(app);
+  const db = getDatabase(app);
 
-  /* =========================
-     ★ 設定
-  ========================= */
+  // ===== Settings =====
+  const NAME_KEY  = "yuko_wordlog_name";
+  const GRADE_KEY = "yuko_wordlog_grade";
   const MAX_GRADE = 4;
-  const QT_MS = 4000;
 
-  // 簡易管理キー（ローカル照合）
-  // ※本気で守るなら、後でAuth+ルールにする（今は“動くこと”優先）
-  const ADMIN_KEY = "hosi1212";
-  const ENABLE_ADMIN = true;
-
-  /* =========================
-     ★ localStorage keys
-  ========================= */
-  const NAME_KEY   = "yuko_wordlog_name";
-  const STUDENT_KEY= "yuko_wordlog_studentKey";
-  const TOKEN_KEY  = "yuko_wordlog_admin_token";
-  const GRADE_KEY  = "yuko_wordlog_grade";
-
-  /* =========================
-     ✅ DBパス設計（重要）
-     - students/{studentKey} : 名簿
-     - words/{grade}/{lesson}/{stage}/{wordId} : 単語バンク
-     - progress/{studentKey}/{grade}/{lesson}/{stage}/{wordId} : 単語ごとの学習
-     - lessonProgress/{studentKey}/{grade}/{lesson}/{stage} : 段階完了
-  ========================= */
-  const P = {
-    students: (studentKey)=> `students/${studentKey}`,
-    wordsStage: (grade, lesson, stage)=> `words/${grade}/${lesson}/${stage}`,
-    progressStage: (studentKey, grade, lesson, stage)=> `progress/${studentKey}/${grade}/${lesson}/${stage}`,
-    progressWord: (studentKey, grade, lesson, stage, wordId)=> `progress/${studentKey}/${grade}/${lesson}/${stage}/${wordId}`,
-    lessonStageDone: (studentKey, grade, lesson, stage)=> `lessonProgress/${studentKey}/${grade}/${lesson}/${stage}`,
-    wordsGrade: (grade)=> `words/${grade}`,
+  const QUIZ_RULES = {
+    shuffleQuestions: true,
+    shuffleChoices:  true,
+    repeatPerWord:   1,
+    maxQuestions:    "all"
   };
 
-  /* =========================
-     ★ UI & 状態
-  ========================= */
-  const studentSec = document.getElementById("studentSec");
-  const adminSec   = document.getElementById("adminSec");
-
+  // ===== DOM =====
   const studentTop = document.getElementById("studentTop");
   const stuName = document.getElementById("stuName");
   const btnStart = document.getElementById("btnStart");
   const stuStatus = document.getElementById("stuStatus");
-  const netWarn = document.getElementById("netWarn");
 
   const lessonListBox = document.getElementById("lessonListBox");
   const lessonList = document.getElementById("lessonList");
@@ -690,21 +778,14 @@
   const btnStageReview = document.getElementById("btnStageReview");
 
   const quizBox = document.getElementById("quizBox");
-  const lessonInfo = document.getElementById("lessonInfo");
-  const stageBadge = document.getElementById("stageBadge");
   const quizWord = document.getElementById("quizWord");
   const optGrid = document.getElementById("optGrid");
   const quizResult = document.getElementById("quizResult");
-  const btnLessonComplete = document.getElementById("btnLessonComplete");
+  const btnNext = document.getElementById("btnNext");
   const btnBackLessons = document.getElementById("btnBackLessons");
 
-  const quizProgressSvg = document.getElementById("quizProgressSvg");
-  const dropletLayer = document.getElementById("dropletLayer");
-
-  const gearBtn = document.getElementById("gearBtn");
-  const gearIcon = document.getElementById("gearIcon");
   const gradeFab = document.getElementById("gradeFab");
-
+  const gearBtn = document.getElementById("gearBtn");
   const qTimer = document.getElementById("qTimer");
   const qTimerFg = document.getElementById("qTimerFg");
 
@@ -713,196 +794,93 @@
   const wrongList   = document.getElementById("wrongList");
   const btnSessionClose = document.getElementById("btnSessionClose");
 
-  // admin dom
-  const adminToken = document.getElementById("adminToken");
-  const btnSaveToken = document.getElementById("btnSaveToken");
-  const btnLogoutAdmin = document.getElementById("btnLogoutAdmin");
-  const adminStatus = document.getElementById("adminStatus");
-  const gradeSel = document.getElementById("gradeSel");
-  const lessonSel = document.getElementById("lessonSel");
-  const stageSel = document.getElementById("stageSel");
-  const classSel = document.getElementById("classSel");
-  const wordsText = document.getElementById("wordsText");
+  const teacherDock = document.getElementById("teacherDock");
+  const btnTeacherOpen = document.getElementById("btnTeacherOpen");
+  const teacherBack = document.getElementById("teacherBack");
+  const btnTeacherClose = document.getElementById("btnTeacherClose");
+  const teacherState = document.getElementById("teacherState");
+  const teacherBadge = document.getElementById("teacherBadge");
+  const btnTeacherLogout = document.getElementById("btnTeacherLogout");
+
+  const teacherLoginBox = document.getElementById("teacherLoginBox");
+  const teacherPanel = document.getElementById("teacherPanel");
+  const tEmail = document.getElementById("tEmail");
+  const tPass = document.getElementById("tPass");
+  const btnTeacherLogin = document.getElementById("btnTeacherLogin");
+  const btnTeacherSignup = document.getElementById("btnTeacherSignup");
+  const tMsg = document.getElementById("tMsg");
+
+  const tGradeSel = document.getElementById("tGradeSel");
+  const tLessonId = document.getElementById("tLessonId");
+  const tLessonTitle = document.getElementById("tLessonTitle");
+  const btnAddLesson = document.getElementById("btnAddLesson");
+  const btnDelLesson = document.getElementById("btnDelLesson");
+  const tLessonMsg = document.getElementById("tLessonMsg");
+
+  const tStageSel = document.getElementById("tStageSel");
+  const tWordsLessonId = document.getElementById("tWordsLessonId");
+  const tWordsCsv = document.getElementById("tWordsCsv");
   const btnUploadWords = document.getElementById("btnUploadWords");
-  const btnPreviewParse = document.getElementById("btnPreviewParse");
-  const uploadStatus = document.getElementById("uploadStatus");
-  const parsePreview = document.getElementById("parsePreview");
-  const btnLoadStudents = document.getElementById("btnLoadStudents");
-  const studentList = document.getElementById("studentList");
+  const btnSeedAll = document.getElementById("btnSeedAll");
+  const tWordsMsg = document.getElementById("tWordsMsg");
 
+  const btnRefreshRoster = document.getElementById("btnRefreshRoster");
+  const rosterBody = document.getElementById("rosterBody");
+
+  // ===== State =====
+  let SELECTED_GRADE = Number(localStorage.getItem(GRADE_KEY) || "1");
+  if (!Number.isFinite(SELECTED_GRADE) || SELECTED_GRADE < 1) SELECTED_GRADE = 1;
+  if (SELECTED_GRADE > MAX_GRADE) SELECTED_GRADE = MAX_GRADE;
+
+  let UID = null;
+  let IS_TEACHER = false;
+
+  let CURRENT = {
+    name: "",
+    grade: SELECTED_GRADE,
+    lessonId: "",
+    stage: "pre1",
+    currentQ: null
+  };
+
+  // lessons cache for selected grade
+  let LESSONS = []; // [{id,title,order}]
+  // word cache for current lesson+stage
+  let WORDS = []; // [{id, word, meaning, wrongs[]}]
+
+  // progress cache for current stage
+  let PROG = {}; // { wordId: { correctCount, wrongCount, mastered } }
+  let STAGE_COMPLETE = {}; // { pre1: bool, pre2: bool, review: bool }
+
+  // ===== Utils =====
   const NS = "http://www.w3.org/2000/svg";
-  const sEl = (name)=> document.createElementNS(NS, name);
-
-  const clamp = (v,a,b)=> Math.max(a, Math.min(b, v));
-  const shuffleInPlace = (arr)=>{
+  function sEl(name){ return document.createElementNS(NS, name); }
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+  function esc(s){
+    return String(s ?? "")
+      .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;").replaceAll("'","&#39;");
+  }
+  function normName(v){ return String(v ?? "").trim(); }
+  function shuffleInPlace(arr){
     for (let i=arr.length-1; i>0; i--){
       const j = Math.floor(Math.random() * (i+1));
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
     return arr;
-  };
-  const escapeHtml = (s)=> String(s ?? "")
-    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;").replaceAll("'","&#39;");
-
-  const stageLabel = (s)=> s==="pre1" ? "単語1" : (s==="pre2" ? "単語2" : (s==="review" ? "復習" : s));
-  const pctText = (rate01)=> (rate01==null ? "--" : `${Math.round(rate01*100)}%`);
-
-  function nowTs(){ return Date.now(); }
-  function normName(v){ return String(v ?? "").trim(); }
-  function normLesson(v){ return String(v ?? "").trim(); }
-
-  /* =========================
-     ✅ studentKey（UID不要の核）
-  ========================= */
-  function getOrCreateStudentKey(){
-    let k = localStorage.getItem(STUDENT_KEY);
-    if (k && /^s_[a-z0-9_]+$/i.test(k)) return k;
-    // 端末固有キー（簡易）
-    k = "s_" + Math.random().toString(36).slice(2) + "_" + Date.now().toString(36);
-    localStorage.setItem(STUDENT_KEY, k);
-    return k;
   }
-
-  const STUDENT = {
-    studentKey: getOrCreateStudentKey(),
-    name: ""
-  };
-
-  /* =========================
-     ✅ 進行状態
-  ========================= */
-  let SELECTED_GRADE = Number(localStorage.getItem(GRADE_KEY) || "1");
-  if (!Number.isFinite(SELECTED_GRADE) || SELECTED_GRADE < 1) SELECTED_GRADE = 1;
-  if (SELECTED_GRADE > MAX_GRADE) SELECTED_GRADE = MAX_GRADE;
-
-  let IN_ROOM = false;
-
-  let CURRENT = {
-    grade: SELECTED_GRADE,
-    lesson: "",
-    stage: "pre1",
-    currentQ: null
-  };
-
-  // lesson tiles cache
-  let _lastLessonTiles = []; // [{lesson, achieveRate, stageDone:{pre1,pre2,review}, stageStats:{...}}]
-
-  // stage pool cache（クイズ中の読み込み削減）
-  let STAGE_POOL = null; // { lesson, stage, grade, words:[{id,word,meaning,wrongs:[]...}], progress:{id->{...}} }
-
-  /* =========================
-     ✅ 簡易セッション結果
-  ========================= */
-  let SESSION = null;
-  function startSession(lesson, stage, planned=null){
-    SESSION = {
-      key: `${STUDENT.studentKey}|${SELECTED_GRADE}|${lesson}|${stage}|${Date.now()}`,
-      lesson, stage,
-      planned,
-      asked: 0,
-      correct: 0,
-      wrongs: []
-    };
+  function stageLabel(s){
+    if (s === "pre1") return "単語1";
+    if (s === "pre2") return "単語2";
+    if (s === "review") return "復習";
+    return s || "";
   }
-  function openSessionResult(){
-    if (!SESSION) return;
-    const totalAsked = Math.max(1, SESSION.asked);
-    const pct = Math.round((SESSION.correct / totalAsked) * 100);
-    sessionPct.textContent = `${pct}%`;
-    wrongList.innerHTML = "";
-    (SESSION.wrongs || []).forEach(x=>{
-      const li = document.createElement("li");
-      li.innerHTML = `<div class="w">${escapeHtml(x.word)}</div><div class="m">${escapeHtml(x.meaning)}</div>`;
-      wrongList.appendChild(li);
-    });
-    sessionBack.style.display = "flex";
-  }
-  function closeSessionResult(){ sessionBack.style.display = "none"; }
-  btnSessionClose.onclick = async ()=>{ closeSessionResult(); await showLessonList(); };
-  sessionBack.addEventListener("click", ()=>{});
-  sessionBack.querySelector(".modal")?.addEventListener("click", (e)=> e.stopPropagation());
-
-  /* =========================
-     ✅ 画面遷移
-  ========================= */
   function setStuStatus(text, ok=true){
     stuStatus.textContent = text;
     stuStatus.className = ok ? "muted ok" : "muted ng";
   }
-  function setGearMode(mode){
-    if (mode === "back"){
-      gearIcon.textContent = "↻";
-      gearBtn.title = "トップへ";
-    } else {
-      gearIcon.textContent = "⚙";
-      gearBtn.title = "管理者";
-    }
-  }
-  function setMode(isAdmin){
-    if (isAdmin){
-      adminSec.style.display = "";
-      studentSec.style.display = "none";
-      gradeFab.style.display = "none";
-      qTimer.style.display = "none";
-      document.body.classList.remove("lesson-bg","quiz-bg");
-      closeStagePop();
-      closeSessionResult();
-    } else {
-      adminSec.style.display = "none";
-      studentSec.style.display = "";
-    }
-  }
-  function showNameScreen(){
-    IN_ROOM = false;
-    setMode(false);
-    setGearMode("gear");
-    gradeFab.style.display = "none";
-    qTimer.style.display = "none";
-    studentTop.style.display = "";
-    lessonListBox.style.display = "none";
-    quizBox.style.display = "none";
-    document.body.classList.remove("lesson-bg","quiz-bg");
-    closeStagePop();
-    closeSessionResult();
-    stopQuizWaveLoop();
-  }
-  async function showLessonList(){
-    IN_ROOM = true;
-    setMode(false);
-    setGearMode("back");
-    gradeFab.style.display = "";
-    qTimer.style.display = "none";
-    studentTop.style.display = "none";
-    lessonListBox.style.display = "";
-    quizBox.style.display = "none";
-    document.body.classList.add("lesson-bg");
-    document.body.classList.remove("quiz-bg");
-    closeStagePop();
-    closeSessionResult();
-    await refreshLessons();
-    requestAnimationFrame(()=>drawLessonTrapezoids());
-    stopQuizWaveLoop();
-  }
-  function showQuiz(){
-    IN_ROOM = true;
-    setMode(false);
-    setGearMode("back");
-    gradeFab.style.display = "none";
-    qTimer.style.display = "";
-    studentTop.style.display = "none";
-    lessonListBox.style.display = "none";
-    quizBox.style.display = "";
-    document.body.classList.add("quiz-bg");
-    document.body.classList.remove("lesson-bg");
-    closeStagePop();
-    closeSessionResult();
-    startQuizWaveLoop();
-  }
 
-  /* =========================
-     ✅ 学年ボタン
-  ========================= */
+  // ===== Grade Buttons =====
   function buildGradeButtons(){
     gradeFab.innerHTML = "";
     for (let g=1; g<=MAX_GRADE; g++){
@@ -913,8 +891,9 @@
       b.dataset.grade = String(g);
       b.onclick = async ()=>{
         SELECTED_GRADE = g;
+        localStorage.setItem(GRADE_KEY, String(SELECTED_GRADE));
         renderGradeButtons();
-        if (IN_ROOM) await showLessonList();
+        if (CURRENT.name) await showLessonList();
       };
       gradeFab.appendChild(b);
     }
@@ -924,164 +903,94 @@
       const g = Number(b.dataset.grade || "0");
       b.classList.toggle("active", g === SELECTED_GRADE);
     });
-    localStorage.setItem(GRADE_KEY, String(SELECTED_GRADE));
   }
-  function buildAdminGradeSelect(){
-    gradeSel.innerHTML = "";
+  function buildTeacherGradeSelect(){
+    tGradeSel.innerHTML = "";
     for (let g=1; g<=MAX_GRADE; g++){
       const opt = document.createElement("option");
       opt.value = String(g);
-      opt.textContent = `${g}年生`;
-      gradeSel.appendChild(opt);
+      opt.textContent = `${g}年`;
+      tGradeSel.appendChild(opt);
     }
+    tGradeSel.value = String(SELECTED_GRADE);
   }
 
-  /* =========================
-     ✅ DBユーティリティ
-  ========================= */
-  async function dbGet(path){
-    const snap = await get(ref(db, path));
-    return snap.exists() ? snap.val() : null;
+  // ===== Screen switch =====
+  function showNameScreen(){
+    document.body.classList.remove("lesson-bg","quiz-bg");
+    gradeFab.style.display = "none";
+    qTimer.style.display = "none";
+
+    studentTop.style.display = "";
+    lessonListBox.style.display = "none";
+    quizBox.style.display = "none";
+
+    closeStagePop();
+    closeSessionResult();
+
+    teacherDock.style.display = "";
   }
-  async function dbSet(path, value){
-    await set(ref(db, path), value);
+  async function showLessonList(){
+    document.body.classList.add("lesson-bg");
+    document.body.classList.remove("quiz-bg");
+    gradeFab.style.display = "";
+    qTimer.style.display = "none";
+
+    studentTop.style.display = "none";
+    lessonListBox.style.display = "";
+    quizBox.style.display = "none";
+
+    closeStagePop();
+    closeSessionResult();
+
+    await loadLessonsAndDraw();
   }
-  async function dbUpdate(path, patch){
-    await update(ref(db, path), patch);
-  }
+  function showQuiz(){
+    document.body.classList.add("quiz-bg");
+    document.body.classList.remove("lesson-bg");
+    gradeFab.style.display = "none";
+    qTimer.style.display = "";
 
-  /* =========================
-     ✅ 入室（名簿に登録）
-  ========================= */
-  async function enterStudent(name){
-    const sk = STUDENT.studentKey;
-    const path = P.students(sk);
-    const now = nowTs();
-    // 名簿
-    await dbUpdate(path, {
-      studentKey: sk,
-      name,
-      createdAt: now,
-      lastSeenAt: now
-    });
-    // last seen heartbeat
-    try{
-      setInterval(()=> dbUpdate(path, { lastSeenAt: nowTs() }).catch(()=>{}), 30000);
-    }catch(e){}
-  }
+    studentTop.style.display = "none";
+    lessonListBox.style.display = "none";
+    quizBox.style.display = "";
 
-  /* =========================
-     ✅ lessons集計（絶対必要）
-     - words/{grade} を見て lesson一覧を作る
-     - progress と lessonProgress を見て
-       pre1/pre2/reviewの達成率を計算
-  ========================= */
-  async function refreshLessons(){
-    const grade = SELECTED_GRADE;
-    const sk = STUDENT.studentKey;
-
-    // words/grade 全体（lesson keys）
-    const wordsGrade = await dbGet(P.wordsGrade(grade));
-    const lessonKeys = wordsGrade && typeof wordsGrade === "object"
-      ? Object.keys(wordsGrade).map(normLesson).filter(Boolean)
-      : [];
-
-    // 進捗 & 完了
-    const progressGrade = await dbGet(`progress/${sk}/${grade}`) || {};
-    const doneGrade = await dbGet(`lessonProgress/${sk}/${grade}`) || {};
-
-    const tiles = [];
-    for (const lesson of lessonKeys){
-      const wLesson = wordsGrade?.[lesson] || {};
-      const total = { pre1:0, pre2:0, review:0 };
-      for (const st of ["pre1","pre2","review"]){
-        const stObj = wLesson?.[st] || {};
-        total[st] = (stObj && typeof stObj === "object") ? Object.keys(stObj).length : 0;
-      }
-
-      const pLesson = progressGrade?.[lesson] || {};
-      const mastered = { pre1:0, pre2:0, review:0 };
-
-      for (const st of ["pre1","pre2","review"]){
-        const pStage = pLesson?.[st] || {};
-        if (pStage && typeof pStage === "object"){
-          for (const wid of Object.keys(pStage)){
-            const v = pStage[wid];
-            if (v && v.mastered === true) mastered[st] += 1;
-          }
-        }
-      }
-
-      const r = (a,b)=> (b>0 ? clamp(a/b,0,1) : 0);
-      const pre1Rate = r(mastered.pre1, total.pre1);
-      const pre2Rate = r(mastered.pre2, total.pre2);
-      const reviewRate = r(mastered.review, total.review);
-      const sumTotal = (total.pre1 + total.pre2);
-      const sumDone  = (mastered.pre1 + mastered.pre2);
-      const achieveRate = sumTotal>0 ? clamp(sumDone/sumTotal,0,1) : 0;
-
-      const stageDone = {
-        pre1: doneGrade?.[lesson]?.pre1?.completedAt || null,
-        pre2: doneGrade?.[lesson]?.pre2?.completedAt || null,
-        review: doneGrade?.[lesson]?.review?.completedAt || null
-      };
-
-      tiles.push({
-        lesson,
-        achieveRate,
-        stageDone,
-        stageStats: {
-          pre1:{ rate: pre1Rate, mastered: mastered.pre1, total: total.pre1 },
-          pre2:{ rate: pre2Rate, mastered: mastered.pre2, total: total.pre2 },
-          review:{ rate: reviewRate, mastered: mastered.review, total: total.review },
-          sum_pre1_pre2:{ rate: achieveRate }
-        }
-      });
-    }
-
-    tiles.sort((a,b)=>{
-      const ax = parseFloat(String(a.lesson).replace(/[^\d.]/g,"")) || 9999;
-      const bx = parseFloat(String(b.lesson).replace(/[^\d.]/g,"")) || 9999;
-      return ax - bx;
-    });
-
-    _lastLessonTiles = tiles;
-    drawLessonTrapezoids();
+    closeStagePop();
+    closeSessionResult();
   }
 
-  /* =========================
-     ✅ stageポップ
-  ========================= */
-  let _pendingLesson = "";
-  let _pendingLessonMeta = null;
+  // ===== Stage popup =====
+  let _pendingLessonId = "";
   let _stageTimer = null;
 
   function closeStagePop(){
     stagePop.style.display = "none";
-    _pendingLesson = "";
-    _pendingLessonMeta = null;
+    _pendingLessonId = "";
     if (_stageTimer){ clearTimeout(_stageTimer); _stageTimer = null; }
   }
 
-  function openStagePop(lesson, meta, anchorX, anchorY){
-    lesson = normLesson(lesson);
-    _pendingLesson = lesson;
-    _pendingLessonMeta = meta || null;
+  async function openStagePop(lessonId, anchorX, anchorY){
+    _pendingLessonId = lessonId;
+    stagePopTitle.textContent = `${SELECTED_GRADE}年 / ${lessonId}`;
 
-    stagePopTitle.textContent = `${SELECTED_GRADE}年 / ${lesson}`;
+    // gate: pre2 requires pre1 complete, review requires pre2 complete
+    const pre1Done = !!STAGE_COMPLETE.pre1;
+    const pre2Done = !!STAGE_COMPLETE.pre2;
 
-    const pre1Done = !!meta?.stageDone?.pre1;
-    const pre2Done = !!meta?.stageDone?.pre2;
+    // But completion is per-lesson, so reload completion for this lesson
+    const comp = await getStageCompletion(lessonId);
+    STAGE_COMPLETE = comp;
 
-    // gate: pre2はpre1完了後、reviewはpre2完了後（あなたの仕様）
     btnStagePre1.disabled = false;
-    btnStagePre2.disabled = !pre1Done && (meta?.stageStats?.pre1?.total ?? 0) > 0;
-    btnStageReview.disabled = !pre2Done && (meta?.stageStats?.pre2?.total ?? 0) > 0;
+    btnStagePre2.disabled = !comp.pre1;
+    btnStageReview.disabled = !comp.pre2;
 
     const rect = lessonList.getBoundingClientRect();
-    let x = anchorX, y = anchorY;
+    let x = anchorX;
+    let y = anchorY;
 
     stagePop.style.display = "block";
+
     const popW = stagePop.offsetWidth || 240;
     const popH = stagePop.offsetHeight || 80;
     const pad = 10;
@@ -1096,31 +1005,20 @@
     _stageTimer = setTimeout(closeStagePop, 5000);
   }
 
-  function stageKeyOk(stage){
-    if (stage==="pre2" && btnStagePre2.disabled) return false;
-    if (stage==="review" && btnStageReview.disabled) return false;
-    return true;
-  }
+  function startStage(stage){
+    if (!_pendingLessonId) return;
+    if (stage === "pre2" && btnStagePre2.disabled) return;
+    if (stage === "review" && btnStageReview.disabled) return;
 
-  async function startStage(stage){
-    if (!_pendingLesson) return;
-    if (!stageKeyOk(stage)) return;
-
-    CURRENT.lesson = normLesson(_pendingLesson);
+    CURRENT.lessonId = _pendingLessonId;
     CURRENT.stage = stage;
-
-    lessonInfo.textContent = `${SELECTED_GRADE}年 / ${CURRENT.lesson}`;
-    stageBadge.style.display = "";
-    stageBadge.textContent = stageLabel(stage);
-    quizResult.textContent = "";
     CURRENT.currentQ = null;
 
-    // stage開始時に pool 読み込み（words + progress）
-    STAGE_POOL = await loadStagePool(SELECTED_GRADE, CURRENT.lesson, CURRENT.stage);
-
-    startSession(CURRENT.lesson, CURRENT.stage, null);
     showQuiz();
-    await nextQuestion(true);
+    primeStageDataAndFirstQuestion().catch(e=>{
+      console.error(e);
+      setResult("問題準備に失敗。先生に確認してもらってね。", false);
+    });
     closeStagePop();
   }
 
@@ -1134,47 +1032,12 @@
     }
   }, { passive:true });
 
-  /* =========================
-     ✅ クイズ：stage pool
-     - wordsStage を一括取得
-     - progressStage を一括取得
-     - そこから出題
-  ========================= */
-  async function loadStagePool(grade, lesson, stage){
-    const sk = STUDENT.studentKey;
-    const wordsObj = await dbGet(P.wordsStage(grade, lesson, stage)) || {};
-    const progObj  = await dbGet(P.progressStage(sk, grade, lesson, stage)) || {};
+  // ===== Question timer =====
+  const QT_MS = 4000;
+  let _qtRAF = null;
+  let _qtStart = 0;
+  let _qtActive = false;
 
-    const words = [];
-    if (wordsObj && typeof wordsObj === "object"){
-      for (const wid of Object.keys(wordsObj)){
-        const v = wordsObj[wid];
-        if (!v) continue;
-        const word = String(v.word ?? "").trim();
-        const meaning = String(v.meaning ?? "").trim();
-        const wrongs = Array.isArray(v.wrongs) ? v.wrongs.map(x=>String(x).trim()).filter(Boolean) : [];
-        if (!word || !meaning || wrongs.length < 2) continue;
-        words.push({ id: wid, word, meaning, wrongs });
-      }
-    }
-
-    return { grade, lesson, stage, words, progress: progObj || {} };
-  }
-
-  function pickNextWord(){
-    if (!STAGE_POOL || !STAGE_POOL.words.length) return null;
-
-    const words = STAGE_POOL.words;
-    const prog  = STAGE_POOL.progress || {};
-    // 未mastered優先
-    const notMastered = words.filter(w => !(prog?.[w.id]?.mastered === true));
-    const pool = notMastered.length ? notMastered : words;
-    return pool[Math.floor(Math.random() * pool.length)];
-  }
-
-  /* =========================
-     ✅ タイマー
-  ========================= */
   function initCircle(){
     const r = 18;
     const c = 2 * Math.PI * r;
@@ -1183,10 +1046,6 @@
     qTimerFg.dataset.circ = String(c);
   }
   initCircle();
-
-  let _qtRAF = null;
-  let _qtStart = 0;
-  let _qtActive = false;
 
   function stopQuestionTimer(){
     _qtActive = false;
@@ -1202,7 +1061,8 @@
       if (!_qtActive) return;
       const t = now - _qtStart;
       const p = Math.min(1, Math.max(0, t / ms));
-      qTimerFg.style.strokeDashoffset = String(circ * p);
+      const off = circ * p;
+      qTimerFg.style.strokeDashoffset = String(off);
       if (p >= 1){
         stopQuestionTimer();
         if (!ANSWERING) nextQuestion(true);
@@ -1213,278 +1073,136 @@
     _qtRAF = requestAnimationFrame(tick);
   }
 
-  function clearOptions(){
-    optGrid.innerHTML = "";
-    quizResult.textContent = "";
+  // ===== Session result =====
+  let SESSION = null; // {asked,correct,wrongs:[]}
+  function startSession(){
+    SESSION = { asked:0, correct:0, wrongs:[] };
   }
-  function setResult(msg, ok){
-    quizResult.textContent = msg;
-    quizResult.className = ok ? "muted ok" : "muted ng";
-  }
-
-  let ANSWERING = false;
-
-  async function nextQuestion(force=false){
-    clearOptions();
-    quizWord.textContent = "…";
-    stopQuestionTimer();
-
-    if (!STAGE_POOL || !STAGE_POOL.words.length){
-      quizWord.textContent = "単語がありません";
-      setResult("管理者が単語を登録してください（誤答2以上必須）。", false);
-      return;
-    }
-
-    const w = pickNextWord();
-    if (!w){
-      quizWord.textContent = "おつかれさま！";
-      setTimeout(()=>openSessionResult(), 150);
-      return;
-    }
-
-    const options = shuffleInPlace([w.meaning, ...w.wrongs.slice(0)]);
-    CURRENT.currentQ = { word_id: w.id, word: w.word, correct: w.meaning };
-
-    quizWord.textContent = w.word;
-    stageBadge.style.display = "";
-    stageBadge.textContent = stageLabel(CURRENT.stage);
-
-    options.forEach(text=>{
-      const b = document.createElement("button");
-      b.className = "optBtn";
-      b.type = "button";
-      b.textContent = text;
-
-      b.addEventListener("pointerdown", (ev)=>{
-        ev.preventDefault();
-        submitAnswer(text, b);
-      }, { passive:false });
-      b.addEventListener("click", ()=> submitAnswer(text, b));
-
-      optGrid.appendChild(b);
+  function openSessionResult(){
+    if (!SESSION) return;
+    const totalAsked = Math.max(1, SESSION.asked);
+    const pct = Math.round((SESSION.correct / totalAsked) * 100);
+    sessionPct.textContent = `${pct}%`;
+    wrongList.innerHTML = "";
+    (SESSION.wrongs || []).forEach(x=>{
+      const li = document.createElement("li");
+      li.innerHTML = `<div class="w">${esc(x.word)}</div><div class="m">${esc(x.meaning)}</div>`;
+      wrongList.appendChild(li);
     });
-
-    startQuestionTimer(QT_MS);
+    sessionBack.style.display = "flex";
   }
-
-  async function submitAnswer(chosen, chosenBtnEl){
-    if (ANSWERING) return;
-    if (!CURRENT.currentQ) return;
-    if (sessionBack.style.display === "flex") return;
-
-    ANSWERING = true;
-    stopQuestionTimer();
-
-    const btns = [...optGrid.querySelectorAll(".optBtn")];
-    btns.forEach(b=>{
-      b.disabled = true;
-      b.classList.remove("pending","goodGreen","badRed","shake");
-    });
-    if (chosenBtnEl) chosenBtnEl.classList.add("pending");
-    await new Promise(r=>requestAnimationFrame(r));
-
-    try{
-      const correct = CURRENT.currentQ.correct;
-      const isCorrect = (String(chosen) === String(correct));
-
-      if (chosenBtnEl) chosenBtnEl.classList.remove("pending");
-
-      if (isCorrect){
-        btns.forEach(b=>{ if (b.textContent === correct) b.classList.add("goodGreen"); });
-        spawnDroplets();
-      } else {
-        let chosenBtn = null;
-        btns.forEach(b=>{
-          if (b.textContent === correct) b.classList.add("goodGreen");
-          if (b.textContent === chosen){
-            b.classList.add("badRed");
-            chosenBtn = b;
-          }
-        });
-        if (chosenBtn){
-          chosenBtn.classList.remove("shake");
-          void chosenBtn.offsetWidth;
-          chosenBtn.classList.add("shake");
-        }
-      }
-
-      // progress 更新（単語ごとの学習状況）
-      await updateProgress(isCorrect, chosen, correct);
-
-      if (SESSION){
-        SESSION.asked += 1;
-        if (isCorrect) SESSION.correct += 1;
-        else SESSION.wrongs.push({ word: CURRENT.currentQ.word, meaning: correct });
-      }
-
-      // pool内progressも更新（再取得しない）
-      if (STAGE_POOL){
-        const wid = CURRENT.currentQ.word_id;
-        const cur = STAGE_POOL.progress?.[wid] || {};
-        STAGE_POOL.progress[wid] = { ...cur, mastered: (isCorrect ? true : (cur.mastered===true)) };
-      }
-
-      // lesson一覧の達成度も更新
-      refreshLessons().catch(()=>{});
-
-      // 次へ
-      setTimeout(()=> nextQuestion(true), 260);
-
-    } catch(e){
-      setResult("保存に失敗しました（DBルール/ネット制限の可能性）", false);
-      netWarn.style.display = "";
-      netWarn.textContent = "保存失敗：DBルールが厳しい or ネット制限。Realtime DBルールをまず .read/.write true にして検証して。";
-      btns.forEach(b=>b.disabled = false);
-    } finally {
-      ANSWERING = false;
-    }
-  }
-
-  async function updateProgress(isCorrect, chosen, correct){
-    const sk = STUDENT.studentKey;
-    const g = SELECTED_GRADE;
-    const lesson = CURRENT.lesson;
-    const stage = CURRENT.stage;
-    const wid = CURRENT.currentQ.word_id;
-    const path = P.progressWord(sk, g, lesson, stage, wid);
-
-    await runTransaction(ref(db, path), (cur)=>{
-      const now = nowTs();
-      const base = (cur && typeof cur === "object") ? cur : {
-        correctCount: 0,
-        wrongCount: 0,
-        mastered: false,
-        lastAt: 0
-      };
-      if (isCorrect) base.correctCount = (base.correctCount||0) + 1;
-      else base.wrongCount = (base.wrongCount||0) + 1;
-      base.lastAt = now;
-      // ルール：正解1回でmastered（必要なら回数を増やしてもいい）
-      if (isCorrect) base.mastered = true;
-      base.lastChosen = String(chosen ?? "");
-      base.lastCorrect = String(correct ?? "");
-      return base;
-    });
-  }
-
-  /* =========================
-     ✅ 段階完了（課ごとの学習・pre1/pre2/review達成）
-  ========================= */
-  btnLessonComplete.onclick = async ()=>{
-    if (!CURRENT.lesson || !CURRENT.stage) return;
-    const sk = STUDENT.studentKey;
-    const g = SELECTED_GRADE;
-    const lesson = CURRENT.lesson;
-    const stage = CURRENT.stage;
-    await dbSet(P.lessonStageDone(sk,g,lesson,stage), {
-      completed: true,
-      completedAt: nowTs()
-    });
-    setResult(`完了OK：${stageLabel(stage)}`, true);
-    await refreshLessons();
+  function closeSessionResult(){ sessionBack.style.display = "none"; }
+  btnSessionClose.onclick = async ()=>{
+    closeSessionResult();
+    await showLessonList();
   };
+  sessionBack.addEventListener("click", ()=>{});
+  sessionBack.querySelector(".modal")?.addEventListener("click", (e)=> e.stopPropagation());
 
-  btnBackLessons.onclick = async ()=>{ await showLessonList(); };
-
-  /* =========================
-     ✅ 台形描画（あなたのUIを維持）
-  ========================= */
-  let _resizeTick = null;
-  const _tileRefs = new Map();
-  let _waveRAF = null;
-
-  const GAUGE_ALPHA = 0.28;
-
-  function stopWaveLoop(){
-    if (_waveRAF) cancelAnimationFrame(_waveRAF);
-    _waveRAF = null;
+  // ===== Firebase: auth & user record =====
+  async function ensureStudentAuth(){
+    // sign in anonymously for student writes
+    await signInAnonymously(auth);
   }
 
-  function makeWavePath(x, y, w, h, levelY, phase, amp, wavelength){
-    const top = y;
-    const bottom = y + h;
-
-    const PAD = 3;
-    levelY = clamp(levelY, top + PAD, bottom - PAD);
-
-    const UP_FACTOR   = 0.28;
-    const DOWN_FACTOR = 1.00;
-
-    const upRoom = levelY - (top + PAD);
-    const downRoom = (bottom - PAD) - levelY;
-
-    const AmaxByUp = upRoom / UP_FACTOR;
-    const AmaxByDown = downRoom / DOWN_FACTOR;
-
-    let A = Math.min(amp, AmaxByUp, AmaxByDown);
-
-    const MIN_A = 1.0;
-    const minPossible = Math.min(AmaxByUp, AmaxByDown);
-    if (minPossible > 0){
-      A = Math.max(Math.min(MIN_A, minPossible), A);
-    } else {
-      A = 0;
-    }
-
-    const wl = Math.max(28, wavelength);
-    const k = (2 * Math.PI) / wl;
-
-    const steps = clamp(Math.round(w / (wl / 8)), 18, 60);
-    const bias = A * 0.22;
-
-    const pts = [];
-    for (let i=0;i<=steps;i++){
-      const xx = x + (w * i / steps);
-      const s = Math.sin(k * (xx - x) + phase);
-      const yy = levelY + s * A - bias;
-      pts.push([xx, yy]);
-    }
-
-    let d = `M ${x} ${bottom} L ${x} ${levelY}`;
-    d += ` L ${pts[0][0]} ${pts[0][1]}`;
-
-    for (let i=1;i<pts.length;i++){
-      const [x0,y0] = pts[i-1];
-      const [x1,y1] = pts[i];
-      const mx = (x0 + x1) / 2;
-      const my = (y0 + y1) / 2;
-      d += ` Q ${x0} ${y0} ${mx} ${my}`;
-    }
-
-    const last = pts[pts.length-1];
-    d += ` T ${last[0]} ${last[1]}`;
-
-    d += ` L ${x+w} ${bottom} Z`;
-    return d;
+  async function upsertUserProfile(name){
+    if (!auth.currentUser) return;
+    const uid = auth.currentUser.uid;
+    const now = Date.now();
+    await update(ref(db, `users/${uid}`), {
+      name,
+      lastActiveAt: now,
+      updatedAt: serverTimestamp()
+    });
   }
 
-  function ensureWaveLoop(){
-    if (_waveRAF) return;
+  // ===== Firebase: data paths =====
+  function pLessons(grade){ return `lessons/${grade}`; }
+  function pWords(grade, lessonId, stage){ return `words/${grade}/${lessonId}/${stage}`; }
+  function pProgress(uid, grade, lessonId, stage){ return `progress/${uid}/${grade}/${lessonId}/${stage}`; }
+  function pStageComplete(uid, grade, lessonId, stage){ return `stageComplete/${uid}/${grade}/${lessonId}/${stage}`; }
 
-    const loop = (now)=>{
-      if (lessonListBox.style.display === "none"){
-        stopWaveLoop();
-        return;
+  // ===== Load lessons & draw tiles =====
+  async function loadLessons(grade){
+    const snap = await get(ref(db, pLessons(grade)));
+    const obj = snap.exists() ? (snap.val() || {}) : {};
+    const arr = Object.keys(obj).map(id=>{
+      const x = obj[id] || {};
+      return { id, title: x.title || id, order: Number(x.order||0) };
+    });
+    arr.sort((a,b)=> (a.order - b.order) || String(a.id).localeCompare(String(b.id), "ja"));
+    return arr;
+  }
+
+  async function getStageCompletion(lessonId){
+    const uid = auth.currentUser?.uid;
+    if (!uid) return { pre1:false, pre2:false, review:false };
+    const g = SELECTED_GRADE;
+    const stages = ["pre1","pre2","review"];
+    const out = { pre1:false, pre2:false, review:false };
+    for (const s of stages){
+      const snap = await get(ref(db, pStageComplete(uid, g, lessonId, s)));
+      out[s] = snap.exists();
+    }
+    return out;
+  }
+
+  async function computeLessonRates(grade, lessonId){
+    // counts from words
+    const stages = ["pre1","pre2","review"];
+    const total = { pre1:0, pre2:0, review:0 };
+    for (const s of stages){
+      const snap = await get(ref(db, pWords(grade, lessonId, s)));
+      const obj = snap.exists() ? (snap.val() || {}) : {};
+      total[s] = Object.keys(obj).length;
+    }
+
+    // mastered counts from progress
+    const uid = auth.currentUser?.uid;
+    const mastered = { pre1:0, pre2:0, review:0 };
+    if (uid){
+      for (const s of stages){
+        const snap = await get(ref(db, pProgress(uid, grade, lessonId, s)));
+        const obj = snap.exists() ? (snap.val() || {}) : {};
+        let m = 0;
+        for (const wid of Object.keys(obj)){
+          if (obj?.[wid]?.mastered) m++;
+        }
+        mastered[s] = m;
       }
+    }
 
-      _tileRefs.forEach(refx=>{
-        const { wavePath, waveBox, levelY } = refx;
-        const phase = now * 0.0032;
-        const amp   = Math.max(0.7, waveBox.h * 0.018);
-        const wl    = Math.max(42, waveBox.w * 0.80);
-        wavePath.setAttribute("d", makeWavePath(waveBox.x, waveBox.y, waveBox.w, waveBox.h, levelY, phase, amp, wl));
-      });
+    // achieveRate = (pre1+pre2) mastered / (pre1+pre2 total)
+    const denom = total.pre1 + total.pre2;
+    const numer = mastered.pre1 + mastered.pre2;
+    const achieveRate = denom > 0 ? clamp(numer / denom, 0, 1) : 0;
 
-      _waveRAF = requestAnimationFrame(loop);
-    };
-
-    _waveRAF = requestAnimationFrame(loop);
+    return { total, mastered, achieveRate };
   }
+
+  let _lastLessonTiles = []; // [{lessonId, title, achieveRate, total, mastered}]
+  async function loadLessonsAndDraw(){
+    const grade = SELECTED_GRADE;
+    LESSONS = await loadLessons(grade);
+    const tiles = [];
+    for (const L of LESSONS){
+      const rates = await computeLessonRates(grade, L.id);
+      tiles.push({
+        lessonId: L.id,
+        title: L.title,
+        achieveRate: rates.achieveRate,
+        total: rates.total,
+        mastered: rates.mastered
+      });
+    }
+    _lastLessonTiles = tiles;
+    drawLessonTrapezoids();
+  }
+
+  // ===== Lesson SVG drawing (simple version) =====
+  const _tileRefs = new Map();
 
   function drawLessonTrapezoids(){
-    if (!lessonSvg) return;
-    if (lessonListBox.style.display === "none") return;
-
     const rect = lessonList.getBoundingClientRect();
     const W = Math.max(1, Math.floor(rect.width));
     const H = Math.max(1, Math.floor(rect.height));
@@ -1495,35 +1213,28 @@
 
     const tiles = _lastLessonTiles || [];
     if (tiles.length === 0){
-      // 何もないときの表示
       const t = sEl("text");
       t.setAttribute("x", W/2);
       t.setAttribute("y", H/2);
-      t.setAttribute("text-anchor", "middle");
-      t.setAttribute("font-size", 16);
-      t.setAttribute("font-weight", "900");
-      t.setAttribute("fill", "#111");
-      t.textContent = "単語が未登録です（管理者で登録）";
+      t.setAttribute("text-anchor","middle");
+      t.setAttribute("font-size","16");
+      t.setAttribute("font-weight","900");
+      t.setAttribute("fill","#111");
+      t.textContent = "先生が課を追加してください";
       lessonSvg.appendChild(t);
       return;
     }
 
     const lineCount = 3;
-    const base = {
-      marginX: 20,
-      lineH: 12,
-      trapTopW: 96,
-      trapBottomW: 62,
-      trapH: 112,
-      trapGapX: 18,
-      strokeW: 2
-    };
-    const strokeColor = "#000";
-    const padY = 160;
-
-    const marginX = base.marginX;
-    const lineW = Math.max(0, W - marginX * 2);
     const perLine = 3;
+    const marginX = 20;
+    const lineW = Math.max(0, W - marginX * 2);
+    const trapTopW = 96;
+    const trapBottomW = 62;
+    const trapH = 112;
+    const padY = 160;
+    const strokeColor = "#000";
+    const lineH = 12;
 
     const maxShow = lineCount * perLine;
     const shown = tiles.slice(0, maxShow);
@@ -1532,20 +1243,11 @@
     const lastLineY  = Math.max(firstLineY, H - padY);
     const lineGapY   = (lineCount <= 1) ? 0 : (lastLineY - firstLineY) / (lineCount - 1);
 
-    const trapTopW = base.trapTopW;
-    const trapBottomW = base.trapBottomW;
-    const trapH = base.trapH;
-
     function computeGap(rowCount){
       if (rowCount <= 1) return 0;
       const raw = (lineW - rowCount * trapTopW) / (rowCount - 1);
-      return clamp(raw, 8, base.trapGapX);
+      return clamp(raw, 8, 18);
     }
-
-    const defs = sEl("defs");
-    lessonSvg.appendChild(defs);
-
-    const GAUGE_MAX = 0.90;
 
     for (let i = 0; i < lineCount; i++) {
       const lineY = Math.max(0, firstLineY + i * lineGapY);
@@ -1554,7 +1256,7 @@
       line.setAttribute("x", marginX);
       line.setAttribute("y", lineY);
       line.setAttribute("width", lineW);
-      line.setAttribute("height", base.lineH);
+      line.setAttribute("height", lineH);
       line.setAttribute("fill", strokeColor);
       lessonSvg.appendChild(line);
 
@@ -1569,8 +1271,6 @@
 
       for (let j = 0; j < rowCount; j++) {
         const t = shown[startIdx + j];
-        const lessonKey = normLesson(t.lesson);
-
         const cx = startX + j * (trapTopW + trapGapX) + trapTopW / 2;
 
         const bottomY = lineY;
@@ -1584,276 +1284,421 @@
         const x4 = cx - trapBottomW/2, y4 = bottomY;
         const points = `${x1},${y1} ${x2},${y2} ${x3},${y3} ${x4},${y4}`;
 
+        // fill gauge
+        const rate = clamp(Number(t.achieveRate||0), 0, 1);
+        const gaugeH = safeTrapH * 0.90 * rate;
+        const gy = bottomY - gaugeH;
+
+        const fill = sEl("polygon");
+        fill.setAttribute("points", points);
+        fill.setAttribute("fill", "rgba(0,0,0,.10)");
+        lessonSvg.appendChild(fill);
+
+        const gRect = sEl("rect");
+        gRect.setAttribute("x", x1);
+        gRect.setAttribute("y", gy);
+        gRect.setAttribute("width", (x2-x1));
+        gRect.setAttribute("height", (bottomY-gy));
+        gRect.setAttribute("fill", "rgba(0,0,0,.25)");
+        gRect.setAttribute("clip-path", "none");
+        lessonSvg.appendChild(gRect);
+
+        const outline = sEl("polygon");
+        outline.setAttribute("points", points);
+        outline.setAttribute("fill", "none");
+        outline.setAttribute("stroke", strokeColor);
+        outline.setAttribute("stroke-width", "2");
+        outline.setAttribute("stroke-linejoin", "round");
+        lessonSvg.appendChild(outline);
+
+        const label = sEl("text");
+        label.setAttribute("x", cx);
+        label.setAttribute("y", topY + safeTrapH*0.40);
+        label.setAttribute("text-anchor", "middle");
+        label.setAttribute("dominant-baseline", "middle");
+        label.setAttribute("font-size", "14");
+        label.setAttribute("font-weight", "950");
+        label.setAttribute("fill", "#111");
+        label.textContent = t.title || t.lessonId;
+        lessonSvg.appendChild(label);
+
+        const sub = sEl("text");
+        sub.setAttribute("x", cx);
+        sub.setAttribute("y", topY + safeTrapH*0.56);
+        sub.setAttribute("text-anchor", "middle");
+        sub.setAttribute("dominant-baseline", "middle");
+        sub.setAttribute("font-size", "11");
+        sub.setAttribute("font-weight", "900");
+        sub.setAttribute("fill", "#111");
+        sub.setAttribute("opacity", "0.78");
+        sub.textContent = `${Math.round(rate*100)}%`;
+        lessonSvg.appendChild(sub);
+
         const hit = sEl("polygon");
         hit.setAttribute("points", points);
         hit.setAttribute("fill", "transparent");
         hit.style.cursor = "pointer";
-        hit.addEventListener("click", (ev)=>{
+        hit.addEventListener("click", async (ev)=>{
           const listRect = lessonList.getBoundingClientRect();
           const lx = ev.clientX - listRect.left;
           const ly = ev.clientY - listRect.top;
-          openStagePop(lessonKey, t, lx, ly + 10);
+          await openStagePop(t.lessonId, lx, ly + 10);
           ev.stopPropagation();
         });
         lessonSvg.appendChild(hit);
-
-        const trapClipId = `trapclip_${i}_${j}`;
-        const trapClip = sEl("clipPath");
-        trapClip.setAttribute("id", trapClipId);
-        const trapClipPoly = sEl("polygon");
-        trapClipPoly.setAttribute("points", points);
-        trapClip.appendChild(trapClipPoly);
-        defs.appendChild(trapClip);
-
-        const waveBox = { x:x1, y:topY, w:(x2-x1), h:safeTrapH };
-
-        let rate = Number(t.achieveRate);
-        if (!Number.isFinite(rate)) rate = 0;
-        rate = clamp(rate, 0, 1);
-
-        const levelY_raw = bottomY - (waveBox.h * (GAUGE_MAX * rate));
-        const LEVEL_PAD = 2;
-        const levelY = clamp(levelY_raw, topY + LEVEL_PAD, bottomY - LEVEL_PAD);
-
-        const visY = levelY;
-        const visH = bottomY - levelY;
-
-        const visClipId = `visclip_${i}_${j}`;
-        const visClip = sEl("clipPath");
-        visClip.setAttribute("id", visClipId);
-        const visRect = sEl("rect");
-        visRect.setAttribute("x", waveBox.x - 2);
-        visRect.setAttribute("y", visY);
-        visRect.setAttribute("width", waveBox.w + 4);
-        visRect.setAttribute("height", visH);
-        visClip.appendChild(visRect);
-        defs.appendChild(visClip);
-
-        const gWave = sEl("g");
-        gWave.setAttribute("clip-path", `url(#${trapClipId})`);
-        lessonSvg.appendChild(gWave);
-
-        const wavePath = sEl("path");
-        wavePath.setAttribute("fill", "#111");
-        wavePath.setAttribute("opacity", String(GAUGE_ALPHA));
-        wavePath.setAttribute("clip-path", `url(#${visClipId})`);
-        wavePath.style.pointerEvents = "none";
-        gWave.appendChild(wavePath);
-
-        _tileRefs.set(lessonKey, { wavePath, waveBox, levelY });
-
-        const imgW = trapTopW * 0.65;
-        const imgH = safeTrapH * 0.7;
-        const imgX = cx - imgW/2;
-        const imgY = topY + (safeTrapH - imgH) * 0.40;
-
-        const img = sEl("image");
-        img.setAttribute("href", "kame.png");
-        img.setAttribute("x", imgX);
-        img.setAttribute("y", imgY);
-        img.setAttribute("width", imgW);
-        img.setAttribute("height", imgH);
-        img.setAttribute("preserveAspectRatio", "xMidYMid meet");
-        img.setAttribute("clip-path", `url(#${trapClipId})`);
-        img.setAttribute("opacity", "0.55");
-        img.style.pointerEvents = "none";
-        lessonSvg.appendChild(img);
-
-        const outline = sEl("path");
-        const dOutline = `M ${x1} ${y1} L ${x4} ${y4} L ${x3} ${y3} L ${x2} ${y2}`;
-        outline.setAttribute("d", dOutline);
-        outline.setAttribute("fill", "none");
-        outline.setAttribute("stroke", strokeColor);
-        outline.setAttribute("stroke-width", base.strokeW);
-        outline.setAttribute("stroke-linecap", "round");
-        outline.setAttribute("stroke-linejoin", "round");
-        outline.style.pointerEvents = "none";
-        lessonSvg.appendChild(outline);
-
-        const labelY = topY + safeTrapH*0.36;
-        const label = sEl("text");
-        label.setAttribute("x", cx);
-        label.setAttribute("y", labelY);
-        label.setAttribute("text-anchor", "middle");
-        label.setAttribute("dominant-baseline", "middle");
-        label.setAttribute("font-size", 14);
-        label.setAttribute("font-weight", "900");
-        label.setAttribute("fill", "#111");
-        label.style.pointerEvents = "none";
-        label.textContent = lessonKey;
-        lessonSvg.appendChild(label);
-
-        // 小さくstage達成率を出す（確認用）
-        const ss = t.stageStats || {};
-        const dbg = sEl("text");
-        dbg.setAttribute("x", cx);
-        dbg.setAttribute("y", labelY + 16);
-        dbg.setAttribute("text-anchor", "middle");
-        dbg.setAttribute("dominant-baseline", "hanging");
-        dbg.setAttribute("font-size", 9.5);
-        dbg.setAttribute("font-weight", "800");
-        dbg.setAttribute("fill", "#111");
-        dbg.setAttribute("opacity", "0.78");
-        dbg.style.pointerEvents = "none";
-        const lines = [
-          `pre1: ${pctText(ss.pre1?.rate)}`,
-          `pre2: ${pctText(ss.pre2?.rate)}`,
-          `review: ${pctText(ss.review?.rate)}`,
-          `pre1+pre2: ${pctText(ss.sum_pre1_pre2?.rate)}`
-        ];
-        lines.forEach((txt, idx)=>{
-          const tspan = sEl("tspan");
-          tspan.textContent = txt;
-          tspan.setAttribute("x", cx);
-          tspan.setAttribute("dy", idx === 0 ? "0" : "1.15em");
-          dbg.appendChild(tspan);
-        });
-        dbg.setAttribute("clip-path", `url(#${trapClipId})`);
-        lessonSvg.appendChild(dbg);
       }
     }
-
-    ensureWaveLoop();
   }
 
-  function scheduleLessonRedraw(){
-    if (_resizeTick) cancelAnimationFrame(_resizeTick);
-    _resizeTick = requestAnimationFrame(()=>drawLessonTrapezoids());
-  }
-  window.addEventListener("resize", scheduleLessonRedraw);
+  window.addEventListener("resize", ()=>drawLessonTrapezoids());
 
-  /* =========================
-     ✅ クイズ波（簡易）
-  ========================= */
-  let _quizWave = null;
-  let _quizWaveRAF = null;
-  let _quizWaveState = { W:0, H:0, levelY:0, phase:0, amp:0, wl:0 };
-  let _quizRateVis = 0;
-
-  function getCurrentLessonSumRate01(){
-    const lesson = normLesson(CURRENT.lesson);
-    if (!lesson) return 0;
-    const t = (_lastLessonTiles || []).find(x => normLesson(x.lesson) === lesson);
-    if (!t || !t.stageStats) return 0;
-    const r = t.stageStats.sum_pre1_pre2?.rate;
-    return (r != null) ? clamp(r, 0, 1) : 0;
+  // ===== Quiz (load words + progress) =====
+  async function loadWordsForStage(grade, lessonId, stage){
+    const snap = await get(ref(db, pWords(grade, lessonId, stage)));
+    const obj = snap.exists() ? (snap.val() || {}) : {};
+    const arr = Object.keys(obj).map(id=>{
+      const w = obj[id] || {};
+      return {
+        id,
+        word: String(w.word ?? w.text ?? "").trim(),
+        meaning: String(w.meaning ?? "").trim(),
+        wrongs: Array.isArray(w.wrongs) ? w.wrongs : (Array.isArray(w.wrong) ? w.wrong : [])
+      };
+    }).filter(x=>x.word);
+    if (QUIZ_RULES.shuffleQuestions) shuffleInPlace(arr);
+    return arr;
   }
 
-  function buildQuizWaveSvg(){
-    quizProgressSvg.innerHTML = "";
-    const wavePath = sEl("path");
-    wavePath.setAttribute("fill", "#000");
-    wavePath.setAttribute("opacity", String(GAUGE_ALPHA));
-    wavePath.style.pointerEvents = "none";
-    quizProgressSvg.appendChild(wavePath);
-    _quizWave = { wavePath };
-  }
-  function stopQuizWaveLoop(){
-    if (_quizWaveRAF) cancelAnimationFrame(_quizWaveRAF);
-    _quizWaveRAF = null;
-  }
-  function startQuizWaveLoop(){
-    if (_quizWaveRAF) return;
-    if (!_quizWave) buildQuizWaveSvg();
-    _quizRateVis = clamp(_quizRateVis, 0, 1);
-
-    const loop = (now)=>{
-      if (!quizBox || quizBox.style.display === "none"){
-        stopQuizWaveLoop();
-        return;
-      }
-      const rect = quizProgressSvg.getBoundingClientRect();
-      const W = Math.max(1, Math.floor(rect.width));
-      const H = Math.max(1, Math.floor(rect.height));
-      quizProgressSvg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-
-      const rateRaw = getCurrentLessonSumRate01();
-      _quizRateVis += (rateRaw - _quizRateVis) * 0.10;
-
-      const GAUGE_MAX = 0.92;
-      const levelY = H - (H * (GAUGE_MAX * _quizRateVis));
-      const amp = Math.max(0.8, H * 0.010);
-      const wl  = Math.max(80,  W * 0.65);
-      const phase = now * 0.0032;
-
-      _quizWaveState = { W, H, levelY, phase, amp, wl };
-
-      _quizWave.wavePath.setAttribute("d", makeWavePath(0, 0, W, H, levelY, phase, amp, wl));
-      _quizWaveRAF = requestAnimationFrame(loop);
-    };
-
-    _quizWaveRAF = requestAnimationFrame(loop);
+  async function loadProgressForStage(uid, grade, lessonId, stage){
+    const snap = await get(ref(db, pProgress(uid, grade, lessonId, stage)));
+    return snap.exists() ? (snap.val() || {}) : {};
   }
 
-  function spawnDroplets(){
-    if (!dropletLayer) return;
-    const kids = dropletLayer.querySelectorAll(".droplet");
-    if (kids.length > 18) dropletLayer.innerHTML = "";
+  function pickNextWord(){
+    // Prefer unmastered first
+    const un = WORDS.filter(w=>{
+      const p = PROG?.[w.id];
+      return !(p && p.mastered);
+    });
+    const pool = un.length ? un : WORDS;
+    if (!pool.length) return null;
+    const idx = Math.floor(Math.random() * pool.length);
+    return pool[idx];
+  }
 
-    function waveYAtCenter(){
-      const { W, levelY, phase, amp, wl } = _quizWaveState || {};
-      if (!(W > 0) || !(wl > 0) || !(levelY > 0)) return Infinity;
-      const k = (2 * Math.PI) / wl;
-      const x = W * 0.5;
-      const bias = (amp || 0) * 0.22;
-      return levelY + Math.sin(k * x + phase) * (amp || 0) - bias;
+  function buildOptions(wordObj){
+    // Options are meanings: correct meaning + wrongs (at least 2)
+    const correct = wordObj.meaning || "";
+    let wrongs = (wordObj.wrongs || []).map(x=>String(x||"").trim()).filter(Boolean);
+    // ensure at least 2 wrongs
+    while (wrongs.length < 2) wrongs.push("（誤答が不足）");
+    // cap 5
+    wrongs = wrongs.slice(0,5);
+
+    const opts = [correct, ...wrongs];
+    const uniq = [];
+    for (const o of opts){
+      if (!uniq.includes(o)) uniq.push(o);
+    }
+    const final = uniq.slice(0, 6);
+    if (QUIZ_RULES.shuffleChoices) shuffleInPlace(final);
+    return { correct, options: final };
+  }
+
+  async function primeStageDataAndFirstQuestion(){
+    const uid = auth.currentUser?.uid;
+    if (!uid) throw new Error("no uid");
+
+    const grade = SELECTED_GRADE;
+    const lessonId = CURRENT.lessonId;
+    const stage = CURRENT.stage;
+
+    WORDS = await loadWordsForStage(grade, lessonId, stage);
+    PROG = await loadProgressForStage(uid, grade, lessonId, stage);
+
+    startSession();
+    await nextQuestion(true);
+  }
+
+  function clearOptions(){
+    optGrid.innerHTML = "";
+    quizResult.textContent = "";
+  }
+  function setResult(msg, ok){
+    quizResult.textContent = msg;
+    quizResult.className = ok ? "muted ok" : "muted ng";
+  }
+
+  let ANSWERING = false;
+
+  async function nextQuestion(forceFresh){
+    clearOptions();
+    quizWord.textContent = "…";
+    stopQuestionTimer();
+
+    if (!WORDS.length){
+      quizWord.textContent = "単語がありません";
+      setResult("先生が単語を登録してください。", false);
+      return;
     }
 
-    function makeOne(delayMs){
-      setTimeout(()=>{
-        const d = document.createElement("div");
-        d.className = "droplet";
-        dropletLayer.appendChild(d);
+    // end session condition (optional): planned number = all words * repeat
+    const planned = (QUIZ_RULES.maxQuestions === "all")
+      ? WORDS.length * Math.max(1, QUIZ_RULES.repeatPerWord|0)
+      : Math.min(WORDS.length, Number(QUIZ_RULES.maxQuestions)||WORDS.length) * Math.max(1, QUIZ_RULES.repeatPerWord|0);
 
-        const start = performance.now();
-        const dur = 1200;
-        const dropletH = 60;
-        const stageH = (dropletLayer.getBoundingClientRect().height) || (_quizWaveState.H || 0);
-        const fromY = -dropletH - 10;
-        const toY   = stageH + dropletH + 10;
-        const easeOut = (t)=> 1 - Math.pow(1 - t, 3);
+    if (SESSION && SESSION.asked >= planned){
+      quizWord.textContent = "おつかれさま！";
+      setTimeout(()=>openSessionResult(), 120);
+      return;
+    }
 
-        function tick(now){
-          const t = (now - start) / dur;
-          if (t >= 1){ d.remove(); return; }
+    const w = pickNextWord();
+    if (!w){
+      quizWord.textContent = "おつかれさま！";
+      setTimeout(()=>openSessionResult(), 120);
+      return;
+    }
 
-          const p = easeOut(Math.max(0, Math.min(1, t)));
-          const y = fromY + (toY - fromY) * p;
+    const { correct, options } = buildOptions(w);
+    CURRENT.currentQ = { id: w.id, word: w.word, correct, meaning: w.meaning };
 
-          let op = 0;
-          if (t < 0.10) op = t / 0.10;
-          else op = 1;
+    quizWord.textContent = w.word || "（no word）";
 
-          const dropletCenterY = y + dropletH / 2;
-          const wy = waveYAtCenter();
-          if (dropletCenterY >= wy){ d.remove(); return; }
+    options.forEach(text=>{
+      const b = document.createElement("button");
+      b.className = "optBtn";
+      b.type = "button";
+      b.textContent = text;
 
-          d.style.opacity = String(op);
-          d.style.transform = `translateX(-50%) translateY(${y}px) scale(${0.92 + 0.10*p})`;
-          requestAnimationFrame(tick);
+      b.addEventListener("pointerdown", (ev)=>{
+        ev.preventDefault();
+        submitAnswer(text, b);
+      }, { passive:false });
+
+      b.addEventListener("click", ()=> submitAnswer(text, b));
+      optGrid.appendChild(b);
+    });
+
+    startQuestionTimer(QT_MS);
+  }
+
+  async function submitAnswer(chosen, chosenBtnEl){
+    if (ANSWERING) return;
+    if (!CURRENT.currentQ) return;
+    ANSWERING = true;
+
+    stopQuestionTimer();
+
+    const btns = [...optGrid.querySelectorAll(".optBtn")];
+    btns.forEach(b=>{
+      b.disabled = true;
+      b.classList.remove("pending","goodGreen","badRed","shake");
+    });
+    if (chosenBtnEl) chosenBtnEl.classList.add("pending");
+    await new Promise(r=>requestAnimationFrame(r));
+
+    try{
+      const q = CURRENT.currentQ;
+      const isCorrect = (String(chosen) === String(q.correct));
+
+      // paint
+      if (chosenBtnEl) chosenBtnEl.classList.remove("pending");
+      let chosenBtn = null;
+      btns.forEach(b=>{
+        if (b.textContent === q.correct) b.classList.add("goodGreen");
+        if (b.textContent === chosen){
+          chosenBtn = b;
+          if (!isCorrect) b.classList.add("badRed");
         }
-        requestAnimationFrame(tick);
-      }, delayMs);
-    }
+      });
+      if (!isCorrect && chosenBtn){
+        chosenBtn.classList.remove("shake"); void chosenBtn.offsetWidth;
+        chosenBtn.classList.add("shake");
+      }
 
-    makeOne(0); makeOne(220); makeOne(440);
+      // update session
+      if (SESSION){
+        SESSION.asked += 1;
+        if (isCorrect) SESSION.correct += 1;
+        else SESSION.wrongs.push({ word: q.word, meaning: q.correct });
+      }
+
+      // write progress
+      await writeProgress(isCorrect);
+
+      // after
+      setTimeout(()=> nextQuestion(true), 260);
+
+    } catch(e){
+      console.error(e);
+      setResult("保存に失敗。通信が不安定かも。", false);
+      btns.forEach(b=>b.disabled=false);
+    } finally {
+      ANSWERING = false;
+    }
   }
 
-  /* =========================
-     ✅ 管理者：単語登録（DBへ保存）
-  ========================= */
-  function parseWordsWithWrongs(text){
+  async function writeProgress(isCorrect){
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+
+    const grade = SELECTED_GRADE;
+    const lessonId = CURRENT.lessonId;
+    const stage = CURRENT.stage;
+    const wordId = CURRENT.currentQ.id;
+
+    const path = ref(db, `${pProgress(uid, grade, lessonId, stage)}/${wordId}`);
+    const snap = await get(path);
+    const cur = snap.exists() ? (snap.val() || {}) : {};
+    const cc = Number(cur.correctCount||0) + (isCorrect ? 1 : 0);
+    const wc = Number(cur.wrongCount||0) + (isCorrect ? 0 : 1);
+
+    // mastery rule: correctCount >= 1
+    const mastered = cc >= 1;
+
+    await set(path, {
+      correctCount: cc,
+      wrongCount: wc,
+      mastered,
+      updatedAt: serverTimestamp()
+    });
+
+    // cache update
+    PROG[wordId] = { correctCount: cc, wrongCount: wc, mastered };
+
+    // optionally set stage complete when all words mastered
+    await maybeCompleteStage(uid, grade, lessonId, stage);
+
+    // refresh tiles in background
+    loadLessonsAndDraw().catch(()=>{});
+  }
+
+  async function maybeCompleteStage(uid, grade, lessonId, stage){
+    // if all words in this stage are mastered
+    // (words exist => check each in PROG)
+    if (!WORDS.length) return;
+
+    let allMastered = true;
+    for (const w of WORDS){
+      const p = PROG?.[w.id];
+      if (!(p && p.mastered)){
+        allMastered = false;
+        break;
+      }
+    }
+    if (!allMastered) return;
+
+    // write completion
+    const cRef = ref(db, pStageComplete(uid, grade, lessonId, stage));
+    const snap = await get(cRef);
+    if (!snap.exists()){
+      await set(cRef, { completedAt: serverTimestamp(), at: Date.now() });
+    }
+  }
+
+  // ===== Buttons =====
+  btnNext.onclick = ()=> nextQuestion(true);
+  btnBackLessons.onclick = async ()=> { await showLessonList(); };
+
+  // ===== Entry flow =====
+  async function startFlow(){
+    const name = normName(stuName.value);
+    if (!name){ setStuStatus("名前を入力して。", false); return; }
+
+    btnStart.disabled = true;
+    try{
+      setStuStatus("入室中…", true);
+      localStorage.setItem(NAME_KEY, name);
+
+      await ensureStudentAuth(); // anonymous
+      await upsertUserProfile(name);
+
+      CURRENT.name = name;
+      setStuStatus("入室OK（課を押してね）", true);
+
+      await showLessonList();
+    } catch(e){
+      console.error(e);
+      setStuStatus("入室失敗：通信/設定を確認して。", false);
+    } finally {
+      btnStart.disabled = false;
+    }
+  }
+
+  btnStart.onclick = startFlow;
+  stuName.addEventListener("keydown", (e)=>{ if (e.key === "Enter") startFlow(); });
+
+  // Back button (↻): to name screen
+  gearBtn.onclick = ()=> {
+    stopQuestionTimer();
+    closeSessionResult();
+    CURRENT.lessonId = "";
+    CURRENT.stage = "pre1";
+    CURRENT.currentQ = null;
+    showNameScreen();
+  };
+
+  // ===== Teacher modal =====
+  function openTeacher(){
+    teacherBack.style.display = "flex";
+  }
+  function closeTeacher(){
+    teacherBack.style.display = "none";
+  }
+  btnTeacherOpen.onclick = openTeacher;
+  btnTeacherClose.onclick = closeTeacher;
+  teacherBack.addEventListener("click", (e)=>{ if (e.target === teacherBack) closeTeacher(); });
+
+  function setTeacherUI(isTeacher){
+    IS_TEACHER = !!isTeacher;
+    teacherBadge.textContent = isTeacher ? "先生" : "学生";
+    teacherBadge.className = isTeacher ? "pill" : "pill danger";
+
+    teacherLoginBox.style.display = isTeacher ? "none" : "";
+    teacherPanel.style.display = isTeacher ? "" : "none";
+    btnTeacherLogout.style.display = isTeacher ? "" : "none";
+  }
+
+  btnTeacherLogin.onclick = async ()=>{
+    tMsg.textContent = "ログイン中…";
+    try{
+      await signInWithEmailAndPassword(auth, (tEmail.value||"").trim(), (tPass.value||"").trim());
+      tMsg.textContent = "";
+    } catch(e){
+      console.error(e);
+      tMsg.textContent = "失敗: " + (e?.code || e);
+    }
+  };
+
+  btnTeacherSignup.onclick = async ()=>{
+    tMsg.textContent = "作成中…";
+    try{
+      await createUserWithEmailAndPassword(auth, (tEmail.value||"").trim(), (tPass.value||"").trim());
+      tMsg.textContent = "作成OK（このままログイン状態）";
+    } catch(e){
+      console.error(e);
+      tMsg.textContent = "失敗: " + (e?.code || e);
+    }
+  };
+
+  btnTeacherLogout.onclick = async ()=>{
+    await signOut(auth);
+    // student mode will re-login anonymously when needed
+  };
+
+  // ===== Teacher actions =====
+  function parseCsvWords(text){
     const lines = text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
     const items = [];
     const bads = [];
     for (let i=0;i<lines.length;i++){
-      const line = lines[i];
-      const parts = line.split(",").map(s=>s.trim());
+      const parts = lines[i].split(",").map(s=>s.trim());
       const word = (parts[0]||"").trim();
       const meaning = (parts[1]||"").trim();
       const wrongs = parts.slice(2).map(x=>String(x||"").trim()).filter(Boolean);
       if (!word || !meaning || wrongs.length < 2 || wrongs.length > 5){
-        bads.push({ line:i+1, raw: line });
+        bads.push({ line:i+1, raw: lines[i] });
         continue;
       }
       items.push({ word, meaning, wrongs });
@@ -1861,160 +1706,222 @@
     return { items, bads };
   }
 
-  btnPreviewParse.onclick = ()=>{
-    const { items, bads } = parseWordsWithWrongs(wordsText.value);
-    const okText = items.length
-      ? items.map((x,i)=>`${i+1}. ${x.word} / ${x.meaning} (wrongs:${x.wrongs.length})`).join("\n")
-      : "（OK 0行）";
-    const badText = bads.length
-      ? "\n\n--- NG ---\n" + bads.map(x=>`line ${x.line}: ${x.raw}`).join("\n")
-      : "";
-    parsePreview.textContent = okText + badText;
+  btnAddLesson.onclick = async ()=>{
+    tLessonMsg.textContent = "保存中…";
+    try{
+      const grade = Number(tGradeSel.value || SELECTED_GRADE);
+      const id = (tLessonId.value||"").trim();
+      const title = (tLessonTitle.value||"").trim() || id;
+      if (!id){ tLessonMsg.textContent = "lessonId を入れて"; return; }
+
+      await update(ref(db, `${pLessons(grade)}/${id}`), {
+        id,
+        title,
+        order: Date.now(), // later added => later order (自由に変えてOK)
+        updatedAt: serverTimestamp()
+      });
+
+      tLessonMsg.textContent = "OK";
+      await loadLessonsAndDraw();
+    } catch(e){
+      console.error(e);
+      tLessonMsg.textContent = "失敗: " + (e?.code || e);
+    }
+  };
+
+  btnDelLesson.onclick = async ()=>{
+    try{
+      const grade = Number(tGradeSel.value || SELECTED_GRADE);
+      const id = (tLessonId.value||"").trim();
+      if (!id) return;
+      if (!confirm(`${grade}年 ${id} を削除？（単語も残るので必要なら words も消してね）`)) return;
+      await remove(ref(db, `${pLessons(grade)}/${id}`));
+      tLessonMsg.textContent = "削除OK";
+      await loadLessonsAndDraw();
+    } catch(e){
+      console.error(e);
+      tLessonMsg.textContent = "削除失敗: " + (e?.code || e);
+    }
   };
 
   btnUploadWords.onclick = async ()=>{
-    const token = (adminToken.value || "").trim();
-    if (token !== ADMIN_KEY){
-      uploadStatus.textContent = "認証キーが違う（簡易管理）";
-      return;
-    }
-    const grade = Number(gradeSel.value);
-    const lesson = normLesson(lessonSel.value);
-    const stage = (stageSel.value || "pre1").trim();
-    const class_name = (classSel.value || "").trim();
-    if (!lesson){ uploadStatus.textContent = "課を入れて。"; return; }
-
-    const { items, bads } = parseWordsWithWrongs(wordsText.value);
-    if (items.length === 0){
-      uploadStatus.textContent = "有効な行が0。形式：word,meaning,wrong1,wrong2[,wrong3,wrong4,wrong5]";
-      return;
-    }
-
-    uploadStatus.textContent = "登録中…";
-    let saved = 0;
-
-    const basePath = P.wordsStage(grade, lesson, stage);
-    for (const it of items){
-      const r0 = ref(db, basePath);
-      const node = push(r0);
-      await set(node, {
-        word: it.word,
-        meaning: it.meaning,
-        wrongs: it.wrongs,
-        className: class_name || "",
-        createdAt: nowTs()
-      });
-      saved += 1;
-    }
-
-    uploadStatus.textContent = `登録OK：saved=${saved} bad=${bads.length}`;
-  };
-
-  btnSaveToken.onclick = ()=>{
-    localStorage.setItem(TOKEN_KEY, adminToken.value.trim());
-    adminStatus.textContent = "保存OK";
-  };
-  btnLogoutAdmin.onclick = ()=> setMode(false);
-
-  btnLoadStudents.onclick = async ()=>{
-    const token = (adminToken.value || "").trim();
-    if (token !== ADMIN_KEY){
-      studentList.textContent = "認証キーが違う（簡易管理）";
-      return;
-    }
-    const all = await dbGet("students") || {};
-    const lines = [];
-    for (const k of Object.keys(all)){
-      const s = all[k];
-      const name = s?.name ?? "";
-      const last = s?.lastSeenAt ? new Date(s.lastSeenAt).toLocaleString() : "";
-      lines.push(`${name}  /  key=${k}  /  last=${last}`);
-    }
-    studentList.textContent = lines.length ? lines.join("\n") : "students が空です";
-  };
-
-  /* =========================
-     ✅ 管理者/戻るボタン
-  ========================= */
-  gearBtn.onclick = async ()=>{
-    if (IN_ROOM){
-      setStuStatus("", true);
-      stopQuestionTimer();
-      closeSessionResult();
-      if (quizBox.style.display !== "none"){
-        await showLessonList();
-      } else {
-        showNameScreen();
-      }
-      return;
-    }
-    if (!ENABLE_ADMIN){
-      alert("今回は管理者を無効にしています。");
-      return;
-    }
-    // 簡易：ローカル保存キーで入る
-    const token = (adminToken.value || "").trim();
-    if (token === ADMIN_KEY){
-      adminStatus.textContent = "認証OK（簡易）";
-      setMode(true);
-      return;
-    }
-    const inKey = prompt("管理者キーを入力（例 hosi1212）") || "";
-    if (inKey.trim() === ADMIN_KEY){
-      adminToken.value = inKey.trim();
-      localStorage.setItem(TOKEN_KEY, inKey.trim());
-      adminStatus.textContent = "認証OK（簡易）";
-      setMode(true);
-    } else {
-      alert("認証失敗");
-    }
-  };
-
-  /* =========================
-     ✅ 入室フロー
-  ========================= */
-  let STARTING = false;
-  async function startFlow(){
-    if (STARTING) return;
-    STARTING = true;
-    netWarn.style.display = "none";
+    tWordsMsg.textContent = "送信中…";
     try{
-      const name = normName(stuName.value);
-      if (!name){ setStuStatus("名前を入力して。", false); return; }
-      localStorage.setItem(NAME_KEY, name);
+      const grade = Number(tGradeSel.value || SELECTED_GRADE);
+      const stage = String(tStageSel.value||"pre1");
+      const lessonId = (tWordsLessonId.value||"").trim();
+      if (!lessonId){ tWordsMsg.textContent = "lessonId を入れて"; return; }
 
-      setStuStatus("入室中…", true);
-      STUDENT.name = name;
-      await enterStudent(name);
+      const { items, bads } = parseCsvWords(tWordsCsv.value||"");
+      if (!items.length){
+        tWordsMsg.textContent = "有効な行が0（形式を確認）";
+        return;
+      }
 
-      setStuStatus("入室OK（課を押してね）", true);
-      await showLessonList();
+      let saved = 0;
+      for (const it of items){
+        const r = push(ref(db, pWords(grade, lessonId, stage)));
+        await set(r, {
+          word: it.word,
+          meaning: it.meaning,
+          wrongs: it.wrongs,
+          createdAt: serverTimestamp()
+        });
+        saved++;
+      }
+
+      tWordsMsg.textContent = `登録OK: saved=${saved} / NG=${bads.length}`;
+      await loadLessonsAndDraw();
     } catch(e){
-      setStuStatus("入室失敗（DBルール/ネット制限）", false);
-      netWarn.style.display = "";
-      netWarn.textContent = "入室失敗：Realtime DBルールが厳しい or ネット制限。まず .read/.write true で検証して。";
-    } finally {
-      STARTING = false;
+      console.error(e);
+      tWordsMsg.textContent = "失敗: " + (e?.code || e);
+    }
+  };
+
+  btnSeedAll.onclick = async ()=>{
+    tWordsMsg.textContent = "サンプル投入中…";
+    try{
+      const grade = Number(tGradeSel.value || SELECTED_GRADE);
+      const lessonId = (tWordsLessonId.value||"").trim() || "L1";
+      const seed = {
+        pre1: [
+          {word:"apple", meaning:"りんご", wrongs:["みかん","ぶどう"]},
+          {word:"book", meaning:"本", wrongs:["机","椅子"]},
+          {word:"teacher", meaning:"先生", wrongs:["学生","医者"]}
+        ],
+        pre2: [
+          {word:"study", meaning:"勉強する", wrongs:["寝る","走る"]},
+          {word:"listen", meaning:"聞く", wrongs:["見る","書く"]},
+          {word:"speak", meaning:"話す", wrongs:["読む","買う"]}
+        ],
+        review: [
+          {word:"class", meaning:"授業", wrongs:["昼ごはん","休み"]},
+          {word:"homework", meaning:"宿題", wrongs:["天気","電車"]},
+        ]
+      };
+
+      // also create lesson
+      await update(ref(db, `${pLessons(grade)}/${lessonId}`), { id: lessonId, title: lessonId, order: Date.now(), updatedAt: serverTimestamp() });
+
+      for (const stage of ["pre1","pre2","review"]){
+        for (const it of seed[stage]){
+          const r = push(ref(db, pWords(grade, lessonId, stage)));
+          await set(r, { ...it, createdAt: serverTimestamp() });
+        }
+      }
+
+      tWordsMsg.textContent = `サンプルOK（${grade}年/${lessonId}）`;
+      await loadLessonsAndDraw();
+    } catch(e){
+      console.error(e);
+      tWordsMsg.textContent = "失敗: " + (e?.code || e);
+    }
+  };
+
+  async function refreshRoster(){
+    rosterBody.innerHTML = `<tr><td colspan="3" class="muted" style="padding:10px;">読み込み中…</td></tr>`;
+    try{
+      // last 80 users by lastActiveAt (but RTDB query needs index; simple get for now)
+      const snap = await get(ref(db, "users"));
+      const obj = snap.exists() ? (snap.val() || {}) : {};
+      const rows = Object.keys(obj).map(uid=>{
+        const u = obj[uid] || {};
+        return {
+          uid,
+          name: u.name || "(未設定)",
+          lastActiveAt: Number(u.lastActiveAt||0)
+        };
+      });
+      rows.sort((a,b)=> (b.lastActiveAt - a.lastActiveAt) || String(a.name).localeCompare(String(b.name), "ja"));
+      const top = rows.slice(0, 80);
+
+      if (!top.length){
+        rosterBody.innerHTML = `<tr><td colspan="3" class="muted" style="padding:10px;">学生なし</td></tr>`;
+        return;
+      }
+
+      rosterBody.innerHTML = "";
+      for (const r0 of top){
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td style="padding:8px; border-bottom:1px solid rgba(0,0,0,.08);"><b>${esc(r0.name)}</b><div class="muted mono">${esc(r0.uid)}</div></td>
+          <td style="padding:8px; border-bottom:1px solid rgba(0,0,0,.08);" class="muted">${r0.lastActiveAt ? new Date(r0.lastActiveAt).toLocaleString() : "-"}</td>
+          <td style="padding:8px; border-bottom:1px solid rgba(0,0,0,.08);" class="muted">読み込み中…</td>
+        `;
+        rosterBody.appendChild(tr);
+
+        // summary: total mastered in selected grade across stages/lessons
+        const sum = await summarizeUser(r0.uid, SELECTED_GRADE);
+        tr.children[2].textContent = sum;
+      }
+    } catch(e){
+      console.error(e);
+      rosterBody.innerHTML = `<tr><td colspan="3" class="ng" style="padding:10px;">失敗: ${esc(e?.code || e)}</td></tr>`;
     }
   }
-  btnStart.onclick = startFlow;
-  stuName.addEventListener("keydown", (e)=>{ if (e.key === "Enter") startFlow(); });
 
-  /* =========================
-     ✅ 初期化
-  ========================= */
-  // restore
+  async function summarizeUser(uid, grade){
+    try{
+      const snap = await get(ref(db, `progress/${uid}/${grade}`));
+      const obj = snap.exists() ? (snap.val() || {}) : {};
+      let mastered = 0;
+      let total = 0;
+
+      // total from words:
+      // (heavy but OK for teacher refresh)
+      const lessons = await loadLessons(grade);
+      for (const L of lessons){
+        for (const stage of ["pre1","pre2","review"]){
+          const ws = await get(ref(db, pWords(grade, L.id, stage)));
+          const wobj = ws.exists() ? (ws.val()||{}) : {};
+          total += Object.keys(wobj).length;
+
+          const progStage = obj?.[L.id]?.[stage] || {};
+          for (const wid of Object.keys(progStage)){
+            if (progStage?.[wid]?.mastered) mastered++;
+          }
+        }
+      }
+      return `${mastered}/${total}`;
+    } catch(e){
+      return "—";
+    }
+  }
+
+  btnRefreshRoster.onclick = refreshRoster;
+
+  // ===== Auth listener =====
+  onAuthStateChanged(auth, async (user)=>{
+    UID = user ? user.uid : null;
+
+    const email = user?.email || null;
+    const isTeacher = !!email; // email login == teacher
+    setTeacherUI(isTeacher);
+
+    teacherState.textContent = user ? (email ? `先生ログイン中：${email}` : "学生（匿名ログイン）") : "未ログイン";
+    teacherBadge.textContent = user ? (email ? "先生" : "学生") : "---";
+
+    // If teacher logs out and student continues, ensure anonymous when pressing start.
+    if (isTeacher){
+      // teacher panel only: show roster quickly
+      await refreshRoster().catch(()=>{});
+    }
+  });
+
+  // ===== Init =====
   const savedName = localStorage.getItem(NAME_KEY);
   if (savedName) stuName.value = savedName;
 
-  const savedToken = localStorage.getItem(TOKEN_KEY);
-  if (savedToken) adminToken.value = savedToken;
-
   buildGradeButtons();
-  buildAdminGradeSelect();
+  buildTeacherGradeSelect();
   renderGradeButtons();
-  setMode(false);
+
+  // start with name screen
   showNameScreen();
+  teacherDock.style.display = "";
+  teacherBack.style.display = "none";
+  closeSessionResult();
+  closeStagePop();
 
 </script>
 </body>
