@@ -249,9 +249,11 @@
     .optBtn:hover{ border-color: rgba(0,0,0,.30); background: rgba(255,255,255,.78); }
     .optBtn:disabled{ opacity: 1; cursor: default; }
 
+    /* ✅ pendingは“暗転させない”保険（今回JSでは基本使わない） */
     .optBtn.pending{
-      filter: brightness(0.92) saturate(1.05);
+      filter: none;
       transform: scale(0.995);
+      border-color: rgba(0,0,0,.35);
     }
 
     .optBtn.goodGreen{
@@ -948,7 +950,9 @@ async function apiQuestion(name, grade, lesson, stage){
 
     const w = candidates[Math.floor(Math.random()*candidates.length)];
     const options = makeOptionsForWord(w);
-    return { ok:true, word_id:w.id, word:w.word, options };
+
+    /* ✅ 重要：正解も返す（これで“即色変更”が可能） */
+    return { ok:true, word_id:w.id, word:w.word, options, correct: w.meaning };
   }catch(e){
     return { ok:false, error:(e&&e.message)?e.message:String(e) };
   }
@@ -1064,7 +1068,9 @@ async function showLessonList(){
   document.body.classList.remove("quiz-bg");
 
   await refreshLessons();
-  requestAnimationFrame(()=>drawLessonTrapezoids());
+  /* ✅ 二重描画を消す：refreshLessons内でdrawLessonTrapezoids()するのでここは不要
+     requestAnimationFrame(()=>drawLessonTrapezoids());
+  */
   closeStagePop();
   closeSessionResult();
 
@@ -1221,7 +1227,7 @@ async function refreshLessons(){
     ensureGaugeColorIfNeeded(CURRENT.name, SELECTED_GRADE, t.lesson, t.achieveRate);
   });
 
-  drawLessonTrapezoids();
+  drawLessonTrapezoids(true); /* ✅ 戻った時は“伸び”アニメ */
   syncDropletColorToGauge();
 }
 
@@ -1559,11 +1565,12 @@ function renderQuestionJson(j){
   const wordId = j.word_id ?? j.wordId ?? j.id;
   const word = j.word ?? j.question ?? "";
   let options = Array.isArray(j.options) ? j.options : (Array.isArray(j.choices) ? j.choices : []);
+  const correct = (j.correct != null) ? String(j.correct) : null; /* ✅ ここが即色判定の鍵 */
 
   options = options.slice();
   if (QUIZ_RULES.shuffleChoices) shuffleInPlace(options);
 
-  CURRENT.currentQ = { raw:j, word_id: wordId, word };
+  CURRENT.currentQ = { raw:j, word_id: wordId, word, correct };
   quizWord.textContent = word || "（no word）";
 
   const st = j.stage || CURRENT.stage;
@@ -1604,6 +1611,8 @@ async function loadQuestion(){
 }
 
 let ANSWERING = false;
+
+/* ✅ ここが本丸：押した瞬間に緑/赤へ（通信待ちを挟まない） */
 async function submitAnswer(text, chosenBtnEl){
   if (ANSWERING) return;
   if (!CURRENT.currentQ || !CURRENT.currentQ.word_id) return;
@@ -1618,35 +1627,23 @@ async function submitAnswer(text, chosenBtnEl){
     b.disabled = true;
     b.classList.remove("pending","goodGreen","badRed","shake");
   });
-  if (chosenBtnEl){
-    chosenBtnEl.classList.add("pending");
-  }
-  await new Promise(r=>requestAnimationFrame(r));
 
-  try{
-    const j = await apiAnswer(CURRENT.name, CURRENT.currentQ.word_id, text);
-    if (!j.ok){
-      btns.forEach(b=>b.disabled = false);
-      if (chosenBtnEl) chosenBtnEl.classList.remove("pending");
-      setResult(`回答失敗：${j.error||"unknown"}`, false);
-      return;
-    }
+  const correctLocal = (CURRENT.currentQ.correct != null) ? String(CURRENT.currentQ.correct) : null;
+  const chosen = String(text);
 
-    const isCorrect = !!(j.is_correct ?? j.isCorrect ?? j.correct);
-    const correct = j.correct ?? j.answer ?? j.correct_answer ?? "";
-    const chosen  = j.chosen ?? j.choice ?? text;
+  // ✅ 1) 即ローカル判定で色を付ける（グレー化させない）
+  if (correctLocal != null){
+    const isCorrectLocal = (chosen === correctLocal);
 
-    if (chosenBtnEl) chosenBtnEl.classList.remove("pending");
-
-    if (isCorrect){
+    if (isCorrectLocal){
       btns.forEach(b=>{
-        if (b.textContent === correct) b.classList.add("goodGreen");
+        if (b.textContent === correctLocal) b.classList.add("goodGreen");
       });
       spawnDroplets();
     } else {
       let chosenBtn = null;
       btns.forEach(b=>{
-        if (b.textContent === correct) b.classList.add("goodGreen");
+        if (b.textContent === correctLocal) b.classList.add("goodGreen");
         if (b.textContent === chosen){
           b.classList.add("badRed");
           chosenBtn = b;
@@ -1658,6 +1655,28 @@ async function submitAnswer(text, chosenBtnEl){
         chosenBtn.classList.add("shake");
       }
     }
+
+    // ✅ 2) “描画”を先に通す（ここで次フレームへ）
+    await new Promise(r=>requestAnimationFrame(r));
+  } else {
+    // 万一 correct が取れないときだけ “暗くならない pending” を付ける
+    if (chosenBtnEl) chosenBtnEl.classList.add("pending");
+    await new Promise(r=>requestAnimationFrame(r));
+  }
+
+  try{
+    // ✅ 3) その後にDB保存（遅くても見た目はもう変わってる）
+    const j = await apiAnswer(CURRENT.name, CURRENT.currentQ.word_id, chosen);
+    if (!j.ok){
+      setResult(`回答失敗：${j.error||"unknown"}`, false);
+      // 失敗時：必要なら解放
+      btns.forEach(b=>b.disabled = false);
+      if (chosenBtnEl) chosenBtnEl.classList.remove("pending","badRed","goodGreen","shake");
+      return;
+    }
+
+    const isCorrect = !!(j.is_correct ?? j.isCorrect ?? j.correct);
+    const correct = j.correct ?? j.answer ?? j.correct_answer ?? correctLocal ?? "";
 
     if (SESSION){
       SESSION.asked += 1;
@@ -1742,14 +1761,67 @@ async function startFlow(){
 btnStart.onclick = startFlow;
 stuName.addEventListener("keydown", (e)=>{ if (e.key === "Enter") startFlow(); });
 
-/* ========= 台形描画（元のまま） ========= */
+/* ========= 台形描画（元のまま + “伸び”アニメ対応） ========= */
 let _resizeTick = null;
 const _tileRefs = new Map();
 let _waveRAF = null;
 
+/* ===== ✅ 課選択バー：戻った時に“伸びる”アニメ ===== */
+let _levelAnimRAF = null;
+const _lastLevelYMap = new Map(); // lessonKey -> 前回のlevelY（SVG座標）
+
+function stopLevelAnim(){
+  if (_levelAnimRAF) cancelAnimationFrame(_levelAnimRAF);
+  _levelAnimRAF = null;
+}
+function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+
+function animateTileLevels(duration=650){
+  stopLevelAnim();
+
+  let need = false;
+  _tileRefs.forEach(ref=>{
+    if (Number.isFinite(ref.levelY) && Number.isFinite(ref.targetLevelY) && Math.abs(ref.targetLevelY - ref.levelY) > 0.5){
+      need = true;
+    }
+  });
+
+  if (!need){
+    _tileRefs.forEach((ref, key)=>{
+      if (Number.isFinite(ref.levelY)) _lastLevelYMap.set(key, ref.levelY);
+    });
+    return;
+  }
+
+  const t0 = performance.now();
+  const starts = new Map();
+  _tileRefs.forEach((ref, key)=> starts.set(key, ref.levelY));
+
+  const tick = (now)=>{
+    if (lessonListBox.style.display === "none"){ stopLevelAnim(); return; }
+
+    const p = Math.min(1, (now - t0) / duration);
+    const e = easeOutCubic(p);
+
+    _tileRefs.forEach((ref, key)=>{
+      const y0 = starts.get(key);
+      const y1 = ref.targetLevelY;
+      if (!Number.isFinite(y0) || !Number.isFinite(y1)) return;
+      ref.levelY = y0 + (y1 - y0) * e;
+      if (p >= 1) _lastLevelYMap.set(key, y1);
+    });
+
+    if (p < 1) _levelAnimRAF = requestAnimationFrame(tick);
+    else stopLevelAnim();
+  };
+
+  _levelAnimRAF = requestAnimationFrame(tick);
+}
+
 function stopWaveLoop(){
   if (_waveRAF) cancelAnimationFrame(_waveRAF);
   _waveRAF = null;
+  stopLevelAnim();
 }
 
 function makeWavePath(x, y, w, h, levelY, phase, amp, wavelength){
@@ -1820,7 +1892,17 @@ function ensureWaveLoop(){
     }
 
     _tileRefs.forEach(ref=>{
-      const { wavePath, waveBox, levelY } = ref;
+      const { wavePath, waveBox, visRect } = ref;
+      const levelY = ref.levelY;
+
+      const bottom = waveBox.y + waveBox.h;
+
+      /* ✅ clip（ゲージ量）も levelY に合わせて動かす */
+      if (visRect && Number.isFinite(levelY)){
+        const h = Math.max(0, bottom - levelY);
+        visRect.setAttribute("y", String(levelY));
+        visRect.setAttribute("height", String(h));
+      }
 
       const phase = now * 0.0032;
       const amp   = Math.max(0.7, waveBox.h * 0.018);
@@ -1838,7 +1920,7 @@ function ensureWaveLoop(){
   _waveRAF = requestAnimationFrame(loop);
 }
 
-function drawLessonTrapezoids(){
+function drawLessonTrapezoids(animateLevels=true){
   if (!lessonSvg) return;
   if (lessonListBox.style.display === "none") return;
 
@@ -1964,12 +2046,22 @@ function drawLessonTrapezoids(){
       if (!Number.isFinite(rate)) rate = 0;
       rate = clamp(rate, 0, 1);
 
-      const levelY_raw = bottomY - (waveBox.h * (GAUGE_MAX * rate));
+      /* ✅ target（今回の正しい高さ） */
+      const levelYTarget_raw = bottomY - (waveBox.h * (GAUGE_MAX * rate));
       const LEVEL_PAD = 2;
-      const levelY = clamp(levelY_raw, topY + LEVEL_PAD, bottomY - LEVEL_PAD);
+      const levelYTarget = clamp(levelYTarget_raw, topY + LEVEL_PAD, bottomY - LEVEL_PAD);
 
-      const visY = levelY;
-      const visH = bottomY - levelY;
+      /* ✅ start（前回の高さ）→ 戻った時に“伸びる” */
+      let levelYStart = levelYTarget;
+      if (animateLevels){
+        const prev = _lastLevelYMap.get(lessonKey);
+        if (Number.isFinite(prev)){
+          levelYStart = clamp(prev, topY + LEVEL_PAD, bottomY - LEVEL_PAD);
+        }
+      }
+
+      const visY = levelYStart;
+      const visH = bottomY - levelYStart;
 
       const visClipId = `visclip_${i}_${j}`;
       const visClip = sEl("clipPath");
@@ -1994,7 +2086,14 @@ function drawLessonTrapezoids(){
       wavePath.style.pointerEvents = "none";
       gWave.appendChild(wavePath);
 
-      _tileRefs.set(lessonKey, { wavePath, waveBox, levelY });
+      /* ✅ refにstart/target/visRectを保存（アニメ可能に） */
+      _tileRefs.set(lessonKey, {
+        wavePath,
+        waveBox,
+        visRect,
+        levelY: levelYStart,
+        targetLevelY: levelYTarget
+      });
 
       const imgW = trapTopW * 0.65;
       const imgH = safeTrapH * 0.7;
@@ -2181,11 +2280,20 @@ function drawLessonTrapezoids(){
   }
 
   ensureWaveLoop();
+
+  /* ✅ 描画後：targetへ“伸びる” */
+  if (animateLevels) animateTileLevels(650);
+  else {
+    _tileRefs.forEach((ref, key)=>{
+      ref.levelY = ref.targetLevelY;
+      if (Number.isFinite(ref.levelY)) _lastLevelYMap.set(key, ref.levelY);
+    });
+  }
 }
 
 function scheduleLessonRedraw(){
   if (_resizeTick) cancelAnimationFrame(_resizeTick);
-  _resizeTick = requestAnimationFrame(()=>drawLessonTrapezoids());
+  _resizeTick = requestAnimationFrame(()=>drawLessonTrapezoids(false)); /* ✅ リサイズは即反映 */
 }
 window.addEventListener("resize", scheduleLessonRedraw);
 
