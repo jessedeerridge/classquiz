@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Word Study (Firebase RTDB)</title>
+  <style>
+    body{ font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", sans-serif; margin:0; background:#f6f7fb; color:#111; }
+    .wrap{ max-width:900px; margin:0 auto; padding:24px; }
+    .card{ background:#fff; border:1px solid rgba(0,0,0,.08); border-radius:14px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.06); }
+    .row{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+    input, button{ font:inherit; }
+    input{ padding:10px 12px; border-radius:10px; border:1px solid rgba(0,0,0,.18); min-width:240px; }
+    button{ padding:10px 12px; border-radius:10px; border:1px solid rgba(0,0,0,.18); background:#111; color:#fff; cursor:pointer; }
+    button.secondary{ background:#fff; color:#111; }
+    button.ghost{ background:transparent; color:#111; }
+    button:disabled{ opacity:.5; cursor:not-allowed; }
+    h1{ margin:0 0 12px; font-size:22px; }
+    h2{ margin:0 0 10px; font-size:16px; }
+    .muted{ opacity:.7; }
+    .list{ margin-top:12px; display:grid; gap:10px; }
+    .item{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px; border:1px solid rgba(0,0,0,.10); border-radius:12px; background:#fff; }
+    .tag{ font-size:12px; padding:4px 8px; border-radius:999px; border:1px solid rgba(0,0,0,.15); }
+    .ok{ background:#eaffea; border-color:#86d586; }
+    .ng{ background:#fff6f6; border-color:#f0a3a3; }
+    .bar{ height:10px; background:rgba(0,0,0,.10); border-radius:999px; overflow:hidden; }
+    .bar > div{ height:100%; background:#111; width:0%; }
+    .small{ font-size:12px; }
+    code{ background:rgba(0,0,0,.06); padding:2px 6px; border-radius:8px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>単語学習（Firebase Realtime Database）</h1>
+
+      <div class="row">
+        <div class="muted small">あなたのUID: <code id="uidText">...</code></div>
+        <div class="muted small">状態: <span id="statusText">初期化中...</span></div>
+      </div>
+
+      <hr style="border:none;border-top:1px solid rgba(0,0,0,.08); margin:14px 0;">
+
+      <div id="nameArea" class="row" style="align-items:flex-end;">
+        <div>
+          <div class="small muted">学生名（表示名）</div>
+          <input id="nameInput" type="text" placeholder="例：田中 / 张三 / Yuko" />
+        </div>
+        <button id="saveNameBtn">登録 / 更新</button>
+        <div class="small muted">※保存先：<code>students/&lt;uid&gt;</code></div>
+      </div>
+
+      <div id="studyArea" style="display:none; margin-top:14px;">
+        <div class="row" style="justify-content:space-between;">
+          <div>
+            <h2 style="margin-bottom:6px;">学習進捗</h2>
+            <div class="bar"><div id="progressBar"></div></div>
+            <div class="small muted" id="progressText" style="margin-top:6px;">---</div>
+          </div>
+          <div class="row">
+            <button class="secondary" id="reloadBtn">再読み込み</button>
+            <button class="ghost" id="resetBtn">自分の進捗リセット</button>
+          </div>
+        </div>
+
+        <div style="margin-top:16px;">
+          <h2>単語リスト</h2>
+          <div class="small muted">
+            単語は <code>words</code> に入っているものを表示します。<br>
+            先生は <code>admin.html</code> で単語を追加できます。
+          </div>
+          <div class="list" id="wordList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    // ============================
+    // Firebase (CDN / ES Modules)
+    // ============================
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+    import {
+      getDatabase, ref, get, set, update, remove, onValue, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+    // ✅ あなたのFirebase設定（貼ってくれたものをそのまま使用）
+    const firebaseConfig = {
+      apiKey: "AIzaSyARne6Jb4ePPe7vbvLryE_P-jZ2umI3LFc",
+      authDomain: "kakapo-8d297.firebaseapp.com",
+      databaseURL: "https://kakapo-8d297-default-rtdb.firebaseio.com",
+      projectId: "kakapo-8d297",
+      storageBucket: "kakapo-8d297.firebasestorage.app",
+      messagingSenderId: "702767130857",
+      appId: "1:702767130857:web:54472c8d5ea09bd3cf6878",
+      measurementId: "G-NXSRP1T826"
+    };
+
+    // ============================
+    // Init
+    // ============================
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    // UI
+    const uidText = document.getElementById("uidText");
+    const statusText = document.getElementById("statusText");
+    const nameArea = document.getElementById("nameArea");
+    const nameInput = document.getElementById("nameInput");
+    const saveNameBtn = document.getElementById("saveNameBtn");
+    const studyArea = document.getElementById("studyArea");
+    const wordList = document.getElementById("wordList");
+    const progressBar = document.getElementById("progressBar");
+    const progressText = document.getElementById("progressText");
+    const reloadBtn = document.getElementById("reloadBtn");
+    const resetBtn = document.getElementById("resetBtn");
+
+    let uid = null;
+    let wordsMap = {};      // {wordId: {text, meaning}}
+    let progressMap = {};   // {wordId: {learned:true, updatedAt}}
+
+    function setStatus(t){ statusText.textContent = t; }
+
+    // ============================
+    // Auth: anonymous
+    // ============================
+    setStatus("匿名ログイン中...");
+    signInAnonymously(auth).catch(err => {
+      console.error(err);
+      setStatus("ログイン失敗: " + err.code);
+    });
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) return;
+      uid = user.uid;
+      uidText.textContent = uid;
+      setStatus("ログインOK");
+
+      // 自分の学生データを読み込み
+      await loadOrInitStudent();
+      // words と progress を購読
+      subscribeWords();
+      subscribeMyProgress();
+      // 表示ON
+      studyArea.style.display = "block";
+    });
+
+    async function loadOrInitStudent(){
+      try{
+        const snap = await get(ref(db, `students/${uid}`));
+        if (snap.exists()){
+          const st = snap.val();
+          nameInput.value = st?.name || "";
+          // lastSeenだけ更新
+          await update(ref(db, `students/${uid}`), { lastSeenAt: serverTimestamp() });
+        } else {
+          // 初回：空の学生を作る（名前は後で登録）
+          await set(ref(db, `students/${uid}`), {
+            name: "",
+            createdAt: serverTimestamp(),
+            lastSeenAt: serverTimestamp()
+          });
+        }
+      } catch(e){
+        console.error(e);
+        setStatus("students読み込み失敗: " + (e?.code || e));
+      }
+    }
+
+    // ============================
+    // Save name
+    // ============================
+    saveNameBtn.addEventListener("click", async () => {
+      if (!uid) return;
+      const nm = (nameInput.value || "").trim();
+      if (!nm){
+        alert("名前を入力してね");
+        return;
+      }
+      saveNameBtn.disabled = true;
+      try{
+        await update(ref(db, `students/${uid}`), {
+          name: nm,
+          lastSeenAt: serverTimestamp()
+        });
+        alert("保存しました");
+      } catch(e){
+        console.error(e);
+        alert("保存失敗: " + (e?.code || e));
+      } finally{
+        saveNameBtn.disabled = false;
+      }
+    });
+
+    // ============================
+    // Subscribe words
+    // ============================
+    function subscribeWords(){
+      const wordsRef = ref(db, "words");
+      onValue(wordsRef, (snap) => {
+        wordsMap = snap.exists() ? (snap.val() || {}) : {};
+        render();
+      }, (err) => {
+        console.error(err);
+        setStatus("words購読失敗: " + err.code);
+      });
+    }
+
+    // ============================
+    // Subscribe my progress
+    // ============================
+    function subscribeMyProgress(){
+      const progRef = ref(db, `progress/${uid}`);
+      onValue(progRef, (snap) => {
+        progressMap = snap.exists() ? (snap.val() || {}) : {};
+        render();
+      }, (err) => {
+        console.error(err);
+        setStatus("progress購読失敗: " + err.code);
+      });
+    }
+
+    // ============================
+    // Toggle learned
+    // ============================
+    async function setLearned(wordId, learned){
+      if (!uid) return;
+      try{
+        await update(ref(db, `progress/${uid}/${wordId}`), {
+          learned: !!learned,
+          updatedAt: serverTimestamp()
+        });
+      } catch(e){
+        console.error(e);
+        alert("更新失敗: " + (e?.code || e));
+      }
+    }
+
+    // ============================
+    // Reset my progress
+    // ============================
+    resetBtn.addEventListener("click", async () => {
+      if (!uid) return;
+      if (!confirm("自分の進捗を全部リセットします。OK？")) return;
+      try{
+        await remove(ref(db, `progress/${uid}`));
+      } catch(e){
+        console.error(e);
+        alert("リセット失敗: " + (e?.code || e));
+      }
+    });
+
+    reloadBtn.addEventListener("click", () => location.reload());
+
+    // ============================
+    // Render
+    // ============================
+    function render(){
+      // wordsが無い場合
+      const wordIds = Object.keys(wordsMap || {});
+      if (wordIds.length === 0){
+        wordList.innerHTML = `
+          <div class="item">
+            <div>
+              <div><b>wordsがまだ空です</b></div>
+              <div class="small muted">先生が admin.html で単語を追加してください。</div>
+            </div>
+          </div>
+        `;
+        progressBar.style.width = "0%";
+        progressText.textContent = "0 / 0";
+        return;
+      }
+
+      // 進捗計算
+      let learnedCount = 0;
+      for (const id of wordIds){
+        if (progressMap?.[id]?.learned) learnedCount++;
+      }
+      const total = wordIds.length;
+      const pct = total ? Math.round((learnedCount / total) * 100) : 0;
+      progressBar.style.width = pct + "%";
+      progressText.textContent = `${learnedCount} / ${total}（${pct}%）`;
+
+      // リスト描画
+      const frag = document.createDocumentFragment();
+      wordList.innerHTML = "";
+      // 並び：wordId昇順（好きに変えてOK）
+      wordIds.sort((a,b)=> String(a).localeCompare(String(b), "ja"));
+
+      for (const id of wordIds){
+        const w = wordsMap[id] || {};
+        const learned = !!progressMap?.[id]?.learned;
+
+        const el = document.createElement("div");
+        el.className = "item";
+        el.innerHTML = `
+          <div style="min-width:0;">
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+              <div style="font-weight:700; font-size:16px;">${escapeHtml(w.text ?? id)}</div>
+              <span class="tag ${learned ? "ok" : "ng"}">${learned ? "覚えた" : "未"}</span>
+            </div>
+            <div class="small muted" style="margin-top:4px;">
+              ${w.meaning ? escapeHtml(w.meaning) : "（意味なし）"}
+            </div>
+          </div>
+          <div class="row" style="justify-content:flex-end;">
+            <button class="${learned ? "secondary" : ""}" data-act="toggle">${learned ? "未に戻す" : "覚えた"}</button>
+          </div>
+        `;
+
+        el.querySelector('[data-act="toggle"]').addEventListener("click", () => {
+          setLearned(id, !learned);
+        });
+
+        frag.appendChild(el);
+      }
+      wordList.appendChild(frag);
+    }
+
+    function escapeHtml(s){
+      return String(s).replace(/[&<>"']/g, (m) => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+      }[m]));
+    }
+  </script>
+</body>
+</html>
