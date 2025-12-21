@@ -1,4 +1,4 @@
-<!doctype html> 
+<!doctype html>
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
@@ -50,7 +50,6 @@
     /* ✅クイズ画面のbody.bg（指定どおり） */
     body.quiz-bg{ background:#D1C1BB; color:#111; }
 
-    header{display:none;}
     main{max-width:960px;margin:0 auto;padding:16px}
 
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
@@ -114,26 +113,29 @@
     }
     .lesson-hint{ max-width:720px;margin:10px auto 0;opacity:.75; color:#fff }
 
-    .gear{
+    /* ✅ 右下：戻る↻（設定ボタンは消してこれだけ） */
+    .backFab{
       position:fixed; right:16px; bottom:16px;
       width:54px; height:54px; border-radius:999px;
       background:#111; color:#fff;
-      display:flex; align-items:center; justify-content:center;
+      display:none; /* 画面に応じてJSで表示 */
+      align-items:center; justify-content:center;
       box-shadow:0 14px 30px rgba(0,0,0,.25);
       cursor:pointer; user-select:none; z-index:999;
     }
-    .gear span{font-size:22px; line-height:1}
+    .backFab span{font-size:24px; line-height:1; transform: translateY(-1px);}
 
     .gradeFab{
       position:fixed;
       right:16px; bottom:16px;
-      transform: translateX(-64px);
+      transform: translateX(-64px); /* 戻る↻の左に並べる */
       display:flex; gap:8px;
       z-index:999;
       user-select:none;
       flex-wrap:wrap;
       max-width: 240px;
       justify-content:flex-end;
+      display:none;
     }
     .gbtn{
       width:44px; height:44px;
@@ -161,8 +163,6 @@
       box-shadow:0 24px 70px rgba(0,0,0,.35);
       padding:16px;
     }
-    .modal h3{margin:0 0 8px}
-    .tiny{font-size:12px;opacity:.7}
 
     /* ===== クイズ（新UI）===== */
     .quizStageWrap{
@@ -277,9 +277,7 @@
       75%  { transform: translateX(-3px); }
       100% { transform: translateX(0); }
     }
-    .optBtn.shake{
-      animation: btnShakeFast .18s linear both;
-    }
+    .optBtn.shake{ animation: btnShakeFast .18s linear both; }
 
     .quizHudHidden{ display:none !important; }
 
@@ -427,12 +425,7 @@
       backdrop-filter: blur(6px);
     }
 
-    /* ✅ セッション結果モーダル（要求仕様版）
-      - 「結果！」→改行→「xx%」をポップ内中心
-      - 「間違えた単語」→下にリスト
-      - 右下に黒い戻るボタン
-      - 他クリックで消えない（戻る押すまで消えない）
-    */
+    /* ✅ セッション結果モーダル（要求仕様版） */
     #sessionBack .modal{
       position:relative;
       width:min(520px, 100%);
@@ -440,7 +433,7 @@
       border-radius:18px;
       border:1px solid #eee;
       box-shadow:0 24px 70px rgba(0,0,0,.35);
-      padding:18px 16px 56px; /* 下に戻るボタン分の余白 */
+      padding:18px 16px 56px;
     }
     .sessionCenter{
       text-align:center;
@@ -489,30 +482,18 @@
     }
     .sessionBackBtn:active{ transform:scale(.99); }
 
-.line3 {
-  text-align: left;  /* 左寄せ */
-  font-weight: 900;
-  font-size: 14px;
-  color: #111;
-  margin-bottom: 8px;
-  opacity: 0.85;
-}
-
-
+    .line3{
+      text-align: left;
+      font-weight: 900;
+      font-size: 14px;
+      color: #111;
+      margin-bottom: 8px;
+      opacity: 0.85;
+    }
   </style>
 </head>
 
 <body>
-<header>
-  <div class="row" style="justify-content:space-between">
-    <div>
-      <div style="font-weight:900;letter-spacing:.2px">Yuko Wordlog</div>
-      <div class="muted">学生：名前→学年→課→クイズ / 管理者：⚙→登録</div>
-    </div>
-    <div class="muted" id="modeBadge">学生モード</div>
-  </div>
-</header>
-
 <main>
   <section id="studentSec">
     <div class="student-top" id="studentTop">
@@ -571,69 +552,13 @@
       </div>
     </div>
   </section>
-
-  <section id="adminSec" class="card" style="display:none">
-    <h2 style="margin:0 0 10px">管理者ページ</h2>
-
-    <div class="grid2">
-      <div class="card" style="margin:0">
-        <div style="font-weight:800;margin-bottom:8px">認証キー（ローカル保存）</div>
-        <div class="row">
-          <input id="adminToken" placeholder="hosi1212" style="min-width:260px" />
-          <button id="btnSaveToken" class="secondary">保存</button>
-          <button id="btnLogoutAdmin" class="ghost">管理者を終了</button>
-        </div>
-        <div id="adminStatus" class="muted" style="margin-top:6px"></div>
-      </div>
-
-      <div class="card" style="margin:0">
-        <div style="font-weight:800;margin-bottom:8px">登録する学年 / 課 / 段階 / クラス（任意）</div>
-        <div class="row">
-          <select id="gradeSel"></select>
-          <input id="lessonSel" placeholder="課（例：1課 / L1）" style="min-width:150px" />
-          <select id="stageSel">
-            <option value="pre1">pre1</option>
-            <option value="pre2">pre2</option>
-            <option value="review">review</option>
-          </select>
-          <input id="classSel" placeholder="クラス（任意：名詞/動詞など）" style="min-width:220px" />
-        </div>
-        <div class="muted" style="margin-top:6px">
-          1行：<b>word,meaning,wrong1,wrong2[,wrong3,wrong4,wrong5]</b>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div style="font-weight:800;margin-bottom:8px">単語リスト入力（誤答2〜5）</div>
-      <textarea id="wordsText" rows="10" style="width:100%"
-        placeholder="apple,りんご,みかん,ぶどう&#10;dog,犬,猫,鳥,魚,馬"></textarea>
-      <div class="row" style="margin-top:10px">
-        <button id="btnUploadWords">登録</button>
-        <button id="btnPreviewParse" class="ghost">プレビュー</button>
-        <span id="uploadStatus" class="muted"></span>
-      </div>
-      <div id="parsePreview" class="muted" style="margin-top:8px;white-space:pre-wrap"></div>
-    </div>
-  </section>
 </main>
 
-<div class="gradeFab" id="gradeFab" aria-label="grade selector" style="display:none"></div>
-<div class="gear" id="gearBtn" title="管理者"><span id="gearIcon">⚙</span></div>
+<!-- ✅ 右下：学年ボタン（課選択中だけ表示） -->
+<div class="gradeFab" id="gradeFab" aria-label="grade selector"></div>
 
-<div class="modalBack" id="authModalBack">
-  <div class="modal">
-    <h3>管理者認証</h3>
-    <div class="muted">認証キーを入力してください。</div>
-    <div class="row" style="margin-top:10px">
-      <input id="authKeyInput" placeholder="hosi1212" style="flex:1;min-width:220px" />
-      <button id="btnAuthGo">OK</button>
-      <button id="btnAuthCancel" class="ghost">キャンセル</button>
-    </div>
-    <div id="authMsg" class="muted" style="margin-top:8px"></div>
-    <div class="tiny" style="margin-top:8px">※認証はサーバー（/admin/ping）で検証します。</div>
-  </div>
-</div>
+<!-- ✅ 右下：戻る↻（課選択/クイズで表示） -->
+<div class="backFab" id="backFab" title="戻る"><span>↻</span></div>
 
 <!-- ✅ セッション結果モーダル（要求仕様版） -->
 <div class="modalBack" id="sessionBack" aria-label="session result">
@@ -663,7 +588,6 @@ import { getDatabase, ref, get, set, update, runTransaction } from "https://www.
 
 /* =========================
    ✅ Firebase（Realtime Database）
-   - DB保存方法は baka.html を踏襲
 ========================= */
 const firebaseConfig = {
   apiKey: "AIzaSyARne6Jb4ePPe7vbvLryE_P-jZ2umI3LFc",
@@ -689,20 +613,9 @@ async function dbUpdate(path, patch){
   await update(ref(db, path), patch);
 }
 
-const STUDENT_KEY = "ywl_studentKey_v1";
-function getOrCreateStudentKey(){
-  let k = localStorage.getItem(STUDENT_KEY);
-  if (!k){
-    k = "s_" + Math.random().toString(36).slice(2,10) + Date.now().toString(36);
-    localStorage.setItem(STUDENT_KEY, k);
-  }
-  return k;
-}
 function nowTs(){ return Date.now(); }
 
-const STUDENT = {
- studentKey: null
-};
+const STUDENT = { studentKey: null };
 
 const P = {
   students: (studentKey)=> `students/${studentKey}`,
@@ -713,9 +626,7 @@ const P = {
   wordsGrade: (grade)=> `words/${grade}`,
 };
 
-
-// ✅ 名前から studentKey を作る（同じ名前なら同じ進行になる）
-// Firebaseキーで使えない文字 . # $ [ ] / を避ける
+/* ✅ 名前→同一進行（同じ名前なら同じDBパス） */
 function safeKey(s){
   return encodeURIComponent(String(s).trim())
     .replaceAll(".", "%2E")
@@ -729,10 +640,8 @@ function studentKeyFromName(name){
   return "name_" + safeKey(name);
 }
 
-
-
 /* =========================
-   ★ ここだけ触れば「後で柔軟に変更」できる設定
+   ★ 設定（触るならここ）
 ========================= */
 const QUIZ_RULES = {
   shuffleQuestions: true,
@@ -742,19 +651,11 @@ const QUIZ_RULES = {
   uniqueFetchTriesPerPick: 12
 };
 
-/* =========================
-   ★ デバッグ表示 ON/OFF
-========================= */
 const DEBUG_STAGE_RATES = false;
-
-/* =========================
-   ★ 学年の最大値（ここを増やす）
-========================= */
 const MAX_GRADE = 4;
 
-/* ========= API（廃止：Firebaseへ移行） ========= */
+/* ========= localStorage ========= */
 const NAME_KEY  = "yuko_wordlog_name";
-const TOKEN_KEY = "yuko_wordlog_admin_token";
 const GRADE_KEY = "yuko_wordlog_grade";
 
 /* ========= 波ゲージ色（ローカル） ========= */
@@ -766,8 +667,6 @@ const GAUGE_COLORS = [
   { name:"purple", fill:"rgba(140,90,255,0.50)" },
   { name:"black",  fill:"#4E4C47" },
 ];
-
-/* ========= ★ 波ゲージ共通スタイル ========= */
 const GAUGE_ALPHA = 0.28;
 
 function normLesson(v){ return String(v ?? "").trim(); }
@@ -803,10 +702,6 @@ function ensureGaugeColorIfNeeded(name, grade, lesson, rate01){
 }
 
 /* ========= DOM ========= */
-const modeBadge = document.getElementById("modeBadge");
-const studentSec = document.getElementById("studentSec");
-const adminSec   = document.getElementById("adminSec");
-
 const studentTop = document.getElementById("studentTop");
 const stuName = document.getElementById("stuName");
 const btnStart = document.getElementById("btnStart");
@@ -837,45 +732,21 @@ const quizStage = document.getElementById("quizStage");
 const quizProgressSvg = document.getElementById("quizProgressSvg");
 const dropletLayer = document.getElementById("dropletLayer");
 
-const gearBtn = document.getElementById("gearBtn");
-const gearIcon = document.getElementById("gearIcon");
-
 const gradeFab = document.getElementById("gradeFab");
-
-const authModalBack = document.getElementById("authModalBack");
-const authKeyInput = document.getElementById("authKeyInput");
-const btnAuthGo = document.getElementById("btnAuthGo");
-const btnAuthCancel = document.getElementById("btnAuthCancel");
-const authMsg = document.getElementById("authMsg");
-
-const adminToken = document.getElementById("adminToken");
-const btnSaveToken = document.getElementById("btnSaveToken");
-const btnLogoutAdmin = document.getElementById("btnLogoutAdmin");
-const adminStatus = document.getElementById("adminStatus");
-const gradeSel = document.getElementById("gradeSel");
-const lessonSel = document.getElementById("lessonSel");
-const stageSel = document.getElementById("stageSel");
-const classSel = document.getElementById("classSel");
-const wordsText = document.getElementById("wordsText");
-const btnUploadWords = document.getElementById("btnUploadWords");
-const btnPreviewParse = document.getElementById("btnPreviewParse");
-const uploadStatus = document.getElementById("uploadStatus");
-const parsePreview = document.getElementById("parsePreview");
+const backFab = document.getElementById("backFab");
 
 const qTimer = document.getElementById("qTimer");
 const qTimerFg = document.getElementById("qTimerFg");
 
-/* ✅ セッション結果DOM（要求仕様版） */
+/* ✅ セッション結果DOM */
 const sessionBack = document.getElementById("sessionBack");
 const sessionPct  = document.getElementById("sessionPct");
 const wrongList   = document.getElementById("wrongList");
 const btnSessionClose = document.getElementById("btnSessionClose");
 
+/* ========= 初期：名前復元 ========= */
 const savedName = localStorage.getItem(NAME_KEY);
 if (savedName) stuName.value = savedName;
-
-const savedToken = localStorage.getItem(TOKEN_KEY);
-if (savedToken) adminToken.value = savedToken;
 
 /* =========================
    ★ 学年（増える版）
@@ -907,21 +778,8 @@ function renderGradeButtons(){
   });
   localStorage.setItem(GRADE_KEY, String(SELECTED_GRADE));
 }
-function buildAdminGradeSelect(){
-  gradeSel.innerHTML = "";
-  for (let g=1; g<=MAX_GRADE; g++){
-    const opt = document.createElement("option");
-    opt.value = String(g);
-    opt.textContent = `${g}年生`;
-    gradeSel.appendChild(opt);
-  }
-}
 
-/* ========= DB（Firebase） =========
-   - DB保存方法は baka.html を参照
-   - 画面/色/バー/進行/終了は coffetry.html を参照
-================================== */
-
+/* ========= DB（Firebase） ========= */
 let STAGE_POOL = null;
 
 async function enterStudent(name){
@@ -930,7 +788,6 @@ async function enterStudent(name){
   const now = nowTs();
   await dbUpdate(path, { studentKey: sk, name, createdAt: now, lastSeenAt: now });
   try{
-    // 30秒おきに最終アクセス更新（失敗は無視）
     setInterval(()=> dbUpdate(path, { lastSeenAt: nowTs() }).catch(()=>{}), 30000);
   }catch(e){}
 }
@@ -972,14 +829,12 @@ function makeOptionsForWord(w){
   const shuffled = wrongs.slice().sort(()=>Math.random()-0.5);
   let opts = [w.meaning, ...shuffled.slice(0, Math.min(5, Math.max(2, shuffled.length)))];
 
-  // 最低3択は確保（足りないなら他単語の意味を混ぜる）
   if (opts.length < 3 && STAGE_POOL && Array.isArray(STAGE_POOL.words)){
     const others = STAGE_POOL.words.filter(x=>x.id!==w.id).map(x=>x.meaning).filter(Boolean);
     others.sort(()=>Math.random()-0.5);
     while (opts.length < 3 && others.length) opts.push(others.pop());
   }
 
-  // 重複除去＆シャッフル
   opts = Array.from(new Set(opts.map(x=>String(x))));
   opts.sort(()=>Math.random()-0.5);
   return opts;
@@ -987,19 +842,14 @@ function makeOptionsForWord(w){
 
 /* ========= API互換（Firebase実装） ========= */
 async function apiEnter(name){
-  try{
-    await enterStudent(String(name||""));
-    return { ok:true };
-  }catch(e){
-    return { ok:false, error: (e && e.message) ? e.message : String(e) };
-  }
+  try{ await enterStudent(String(name||"")); return { ok:true }; }
+  catch(e){ return { ok:false, error: (e && e.message) ? e.message : String(e) }; }
 }
 
 async function apiMenu(name){
   try{
     const sk = STUDENT.studentKey;
-    const path = P.students(sk);
-    const s = await dbGet(path) || {};
+    const s = await dbGet(P.students(sk)) || {};
     const last = Number(s.lastGrade);
     return {
       ok:true,
@@ -1016,7 +866,6 @@ async function apiLessons(name, grade){
     const sk = STUDENT.studentKey;
     const g = Number(grade)||1;
 
-    // lastGrade はここで更新しておく（サーバー相当）
     await dbUpdate(P.students(sk), { lastGrade:g, lastSeenAt: nowTs() }).catch(()=>{});
 
     const [wordsGrade, progGrade, doneGrade] = await Promise.all([
@@ -1030,7 +879,6 @@ async function apiLessons(name, grade){
     const dG = (doneGrade && typeof doneGrade==="object") ? doneGrade : {};
 
     const lessons = Object.keys(wG).sort((a,b)=>{
-      // "L1" "1" "第1課" などを想定して数字っぽく並べる（雑だけど便利）
       const na = parseFloat(String(a).replace(/[^0-9.]/g,""));
       const nb = parseFloat(String(b).replace(/[^0-9.]/g,""));
       if (Number.isFinite(na) && Number.isFinite(nb) && na!==nb) return na-nb;
@@ -1087,12 +935,10 @@ async function apiQuestion(name, grade, lesson, stage){
       return { ok:false, error:"no_words" };
     }
 
-    // 未習得優先
     let candidates = STAGE_POOL.words;
     const un = candidates.filter(w=> !(STAGE_POOL.prog && STAGE_POOL.prog[w.id] && STAGE_POOL.prog[w.id].mastered));
     if (un.length) candidates = un;
 
-    // セッション重複制御（coffetry側の関数があれば尊重）
     try{
       if (typeof canAskWordId === "function" && SESSION){
         const okc = candidates.filter(w=>canAskWordId(w.id));
@@ -1141,7 +987,6 @@ async function apiAnswer(name, word_id, chosen){
       return base;
     });
 
-    // ローカル反映（次の選択のため）
     if (STAGE_POOL){
       STAGE_POOL.prog = STAGE_POOL.prog || {};
       const base = (STAGE_POOL.prog[wid] && typeof STAGE_POOL.prog[wid]==="object") ? STAGE_POOL.prog[wid] : {};
@@ -1169,13 +1014,6 @@ async function apiLessonComplete(name, grade, lesson, stage){
   }
 }
 
-async function apiAdminPing(token){
-  // ✅ 簡易：キーが空でなければOK（coffetryの挙動に合わせる）
-  const key = String(token||"").trim();
-  if (!key) return { status:401, json:{ ok:false, error:"no_key" } };
-  return { status:200, json:{ ok:true } };
-}
-
 /* ========= 状態 ========= */
 let CURRENT = {
   name:"",
@@ -1187,44 +1025,22 @@ let CURRENT = {
 };
 let IN_ROOM = false;
 
-function setMode(isAdmin){
-  if (modeBadge) modeBadge.textContent = isAdmin ? "管理者モード" : "学生モード";
-  if (isAdmin){
-    adminSec.style.display = "";
-    studentSec.style.display = "none";
-    gradeFab.style.display = "none";
-    qTimer.style.display = "none";
-    document.body.classList.remove("lesson-bg","quiz-bg");
-    closeStagePop();
-    closeSessionResult();
-  } else {
-    adminSec.style.display = "none";
-    studentSec.style.display = "";
-  }
-}
+/* ========= UI helper ========= */
 function setStuStatus(text, ok=true){
   stuStatus.textContent = text;
   stuStatus.className = ok ? "muted ok" : "muted ng";
 }
-function setGearMode(mode){
-  if (mode === "back"){
-    gearIcon.textContent = "↻";
-    gearBtn.title = "トップへ";
-  } else {
-    gearIcon.textContent = "⚙";
-    gearBtn.title = "管理者";
-  }
-}
+
 function showNameScreen(){
   IN_ROOM = false;
-  setMode(false);
-  setGearMode("gear");
-  gradeFab.style.display = "none";
-  qTimer.style.display = "none";
 
   studentTop.style.display = "";
   lessonListBox.style.display = "none";
   quizBox.style.display = "none";
+
+  backFab.style.display = "none";
+  gradeFab.style.display = "none";
+  qTimer.style.display = "none";
 
   document.body.classList.remove("lesson-bg","quiz-bg");
   closeStagePop();
@@ -1232,16 +1048,17 @@ function showNameScreen(){
 
   stopQuizWaveLoop();
 }
+
 async function showLessonList(){
   IN_ROOM = true;
-  setMode(false);
-  setGearMode("back");
-  gradeFab.style.display = "";
-  qTimer.style.display = "none";
 
   studentTop.style.display = "none";
   lessonListBox.style.display = "";
   quizBox.style.display = "none";
+
+  backFab.style.display = "flex"; /* ✅ 右下↻ */
+  gradeFab.style.display = "flex";
+  qTimer.style.display = "none";
 
   document.body.classList.add("lesson-bg");
   document.body.classList.remove("quiz-bg");
@@ -1253,21 +1070,39 @@ async function showLessonList(){
 
   stopQuizWaveLoop();
 }
+
 function showQuiz(){
   IN_ROOM = true;
-  setMode(false);
-  setGearMode("back");
-  gradeFab.style.display = "none";
-  qTimer.style.display = "";
+
   studentTop.style.display = "none";
   lessonListBox.style.display = "none";
   quizBox.style.display = "";
+
+  backFab.style.display = "flex"; /* ✅ 右下↻ */
+  gradeFab.style.display = "none";
+  qTimer.style.display = "";
+
   document.body.classList.add("quiz-bg");
   document.body.classList.remove("lesson-bg");
+
   closeStagePop();
   closeSessionResult();
   startQuizWaveLoop();
 }
+
+/* ✅ 右下↻の挙動：クイズ→課選択 / 課選択→名前 */
+backFab.onclick = async ()=>{
+  setStuStatus("", true);
+  stopQuestionTimer();
+  resetPrefetch();
+  closeSessionResult();
+
+  if (quizBox.style.display !== "none"){
+    await showLessonList();
+  } else if (lessonListBox.style.display !== "none"){
+    showNameScreen();
+  }
+};
 
 /* ========= 便利 ========= */
 const NS = "http://www.w3.org/2000/svg";
@@ -1318,33 +1153,6 @@ function readStageStats(x){
         if (out[s].total == null && o.total != null) out[s].total = Number(o.total);
         if (out[s].mastered == null && o.done != null) out[s].mastered = Number(o.done);
         if (out[s].total == null && o.all != null) out[s].total = Number(o.all);
-      }
-    });
-  }
-
-  const flat = {
-    pre1: [ x.pre1_rate, x.pre1Rate, x.pre1_achieveRate, x.pre1AchieveRate, x.pre1_progress, x.pre1Progress ],
-    pre2: [ x.pre2_rate, x.pre2Rate, x.pre2_achieveRate, x.pre2AchieveRate, x.pre2_progress, x.pre2Progress ],
-    review:[ x.review_rate, x.reviewRate, x.review_achieveRate, x.reviewAchieveRate, x.review_progress, x.reviewProgress ]
-  };
-  ["pre1","pre2","review"].forEach(s=>{
-    if (out[s].rate == null){
-      for (const v of flat[s]){
-        const r = toRate01(v);
-        if (r != null){ out[s].rate = r; break; }
-      }
-    }
-  });
-
-  const sc = x.stage_counts || x.stageCounts || x.counts || null;
-  if (sc && typeof sc === "object"){
-    ["pre1","pre2","review"].forEach(s=>{
-      const c = sc[s];
-      if (c && typeof c === "object"){
-        if (out[s].mastered == null && c.mastered != null) out[s].mastered = Number(c.mastered);
-        if (out[s].total == null && c.total != null) out[s].total = Number(c.total);
-        if (out[s].mastered == null && c.done != null) out[s].mastered = Number(c.done);
-        if (out[s].total == null && c.all != null) out[s].total = Number(c.all);
       }
     });
   }
@@ -1437,7 +1245,7 @@ function getStageTotalFromMeta(meta, stage){
 function computePlannedCount(meta, stage){
   const total = getStageTotalFromMeta(meta, stage);
   if (!Number.isFinite(total) || total <= 0){
-    return null; // totalが取れない場合は重複検出終了
+    return null;
   }
   if (QUIZ_RULES.maxQuestions === "all") return total * Math.max(1, QUIZ_RULES.repeatPerWord|0);
   const n = Number(QUIZ_RULES.maxQuestions);
@@ -1463,7 +1271,6 @@ function endSessionIfNeeded(){
   return false;
 }
 
-/* ✅ 要求仕様版：結果モーダル（他クリックで消えない） */
 function openSessionResult(){
   if (!SESSION) return;
 
@@ -1490,7 +1297,6 @@ btnSessionClose.onclick = async ()=>{
   closeSessionResult();
   await showLessonList();
 };
-/* ✅ 背景クリックでは閉じない（＝何もしない） */
 sessionBack.addEventListener("click", ()=>{ /* do nothing */ });
 sessionBack.querySelector(".modal")?.addEventListener("click", (e)=> e.stopPropagation());
 
@@ -1635,7 +1441,7 @@ function setResult(msg, ok){
   quizResult.className = ok ? "muted ok" : "muted ng";
 }
 
-/* ✅ 先読み（プリフェッチ） */
+/* ✅ 先読み */
 let _prefetch = { promise:null, ctrl:null, key:"" };
 
 function resetPrefetch(){
@@ -1644,11 +1450,9 @@ function resetPrefetch(){
   }
   _prefetch = { promise:null, ctrl:null, key:"" };
 }
-
 function buildQKey(){
   return `${CURRENT.name}|${SELECTED_GRADE}|${CURRENT.lesson}|${CURRENT.stage}`;
 }
-
 function primeNextQuestion(){
   const key = buildQKey();
   if (_prefetch.promise && _prefetch.key === key) return;
@@ -1745,7 +1549,7 @@ function renderQuestionJson(j){
   if (!j || !j.ok){
     if (j && j.error === "choices_not_configured"){
       quizWord.textContent = j.word ? `（${j.word}）` : "";
-      setResult("この単語は選択肢が不足（正解+誤答2以上）です。管理者が設定してください。", false);
+      setResult("この単語は選択肢が不足（正解+誤答2以上）です。", false);
       return;
     }
     setResult(`問題取得失敗：${(j && (j.error||j.message)) || "unknown"}`, false);
@@ -1912,15 +1716,14 @@ async function startFlow(){
   if (STARTING) return;
   STARTING = true;
   try{
-const name = normName(stuName.value);
-if (!name){ setStuStatus("名前を入力して。", false); return; }
-localStorage.setItem(NAME_KEY, name);
+    const name = normName(stuName.value);
+    if (!name){ setStuStatus("名前を入力して。", false); return; }
+    localStorage.setItem(NAME_KEY, name);
 
-// ✅ ここが重要：同じ名前なら同じ studentKey になる
-STUDENT.studentKey = studentKeyFromName(name);
+    STUDENT.studentKey = studentKeyFromName(name);
 
-setStuStatus("入室中…", true);
-const j = await apiEnter(name);
+    setStuStatus("入室中…", true);
+    const j = await apiEnter(name);
 
     if (!j.ok){
       setStuStatus(`入室失敗：${j.error||"unknown"}`, false);
@@ -1939,7 +1742,7 @@ const j = await apiEnter(name);
 btnStart.onclick = startFlow;
 stuName.addEventListener("keydown", (e)=>{ if (e.key === "Enter") startFlow(); });
 
-/* ========= 台形描画 ========= */
+/* ========= 台形描画（元のまま） ========= */
 let _resizeTick = null;
 const _tileRefs = new Map();
 let _waveRAF = null;
@@ -2548,150 +2351,11 @@ function spawnDroplets(){
   makeOne(440);
 }
 
-/* ========= 管理者モーダル ========= */
-function openAuthModal(){
-  authMsg.textContent = "";
-  authKeyInput.value = "";
-  authModalBack.style.display = "flex";
-  setTimeout(()=>authKeyInput.focus(), 0);
-}
-function closeAuthModal(){ authModalBack.style.display = "none"; }
-
-gearBtn.onclick = async ()=>{
-  if (IN_ROOM){
-    setStuStatus("", true);
-    stopQuestionTimer();
-    resetPrefetch();
-    closeSessionResult();
-    if (quizBox.style.display !== "none"){
-      await showLessonList();
-    } else {
-      showNameScreen();
-    }
-    return;
-  }
-  openAuthModal();
-};
-
-btnAuthCancel.onclick = closeAuthModal;
-authModalBack.addEventListener("click", (e)=>{ if (e.target === authModalBack) closeAuthModal(); });
-
-btnAuthGo.onclick = async ()=>{
-  const key = authKeyInput.value.trim();
-  if (!key){ authMsg.textContent = "認証キーを入力して。"; return; }
-
-  authMsg.textContent = "確認中…";
-  const v = await apiAdminPing(key);
-  if (!(v.status === 200 && v.json && v.json.ok)){
-    authMsg.textContent = "認証失敗（キーが違う / APIが違う）";
-    return;
-  }
-
-  localStorage.setItem(TOKEN_KEY, key);
-  adminToken.value = key;
-  adminStatus.textContent = "認証OK（サーバー検証）";
-  closeAuthModal();
-  setMode(true);
-};
-
-btnSaveToken.onclick = ()=>{
-  localStorage.setItem(TOKEN_KEY, adminToken.value.trim());
-  adminStatus.textContent = "保存OK";
-};
-btnLogoutAdmin.onclick = ()=> setMode(false);
-
-/* ========= 管理者：単語登録 ========= */
-function parseWordsWithWrongs(text){
-  const lines = text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-  const items = [];
-  const bads = [];
-  for (let i=0;i<lines.length;i++){
-    const line = lines[i];
-    const parts = line.split(",").map(s=>s.trim());
-    const word = (parts[0]||"").trim();
-    const meaning = (parts[1]||"").trim();
-    const wrongs = parts.slice(2).map(x=>String(x||"").trim()).filter(Boolean);
-
-    if (!word || !meaning || wrongs.length < 2 || wrongs.length > 5){
-      bads.push({ line:i+1, raw: line });
-      continue;
-    }
-    items.push({ word, meaning, wrongs });
-  }
-  return { items, bads };
-}
-
-btnPreviewParse.onclick = ()=>{
-  const { items, bads } = parseWordsWithWrongs(wordsText.value);
-  const okText = items.length
-    ? items.map((x,i)=>`${i+1}. ${x.word} / ${x.meaning} (wrongs:${x.wrongs.length})`).join("\n")
-    : "（OK 0行）";
-  const badText = bads.length
-    ? "\n\n--- NG ---\n" + bads.map(x=>`line ${x.line}: ${x.raw}`).join("\n")
-    : "";
-  parsePreview.textContent = okText + badText;
-};
-
-btnUploadWords.onclick = async ()=>{
-  const token = adminToken.value.trim();
-  if (!token){ uploadStatus.textContent = "認証キーを入れて。"; return; }
-
-  const grade = Number(gradeSel.value);
-  const lesson = (lessonSel.value || "").trim();
-  const stage = (stageSel.value || "pre1").trim();
-  const class_name = (classSel.value || "").trim();
-  if (!lesson){ uploadStatus.textContent = "課を入れて。"; return; }
-
-  const { items, bads } = parseWordsWithWrongs(wordsText.value);
-  if (items.length === 0){
-    uploadStatus.textContent = "有効な行が0。形式：word,meaning,wrong1,wrong2[,wrong3,wrong4,wrong5]";
-    return;
-  }
-
-  uploadStatus.textContent = "登録中…";
-  try{
-    // まとめて update（速い）
-    const base = `words/${grade}/${lesson}/${stage}`;
-    const patch = {};
-    const now = nowTs();
-
-    function makeId(i){
-      // 予測しにくいID（簡易）
-      const r = Math.random().toString(36).slice(2,10);
-      return `w_${now.toString(36)}_${r}_${i}`;
-    }
-
-    let saved = 0;
-    for (let i=0;i<items.length;i++){
-      const it = items[i];
-      if (!it || !it.word || !it.meaning || !Array.isArray(it.wrongs) || it.wrongs.length<2) continue;
-      const id = makeId(i);
-      patch[`${base}/${id}`] = {
-        word: String(it.word).trim(),
-        meaning: String(it.meaning).trim(),
-        wrongs: it.wrongs.map(x=>String(x||"").trim()).filter(Boolean)
-      };
-      saved++;
-    }
-
-    await update(ref(db), patch);
-
-    uploadStatus.textContent =
-      `登録OK：stage=${stage} saved=${saved} bad=${bads.length}` +
-      (class_name ? ` / class=${class_name}` : "") +
-      (bads.length ? `（入力NG行:${bads.length}）` : "");
-  }catch(e){
-    uploadStatus.textContent = `失敗：${(e&&e.message)?e.message:String(e)}`;
-  }
-};
-
 /* ========= 初期化 ========= */
 buildGradeButtons();
-buildAdminGradeSelect();
 renderGradeButtons();
-setMode(false);
 showNameScreen();
 syncDropletColorToGauge();
 </script>
 </body>
-</html> 
+</html>
