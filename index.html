@@ -1453,9 +1453,9 @@ async function refreshLessons(){
   syncDropletColorToGauge();
 
   // ✅ reviewクイズ中は黒玉を「更新しない」
-  if (isQuizVisible() && CURRENT.stage === "review"){
-    if (!QUIZ_REVIEW_BALLS_FROZEN){
-      const key = `${CURRENT.name}|${SELECTED_GRADE}|${normLesson(CURRENT.lesson)}`;
+ if (isQuizVisible() && CURRENT.stage === "review"){
+   if (!QUIZ_REVIEW_BALLS_FROZEN && !QUIZ_REVIEW_FINALIZING){   
+   const key = `${CURRENT.name}|${SELECTED_GRADE}|${normLesson(CURRENT.lesson)}`;
       const prev = _quizReviewBallPrev.get(key) ?? getReviewBallCountForLesson(CURRENT.lesson);
       renderQuizReviewBalls(CURRENT.lesson, false, prev);
     }
@@ -2696,6 +2696,123 @@ function drawLessonTrapezoids(animateLevels=true){
       label.style.pointerEvents = "none";
       label.textContent = lessonKey;
       lessonSvg.appendChild(label);
+
+      // =========================
+      // ✅ 100%になったら「上の円を赤」にする（無ければ追加）
+      // さらに：100%時だけ kame2 + 赤い三角も表示
+      // =========================
+      const isFull = (rate >= 0.999);
+
+      const rxRing = trapTopW / 2;
+      const ryRing = Math.max(6, base.lineH * 0.65);
+      const RING_SHIFT_Y = 8;
+
+      const cxRing = cx;
+      const cyRing = (topY) - ryRing + RING_SHIFT_Y;
+
+      const RING_FILL = "#ff0000";
+      const RING_STROKE = "#BC3825";
+      const RING_STROKE_W = Math.max(1, Math.round(base.strokeW * 1));
+
+      // リング（常に表示／100%で赤）
+      const ring = sEl("ellipse");
+      ring.setAttribute("cx", cxRing);
+      ring.setAttribute("cy", cyRing);
+      ring.setAttribute("rx", rxRing);
+      ring.setAttribute("ry", ryRing);
+      ring.setAttribute("fill", isFull ? RING_FILL : "none");
+      ring.setAttribute("stroke", isFull ? RING_STROKE : strokeColor);
+      ring.setAttribute("stroke-width", isFull ? RING_STROKE_W : base.strokeW);
+      ring.style.pointerEvents = "none";
+      lessonSvg.appendChild(ring);
+
+      // 100%のときだけ：リング内に kame2、左に赤三角
+      if (isFull){
+        // リング内クリップ
+        const ringClipId = `ringclip_${i}_${j}`;
+        const ringClip = sEl("clipPath");
+        ringClip.setAttribute("id", ringClipId);
+
+        const ringClipEl = sEl("ellipse");
+        ringClipEl.setAttribute("cx", cxRing);
+        ringClipEl.setAttribute("cy", cyRing);
+        ringClipEl.setAttribute("rx", rxRing - 1.2);
+        ringClipEl.setAttribute("ry", ryRing - 1.2);
+        ringClip.appendChild(ringClipEl);
+        defs.appendChild(ringClip);
+
+        // kame2（サイズ/位置はここだけで調整可）
+        const KAME2 = { scale: 0.72, dx: 0, dy: 0 };
+
+        const w2 = (rxRing * 2 - 2.4) * clamp(KAME2.scale, 0.1, 2.0);
+        const h2 = (ryRing * 2 - 2.4) * clamp(KAME2.scale, 0.1, 2.0);
+
+        const k2 = sEl("image");
+        k2.setAttribute("href", "kame2.png");
+        k2.setAttribute("x", cxRing - w2/2 + (KAME2.dx || 0));
+        k2.setAttribute("y", cyRing - h2/2 + (KAME2.dy || 0));
+        k2.setAttribute("width", w2);
+        k2.setAttribute("height", h2);
+        k2.setAttribute("preserveAspectRatio", "xMidYMid meet");
+        k2.setAttribute("clip-path", `url(#${ringClipId})`);
+        k2.style.pointerEvents = "none";
+        lessonSvg.appendChild(k2);
+
+        // 三角（サイズ/位置はここだけで調整可）
+        const TRI = {
+          dx: -(rxRing - 73),
+          dy: 7,
+          scale: 0.6,
+          rot: -69,
+          tipShift: 0.00,
+          tipUp:    0.00,
+          baseSpread: 1.30,
+          baseSkew:   0.00,
+          round: 1.6,
+        };
+
+        const GAP = 10;
+        const side = Math.max(10, ryRing * 2.25) * clamp(TRI.scale, 0.2, 3);
+        const hTri = side * Math.sqrt(3) / 2;
+
+        const baseCxTri = cxRing - rxRing - GAP - hTri/2;
+        const baseCyTri = cyRing;
+
+        const cxTri = baseCxTri + (TRI.dx ?? 0);
+        const cyTri = baseCyTri + (TRI.dy ?? 0);
+
+        const tipX = cxTri - hTri/2 + (TRI.tipShift ?? 0);
+        const tipY = cyTri + (TRI.tipUp ?? 0);
+
+        const baseX = cxTri + hTri/2;
+        const spread = clamp(TRI.baseSpread ?? 1, 0.3, 2.2);
+        const skew = (TRI.baseSkew ?? 0);
+
+        const p2x = baseX;
+        const p2y = cyTri - (side/2) * spread - skew;
+        const p3x = baseX;
+        const p3y = cyTri + (side/2) * spread + skew;
+
+        const tri = sEl("path");
+        tri.setAttribute("d", `M ${tipX} ${tipY} L ${p2x} ${p2y} L ${p3x} ${p3y} Z`);
+        tri.setAttribute("fill", RING_FILL);
+
+        const sw = Math.max(2, side * clamp(TRI.round ?? 0.12, 0.02, 0.30));
+        tri.setAttribute("stroke", RING_FILL);
+        tri.setAttribute("stroke-width", String(sw));
+        tri.setAttribute("stroke-linejoin", "round");
+        tri.setAttribute("stroke-linecap", "round");
+        tri.style.paintOrder = "stroke fill";
+        tri.style.pointerEvents = "none";
+
+        const rot = Number(TRI.rot || 0);
+        if (rot){
+          tri.setAttribute("transform", `rotate(${rot} ${cxTri} ${cyTri})`);
+        }
+        lessonSvg.appendChild(tri);
+      }
+
+
     }
   }
 
