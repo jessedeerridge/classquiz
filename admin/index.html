@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Yuko Wordlog - Admin</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;background:#0b0f14;color:#eaf0ff}
+    main{max-width:980px;margin:0 auto;padding:18px}
+    .card{background:#121a23;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px;margin:12px 0;box-shadow:0 16px 40px rgba(0,0,0,.35)}
+    h1{margin:6px 0 0;font-size:20px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    input,select,textarea,button{font-size:16px}
+    input,select{padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:#0b0f14;color:#eaf0ff}
+    textarea{width:100%;min-height:220px;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:#0b0f14;color:#eaf0ff;resize:vertical}
+    button{padding:10px 14px;border:0;border-radius:12px;background:#eaf0ff;color:#0b0f14;font-weight:900;cursor:pointer}
+    button.secondary{background:#2b3b52;color:#eaf0ff}
+    .muted{opacity:.7;font-size:13px}
+    .ok{color:#7dffb0;font-weight:800}
+    .ng{color:#ff8080;font-weight:800}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media (max-width:860px){.grid{grid-template-columns:1fr}}
+    .list{display:flex;flex-direction:column;gap:8px;max-height:340px;overflow:auto}
+    .item{padding:10px;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:rgba(255,255,255,.04)}
+    code{background:rgba(255,255,255,.08);padding:2px 6px;border-radius:8px}
+  </style>
+</head>
+<body>
+<main>
+  <h1>Wordlog 管理（先生）</h1>
+  <div class="muted">※ このページはログイン必須にするのが最小で安全（URL秘匿だけは危険）</div>
+
+  <div class="card" id="loginCard">
+    <div class="row">
+      <input id="email" type="email" placeholder="teacher email" style="min-width:260px">
+      <input id="pass" type="password" placeholder="password" style="min-width:220px">
+      <button id="btnLogin">ログイン</button>
+    </div>
+    <div id="loginMsg" class="muted" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card" id="appCard" style="display:none">
+    <div class="row" style="justify-content:space-between">
+      <div>
+        <div class="muted">ログイン中: <span id="who"></span></div>
+        <div class="muted">あなたのUID: <code id="uid"></code>（DBルールに貼る）</div>
+      </div>
+      <div class="row">
+        <button class="secondary" id="btnLogout">ログアウト</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid" id="adminGrid" style="display:none">
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <div style="font-weight:900">学生一覧（/students）</div>
+          <div class="muted">先生だけ見える想定（ルールで制限）</div>
+        </div>
+        <button id="btnLoadStudents">読み込み</button>
+      </div>
+      <div id="stuMsg" class="muted" style="margin:10px 0"></div>
+      <div class="list" id="stuList"></div>
+    </div>
+
+    <div class="card">
+      <div style="font-weight:900;margin-bottom:6px">単語データ（/words） JSON 読み書き</div>
+      <div class="muted" style="margin-bottom:10px">
+        例: words/1/L1/pre1 を読み込み→JSON編集→保存
+      </div>
+      <div class="row">
+        <input id="path" placeholder="words/1/L1/pre1" style="flex:1;min-width:260px">
+        <button id="btnLoadPath">読み込み</button>
+        <button class="secondary" id="btnSavePath">保存（上書き）</button>
+      </div>
+      <div id="pathMsg" class="muted" style="margin:10px 0"></div>
+      <textarea id="jsonBox" spellcheck="false" placeholder="ここにJSONが出ます"></textarea>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+  import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+  import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+
+  // ★あなたのFirebase設定に合わせて
+  const firebaseConfig = {
+    apiKey: "AIzaSyARne6Jb4ePPe7vbvLryE_P-jZ2umI3LFc",
+    authDomain: "kakapo-8d297.firebaseapp.com",
+    databaseURL: "https://kakapo-8d297-default-rtdb.firebaseio.com",
+    projectId: "kakapo-8d297",
+    storageBucket: "kakapo-8d297.firebasestorage.app",
+    messagingSenderId: "702767130857",
+    appId: "1:702767130857:web:54472c8d5ea09bd3cf6878"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const auth = getAuth(app);
+
+  const $ = (id)=>document.getElementById(id);
+
+  const loginCard = $("loginCard");
+  const appCard = $("appCard");
+  const adminGrid = $("adminGrid");
+
+  const loginMsg = $("loginMsg");
+  const btnLogin = $("btnLogin");
+  const btnLogout = $("btnLogout");
+
+  const who = $("who");
+  const uid = $("uid");
+
+  const btnLoadStudents = $("btnLoadStudents");
+  const stuMsg = $("stuMsg");
+  const stuList = $("stuList");
+
+  const path = $("path");
+  const btnLoadPath = $("btnLoadPath");
+  const btnSavePath = $("btnSavePath");
+  const pathMsg = $("pathMsg");
+  const jsonBox = $("jsonBox");
+
+  function msg(el, text, ok=true){
+    el.className = ok ? "ok" : "ng";
+    el.textContent = text;
+  }
+  function muted(el, text){
+    el.className = "muted";
+    el.textContent = text;
+  }
+
+  async function dbGet(p){
+    const snap = await get(ref(db, p));
+    return snap.exists() ? snap.val() : null;
+  }
+  async function dbSet(p, v){
+    await set(ref(db, p), v);
+  }
+
+  btnLogin.onclick = async ()=>{
+    muted(loginMsg, "ログイン中…");
+    try{
+      const e = $("email").value.trim();
+      const p = $("pass").value;
+      await signInWithEmailAndPassword(auth, e, p);
+      msg(loginMsg, "ログイン成功", true);
+    }catch(err){
+      msg(loginMsg, "ログイン失敗: " + (err?.message || err), false);
+    }
+  };
+
+  btnLogout.onclick = async ()=>{
+    await signOut(auth);
+  };
+
+  onAuthStateChanged(auth, (user)=>{
+    if (!user){
+      loginCard.style.display = "";
+      appCard.style.display = "none";
+      adminGrid.style.display = "none";
+      return;
+    }
+    loginCard.style.display = "none";
+    appCard.style.display = "";
+    adminGrid.style.display = "";
+
+    who.textContent = user.email || "(no email)";
+    uid.textContent = user.uid;
+  });
+
+  btnLoadStudents.onclick = async ()=>{
+    muted(stuMsg, "読み込み中…");
+    try{
+      const data = await dbGet("students");
+      const keys = data && typeof data === "object" ? Object.keys(data) : [];
+      stuList.innerHTML = "";
+      if (!keys.length){
+        muted(stuMsg, "students が空です");
+        return;
+      }
+      keys.sort().forEach(k=>{
+        const v = data[k] || {};
+        const div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `
+          <div style="font-weight:900">${escapeHtml(v.name || "(no name)")}</div>
+          <div class="muted">key: <code>${escapeHtml(k)}</code></div>
+          <div class="muted">lastSeen: ${escapeHtml(String(v.lastSeenAt || ""))}</div>
+        `;
+        stuList.appendChild(div);
+      });
+      msg(stuMsg, `students: ${keys.length} 件`, true);
+    }catch(err){
+      msg(stuMsg, "失敗: " + (err?.message || err), false);
+    }
+  };
+
+  btnLoadPath.onclick = async ()=>{
+    const p = path.value.trim();
+    if (!p) return msg(pathMsg, "path を入れて", false);
+    muted(pathMsg, "読み込み中…");
+    try{
+      const data = await dbGet(p);
+      jsonBox.value = JSON.stringify(data ?? {}, null, 2);
+      msg(pathMsg, "読み込みOK", true);
+    }catch(err){
+      msg(pathMsg, "失敗: " + (err?.message || err), false);
+    }
+  };
+
+  btnSavePath.onclick = async ()=>{
+    const p = path.value.trim();
+    if (!p) return msg(pathMsg, "path を入れて", false);
+
+    if (!confirm("本当に上書き保存する？")) return;
+
+    try{
+      const obj = JSON.parse(jsonBox.value || "{}");
+      muted(pathMsg, "保存中…");
+      await dbSet(p, obj);
+      msg(pathMsg, "保存OK", true);
+    }catch(err){
+      msg(pathMsg, "失敗: " + (err?.message || err), false);
+    }
+  };
+
+  function escapeHtml(s){
+    return String(s ?? "")
+      .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;").replaceAll("'","&#39;");
+  }
+</script>
+</body>
+</html>
