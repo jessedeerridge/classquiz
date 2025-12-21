@@ -200,6 +200,16 @@
       z-index:1;
     }
 
+    /* ✅ reviewクイズ用：画面下に溜まる黒丸レイヤー */
+    .reviewBallSvg{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      pointer-events:none;
+      z-index:2; /* wave(1)より上 / 文字(3)より下 */
+    }
+
     .quizCenterWord{
       position:absolute;
       left:50%; top:42%;
@@ -410,10 +420,11 @@
       top:0%;
       width:46px;
       height:60px;
-      transform: translateX(-50%) scale(1);
+      transform: translateX(-50%) translateY(var(--fromY, -90px)) scale(0.92);
       opacity:0;
       filter:none;
       will-change: transform, opacity;
+      animation: dropletFall var(--dur, 1120ms) cubic-bezier(.22,.84,.44,1) both;
     }
     .droplet::before{
       content:"";
@@ -425,6 +436,12 @@
       border-radius: 999px;
       clip-path: path("M 23 0 C 33 12 44 24 44 37 C 44 52 35 60 23 60 C 11 60 2 52 2 37 C 2 24 13 12 23 0 Z");
       backdrop-filter: blur(6px);
+    }
+    /* ✅ JSで毎フレーム動かさない：純CSSで“背景として”落とす（クイズに干渉しない） */
+    @keyframes dropletFall{
+      0%   { opacity:0; transform: translateX(-50%) translateY(var(--fromY, -90px)) scale(0.92); }
+      10%  { opacity:1; }
+      100% { opacity:0; transform: translateX(-50%) translateY(var(--toY, 120%)) scale(1.05); }
     }
 
     /* ✅ セッション結果モーダル（要求仕様版） */
@@ -492,6 +509,51 @@
       margin-bottom: 8px;
       opacity: 0.85;
     }
+
+    /* =========================
+       ✅ review達成(10%ごと)の黒丸
+       - 初期落下位置：ランダム（startDX）
+       - 着地位置：段ごとに“固定”
+       - 着地後：左右に“ごく僅か”
+       - バウンド：0.1pxだけ
+    ========================= */
+    .reviewBall{
+      fill:#111;
+      opacity:.95;
+      pointer-events:none;
+      transform-box: fill-box;
+      transform-origin: center;
+      will-change: transform;
+    }
+    .reviewBall.drop{
+      animation: ballDrop 1.0s cubic-bezier(.22,.84,.44,1) both;
+    }
+    #reviewBallSvg .reviewBall{
+      opacity: 0.2;  /* ←薄さ */
+    }
+    @keyframes ballDrop{
+      0%{
+        transform: translate(
+          calc(var(--landDX, 0px) + var(--startDX, 0px)),
+          var(--dropFrom, -140px)
+        );
+      }
+      82%{
+        transform: translate(var(--landDX, 0px), 0px);
+      }
+      90%{
+        transform: translate(
+          calc(var(--landDX, 0px) + var(--rollMid, 0px)),
+          0.1px
+        );
+      }
+      100%{
+        transform: translate(
+          calc(var(--landDX, 0px) + var(--rollDX, 0px)),
+          0px
+        );
+      }
+    }
   </style>
 </head>
 
@@ -547,6 +609,10 @@
       <div class="quizStageWrap">
         <div class="quiz-stage" id="quizStage" aria-label="quiz stage">
           <svg class="quizProgressSvg" id="quizProgressSvg" aria-hidden="true"></svg>
+
+          <!-- ✅ reviewクイズ：黒丸が溜まるレイヤー -->
+          <svg class="reviewBallSvg" id="reviewBallSvg" aria-hidden="true"></svg>
+
           <div class="dropletLayer" id="dropletLayer" aria-hidden="true"></div>
           <div class="quizCenterWord" id="quizWord">…</div>
           <div class="quizOptions" id="optGrid"></div>
@@ -656,6 +722,10 @@ const QUIZ_RULES = {
 const DEBUG_STAGE_RATES = false;
 const MAX_GRADE = 4;
 
+/* ✅ アニメは“背景”として：FPSを落としてクイズに干渉しない */
+const BG_ANIM_FPS_LESSON = 24;
+const BG_ANIM_FPS_QUIZ   = 24;
+
 /* ========= localStorage ========= */
 const NAME_KEY  = "yuko_wordlog_name";
 const GRADE_KEY = "yuko_wordlog_grade";
@@ -732,6 +802,7 @@ const btnBackLessons = document.getElementById("btnBackLessons");
 
 const quizStage = document.getElementById("quizStage");
 const quizProgressSvg = document.getElementById("quizProgressSvg");
+const reviewBallSvg = document.getElementById("reviewBallSvg");
 const dropletLayer = document.getElementById("dropletLayer");
 
 const gradeFab = document.getElementById("gradeFab");
@@ -1035,6 +1106,123 @@ function setStuStatus(text, ok=true){
   stuStatus.className = ok ? "muted ok" : "muted ng";
 }
 
+/* =========================
+   ✅ 変更点（ここが本題）
+   reviewクイズの黒玉は「クイズ中は落ちない」
+   → 最後の問題が終わった瞬間だけ達成率を再取得して落下
+   さらに：落下が全部終わってから2秒後に結果表示
+========================= */
+let QUIZ_REVIEW_BALLS_FROZEN = false;     // クイズ中フリーズ
+let QUIZ_REVIEW_BALLS_START_COUNT = 0;    // 開始時の玉数
+let QUIZ_REVIEW_FINALIZING = false;       // 二重実行防止
+
+function isQuizVisible(){ return quizBox && quizBox.style.display !== "none"; }
+function isReviewNow(){ return (CURRENT.stage === "review"); }
+
+function freezeReviewBallsStart(){
+  if (!isReviewNow()) return;
+  QUIZ_REVIEW_BALLS_FROZEN = true;
+  QUIZ_REVIEW_FINALIZING = false;
+
+  // 開始時の玉数を「今のDB反映済みlesson一覧」から計算
+  QUIZ_REVIEW_BALLS_START_COUNT = getReviewBallCountForLesson(CURRENT.lesson);
+
+  const key = `${CURRENT.name}|${SELECTED_GRADE}|${normLesson(CURRENT.lesson)}`;
+  _quizReviewBallPrev.set(key, QUIZ_REVIEW_BALLS_START_COUNT);
+
+  // まずは“静止表示”（落とさない）
+  renderQuizReviewBalls(CURRENT.lesson, false, QUIZ_REVIEW_BALLS_START_COUNT);
+}
+
+/* =========================
+   ✅ review結果表示待ち（落下完了→2秒）
+========================= */
+let _reviewFinalizeToken = 0;
+let _reviewResultTimer = null;
+let _reviewResultFallbackTimer = null;
+
+function clearReviewResultWait(){
+  if (_reviewResultTimer){ clearTimeout(_reviewResultTimer); _reviewResultTimer = null; }
+  if (_reviewResultFallbackTimer){ clearTimeout(_reviewResultFallbackTimer); _reviewResultFallbackTimer = null; }
+  _reviewFinalizeToken++;
+}
+
+function scheduleOpenSessionResultAfterReviewBalls(prevCount, nextCount){
+  clearReviewResultWait();
+  const token = _reviewFinalizeToken;
+
+  const stillValid = ()=>{
+    if (token !== _reviewFinalizeToken) return false;
+    if (!SESSION) return false;
+    if (CURRENT.stage !== "review") return false;
+    if (!quizBox || quizBox.style.display === "none") return false;
+    return true;
+  };
+
+  const openAfter2s = ()=>{
+    if (!stillValid()) return;
+    _reviewResultTimer = setTimeout(()=>{
+      if (!stillValid()) return;
+      openSessionResult();
+    }, 1000);
+  };
+
+  // 新規落下なし＝「全部落ちた」扱い → 2秒後に表示
+  if (!(nextCount > prevCount)){
+    openAfter2s();
+    return;
+  }
+
+  const drops = reviewBallSvg ? reviewBallSvg.querySelectorAll(".reviewBall.drop") : null;
+  const lastDrop = (drops && drops.length) ? drops[drops.length - 1] : null;
+
+  let finished = false;
+  const finish = ()=>{
+    if (finished) return;
+    finished = true;
+    openAfter2s();
+  };
+
+  if (lastDrop){
+    lastDrop.addEventListener("animationend", finish, { once:true });
+
+    // フォールバック：drop(0.62s) + ディレイ(90ms*(新規数-1)) + 余裕
+    const newN = nextCount - prevCount;
+    const fallbackMs = Math.max(0, (newN - 1) * 90) + 620 + 120;
+    _reviewResultFallbackTimer = setTimeout(finish, fallbackMs);
+  } else {
+    openAfter2s();
+  }
+}
+
+async function finalizeReviewBallsAndShowResult(){
+  if (!isReviewNow()) { openSessionResult(); return; }
+  if (QUIZ_REVIEW_FINALIZING) return;
+  QUIZ_REVIEW_FINALIZING = true;
+
+  clearReviewResultWait();
+
+  // フリーズ解除（ここから先は更新OK）
+  QUIZ_REVIEW_BALLS_FROZEN = false;
+
+  const prev = QUIZ_REVIEW_BALLS_START_COUNT;
+  const lesson = CURRENT.lesson;
+
+  // 「最後の問題が終わった瞬間」に達成率を再取得して玉数決定
+  try{
+    await refreshLessons(); // DBの最新を読み、review%を確定
+  }catch(e){}
+
+  const next = getReviewBallCountForLesson(lesson);
+
+  // 増えた分だけ落下させる（減ったら単に描画が減る）
+  renderQuizReviewBalls(lesson, (next > prev), prev);
+
+  // ✅ 落下が全部終わってから2秒後に結果表示
+  scheduleOpenSessionResultAfterReviewBalls(prev, next);
+}
+
+/* ========= 画面表示 ========= */
 function showNameScreen(){
   IN_ROOM = false;
 
@@ -1051,6 +1239,16 @@ function showNameScreen(){
   closeSessionResult();
 
   stopQuizWaveLoop();
+
+  // ✅ reviewレイヤーは念のため非表示
+  if (reviewBallSvg) reviewBallSvg.style.display = "none";
+
+  // ✅ フリーズ解除
+  QUIZ_REVIEW_BALLS_FROZEN = false;
+  QUIZ_REVIEW_FINALIZING = false;
+
+  // ✅ review結果待ちキャンセル
+  clearReviewResultWait();
 }
 
 async function showLessonList(){
@@ -1068,13 +1266,20 @@ async function showLessonList(){
   document.body.classList.remove("quiz-bg");
 
   await refreshLessons();
-  /* ✅ 二重描画を消す：refreshLessons内でdrawLessonTrapezoids()するのでここは不要
-     requestAnimationFrame(()=>drawLessonTrapezoids());
-  */
   closeStagePop();
   closeSessionResult();
 
   stopQuizWaveLoop();
+
+  // ✅ reviewレイヤーは念のため非表示
+  if (reviewBallSvg) reviewBallSvg.style.display = "none";
+
+  // ✅ フリーズ解除
+  QUIZ_REVIEW_BALLS_FROZEN = false;
+  QUIZ_REVIEW_FINALIZING = false;
+
+  // ✅ review結果待ちキャンセル
+  clearReviewResultWait();
 }
 
 function showQuiz(){
@@ -1093,7 +1298,18 @@ function showQuiz(){
 
   closeStagePop();
   closeSessionResult();
+
+  /* ✅ 波は“背景”：クイズ処理を止めない（低FPSで回すだけ） */
   startQuizWaveLoop();
+
+  setReviewVisualMode();
+
+  // ✅ reviewなら「開始時点の玉数」で静止表示（クイズ中に落とさない）
+  if (CURRENT.stage === "review"){
+    const key = `${CURRENT.name}|${SELECTED_GRADE}|${normLesson(CURRENT.lesson)}`;
+    const prev = _quizReviewBallPrev.get(key) ?? getReviewBallCountForLesson(CURRENT.lesson);
+    renderQuizReviewBalls(CURRENT.lesson, false, prev);
+  }
 }
 
 /* ✅ 右下↻の挙動：クイズ→課選択 / 課選択→名前 */
@@ -1102,6 +1318,9 @@ backFab.onclick = async ()=>{
   stopQuestionTimer();
   resetPrefetch();
   closeSessionResult();
+
+  // ✅ review結果待ちキャンセル
+  clearReviewResultWait();
 
   if (quizBox.style.display !== "none"){
     await showLessonList();
@@ -1130,6 +1349,9 @@ function shuffleInPlace(arr){
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
+}
+function defer(fn){
+  setTimeout(fn, 0);
 }
 
 /* =========================
@@ -1229,6 +1451,15 @@ async function refreshLessons(){
 
   drawLessonTrapezoids(true); /* ✅ 戻った時は“伸び”アニメ */
   syncDropletColorToGauge();
+
+  // ✅ reviewクイズ中は黒玉を「更新しない」
+  if (isQuizVisible() && CURRENT.stage === "review"){
+    if (!QUIZ_REVIEW_BALLS_FROZEN){
+      const key = `${CURRENT.name}|${SELECTED_GRADE}|${normLesson(CURRENT.lesson)}`;
+      const prev = _quizReviewBallPrev.get(key) ?? getReviewBallCountForLesson(CURRENT.lesson);
+      renderQuizReviewBalls(CURRENT.lesson, false, prev);
+    }
+  }
 }
 
 function stageLabel(s){
@@ -1379,8 +1610,18 @@ function startStage(stage){
 
   startSession(CURRENT.lesson, CURRENT.stage, _pendingLessonMeta);
 
+  // ✅ reviewなら「開始時点で玉数固定（フリーズ開始）」
+  if (stage === "review"){
+    freezeReviewBallsStart();
+  } else {
+    QUIZ_REVIEW_BALLS_FROZEN = false;
+    QUIZ_REVIEW_FINALIZING = false;
+  }
+
   showQuiz();
   syncDropletColorToGauge();
+
+  setReviewVisualMode();
 
   primeNextQuestion();
   loadQuestion();
@@ -1543,11 +1784,19 @@ function renderQuestionJson(j){
   quizWord.textContent = "…";
   stopQuestionTimer();
   syncDropletColorToGauge();
+  setReviewVisualMode();
 
   if (j && (j.error === "session_done" || j.error === "no_more_unique")){
     clearOptions();
     quizWord.textContent = "おつかれさま！";
     stopQuestionTimer();
+
+    // ✅ reviewは「最後の瞬間に達成率→玉落下」してから、落下完了+2秒で結果
+    if (CURRENT.stage === "review"){
+      finalizeReviewBallsAndShowResult();
+      return;
+    }
+
     setTimeout(()=>openSessionResult(), 150);
     return;
   }
@@ -1565,7 +1814,7 @@ function renderQuestionJson(j){
   const wordId = j.word_id ?? j.wordId ?? j.id;
   const word = j.word ?? j.question ?? "";
   let options = Array.isArray(j.options) ? j.options : (Array.isArray(j.choices) ? j.choices : []);
-  const correct = (j.correct != null) ? String(j.correct) : null; /* ✅ ここが即色判定の鍵 */
+  const correct = (j.correct != null) ? String(j.correct) : null;
 
   options = options.slice();
   if (QUIZ_RULES.shuffleChoices) shuffleInPlace(options);
@@ -1612,7 +1861,7 @@ async function loadQuestion(){
 
 let ANSWERING = false;
 
-/* ✅ ここが本丸：押した瞬間に緑/赤へ（通信待ちを挟まない） */
+/* ✅ 押した瞬間に緑/赤へ（通信は裏で） */
 async function submitAnswer(text, chosenBtnEl){
   if (ANSWERING) return;
   if (!CURRENT.currentQ || !CURRENT.currentQ.word_id) return;
@@ -1631,15 +1880,20 @@ async function submitAnswer(text, chosenBtnEl){
   const correctLocal = (CURRENT.currentQ.correct != null) ? String(CURRENT.currentQ.correct) : null;
   const chosen = String(text);
 
-  // ✅ 1) 即ローカル判定で色を付ける（グレー化させない）
+  // ✅ 1) 即ローカル判定で色を付ける
+  let isCorrectLocal = null;
   if (correctLocal != null){
-    const isCorrectLocal = (chosen === correctLocal);
+    isCorrectLocal = (chosen === correctLocal);
 
     if (isCorrectLocal){
       btns.forEach(b=>{
         if (b.textContent === correctLocal) b.classList.add("goodGreen");
       });
-      spawnDroplets();
+
+      // ✅ review中は💧を出さない（黒丸は「最後だけ落とす」）
+      if (CURRENT.stage !== "review"){
+        spawnDroplets();
+      }
     } else {
       let chosenBtn = null;
       btns.forEach(b=>{
@@ -1655,49 +1909,73 @@ async function submitAnswer(text, chosenBtnEl){
         chosenBtn.classList.add("shake");
       }
     }
-
-    // ✅ 2) “描画”を先に通す（ここで次フレームへ）
-    await new Promise(r=>requestAnimationFrame(r));
   } else {
-    // 万一 correct が取れないときだけ “暗くならない pending” を付ける
     if (chosenBtnEl) chosenBtnEl.classList.add("pending");
-    await new Promise(r=>requestAnimationFrame(r));
   }
 
-  try{
-    // ✅ 3) その後にDB保存（遅くても見た目はもう変わってる）
-    const j = await apiAnswer(CURRENT.name, CURRENT.currentQ.word_id, chosen);
-    if (!j.ok){
-      setResult(`回答失敗：${j.error||"unknown"}`, false);
-      // 失敗時：必要なら解放
-      btns.forEach(b=>b.disabled = false);
-      if (chosenBtnEl) chosenBtnEl.classList.remove("pending","badRed","goodGreen","shake");
-      return;
-    }
+  // ✅ 2) セッション集計も“即”更新
+  if (SESSION){
+    SESSION.asked += 1;
+    markAskedWordId(CURRENT.currentQ.word_id);
+    if (isCorrectLocal === true) SESSION.correct += 1;
+    else if (isCorrectLocal === false) SESSION.wrongs.push({ word: CURRENT.currentQ.word || "", meaning: String(correctLocal || "") });
+  }
 
-    const isCorrect = !!(j.is_correct ?? j.isCorrect ?? j.correct);
-    const correct = j.correct ?? j.answer ?? j.correct_answer ?? correctLocal ?? "";
+  const snapshot = {
+    name: CURRENT.name,
+    grade: SELECTED_GRADE,
+    lesson: CURRENT.lesson,
+    stage: CURRENT.stage,
+    word_id: CURRENT.currentQ.word_id,
+    word: CURRENT.currentQ.word || "",
+    correctLocal,
+    chosen
+  };
 
-    if (SESSION){
-      SESSION.asked += 1;
-      markAskedWordId(CURRENT.currentQ.word_id);
-      if (isCorrect) SESSION.correct += 1;
-      else SESSION.wrongs.push({ word: CURRENT.currentQ.word || "", meaning: String(correct || "") });
-    }
+  const doneNow = endSessionIfNeeded();
 
-    refreshLessons().catch(()=>{});
-    resetPrefetch();
-    primeNextQuestion();
-
-    if (endSessionIfNeeded()){
-      setTimeout(()=>openSessionResult(), 220);
-      return;
-    }
-
-    setTimeout(()=>{ nextQuestionFast(true); }, 260);
-  } finally {
+  // ✅ 3) 次へ（reviewの最終だけ特殊処理）
+  setTimeout(()=>{
     ANSWERING = false;
-  }
+    if (doneNow){
+      if (CURRENT.stage === "review"){
+        finalizeReviewBallsAndShowResult();
+      } else {
+        openSessionResult();
+      }
+    } else {
+      nextQuestionFast(true);
+    }
+  }, 260);
+
+  // ✅ 4) DB保存 + 最新rate反映（裏）
+  (async ()=>{
+    try{
+      const j = await apiAnswer(snapshot.name, snapshot.word_id, snapshot.chosen);
+      if (!j || !j.ok){
+        defer(()=> setResult(`保存失敗（背景処理）：${(j && j.error) || "unknown"}`, false));
+        return;
+      }
+
+      // correctLocalが取れなかった場合だけ補正
+      if (SESSION && snapshot.correctLocal == null){
+        const isCorrect = !!(j.is_correct ?? j.isCorrect ?? j.correct);
+        if (isCorrect) SESSION.correct += 1;
+        else SESSION.wrongs.push({ word: snapshot.word, meaning: String(j.correct || "") });
+      }
+
+      // ✅ 進捗更新は裏で（ただしreview中の黒玉は更新しない）
+      defer(async ()=>{
+        try{
+          const stillSame = (CURRENT.name === snapshot.name);
+          if (!stillSame) return;
+          await refreshLessons();
+        }catch(e){}
+      });
+    }catch(e){
+      defer(()=> setResult(`保存失敗（背景処理）：${(e && e.message) ? e.message : String(e)}`, false));
+    }
+  })();
 }
 
 btnNext.onclick = ()=>nextQuestionFast(true);
@@ -1885,11 +2163,19 @@ function makeWavePath(x, y, w, h, levelY, phase, amp, wavelength){
 function ensureWaveLoop(){
   if (_waveRAF) return;
 
+  const frameMs = 1000 / Math.max(8, BG_ANIM_FPS_LESSON);
+  let last = 0;
+
   const loop = (now)=>{
     if (lessonListBox.style.display === "none"){
       stopWaveLoop();
       return;
     }
+    if ((now - last) < frameMs){
+      _waveRAF = requestAnimationFrame(loop);
+      return;
+    }
+    last = now;
 
     _tileRefs.forEach(ref=>{
       const { wavePath, waveBox, visRect } = ref;
@@ -1897,7 +2183,6 @@ function ensureWaveLoop(){
 
       const bottom = waveBox.y + waveBox.h;
 
-      /* ✅ clip（ゲージ量）も levelY に合わせて動かす */
       if (visRect && Number.isFinite(levelY)){
         const h = Math.max(0, bottom - levelY);
         visRect.setAttribute("y", String(levelY));
@@ -1920,6 +2205,206 @@ function ensureWaveLoop(){
   _waveRAF = requestAnimationFrame(loop);
 }
 
+/* =========================
+   ✅ review(復習) 10%ごとに黒丸を溜める（課選択側）
+   ※ここは元のまま
+========================= */
+let _reviewBallPrevCount = new Map();
+let _reviewBallInitDone  = false;
+let _reviewBallOffsets   = new Map();
+
+function getReviewRate01(tile){
+  const r = tile?.stageStats?.review?.rate;
+  return (r != null) ? clamp(Number(r), 0, 1) : 0;
+}
+function getReviewBallCount(tile){
+  const r = getReviewRate01(tile);
+  return clamp(Math.floor(r * 10 + 1e-9), 0, 10);
+}
+
+/* ===== 段レイアウト（row0=4 / row1=4広げる / row2=3隙間 / 以降=4）===== */
+function _normalizeCenters(centers, Ledge, Redge, r, minSep){
+  centers = centers.slice().sort((a,b)=>a-b);
+  const minX = Ledge + r;
+  const maxX = Redge - r;
+
+  centers[0] = clamp(centers[0], minX, maxX);
+  for (let i=1;i<centers.length;i++){
+    centers[i] = Math.max(centers[i], centers[i-1] + minSep);
+  }
+
+  const overflow = centers[centers.length-1] - maxX;
+  if (overflow > 0){
+    for (let i=0;i<centers.length;i++) centers[i] -= overflow;
+  }
+
+  const under = minX - centers[0];
+  if (under > 0){
+    for (let i=0;i<centers.length;i++) centers[i] += under;
+  }
+
+  for (let i=0;i<centers.length;i++){
+    centers[i] = clamp(centers[i], minX, maxX);
+  }
+  return centers;
+}
+
+function buildBallLayoutInTrapezoid(trap, r, offBox){
+  const {x1,y1,x2,y2,x3,y3,x4,y4} = trap;
+  const bottomY = y4;
+  const topY    = y1;
+
+  const pad = Math.max(2.5, r * 0.6);
+  const minGapY = Math.max(1.2, r * 0.30);
+  const stepY = (2*r + minGapY);
+
+  function lerp(a,b,t){ return a + (b-a)*t; }
+  function leftXAt(y){
+    const t = (y - y1) / (y4 - y1 || 1);
+    return lerp(x1, x4, clamp(t,0,1));
+  }
+  function rightXAt(y){
+    const t = (y - y2) / (y3 - y2 || 1);
+    return lerp(x2, x3, clamp(t,0,1));
+  }
+
+  function colsForRow(row){
+    if (row === 2) return 3;
+    return 4;
+  }
+
+  offBox._layoutSig = offBox._layoutSig || "v2_4-4-3_safe";
+  if (offBox._layoutSig !== "v2_4-4-3_safe"){
+    for (const k of Object.keys(offBox)) delete offBox[k];
+    offBox._layoutSig = "v2_4-4-3_safe";
+  }
+
+  offBox._rows = offBox._rows || {};
+
+  const rows = [];
+  const slotsFlat = [];
+  let row = 0;
+
+  for (;; row++){
+    const cy = bottomY - pad - r - row * stepY;
+    if (cy < topY + pad + r) break;
+
+    const Ledge = leftXAt(cy)  + pad;
+    const Redge = rightXAt(cy) - pad;
+
+    const cols = colsForRow(row);
+    const minGapX = Math.max(1.2, r * 0.30);
+    const minSep = 2*r + minGapX;
+
+    const avail = Redge - Ledge;
+    const needed = cols * (2*r) + (cols-1) * minGapX;
+    if (!(avail >= needed)) continue;
+
+    let centers = offBox._rows[row];
+
+    if (!Array.isArray(centers) || centers.length !== cols){
+      if (row === 2){
+        const below = offBox._rows[1];
+        if (Array.isArray(below) && below.length === 4){
+          const m01 = (below[0] + below[1]) / 2;
+          const m12 = (below[1] + below[2]) / 2;
+          const m23 = (below[2] + below[3]) / 2;
+          centers = [m01, m12, m23];
+
+          const jitter = r * 0.18;
+          centers = centers.map(v => v + (Math.random()*2 - 1) * jitter);
+
+          centers = _normalizeCenters(centers, Ledge, Redge, r, minSep);
+        } else {
+          const slack = Math.max(0, avail - needed);
+          const weights = Array.from({length: cols+1}, ()=> (Math.random()+0.18));
+          const sumW = weights.reduce((a,b)=>a+b,0);
+          const extra = weights.map(w => (w/sumW) * slack);
+
+          let x = Ledge + extra[0] + r;
+          centers = [];
+          for (let c=0;c<cols;c++){
+            centers.push(x);
+            if (c<cols-1) x += (2*r) + minGapX + extra[c+1];
+          }
+          centers = _normalizeCenters(centers, Ledge, Redge, r, minSep);
+        }
+      } else {
+        const slack = Math.max(0, avail - needed);
+        const weights = Array.from({length: cols+1}, ()=> (Math.random()+0.18));
+        const sumW = weights.reduce((a,b)=>a+b,0);
+        const extra = weights.map(w => (w/sumW) * slack);
+
+        let x = Ledge + extra[0] + r;
+        centers = [];
+        for (let c=0;c<cols;c++){
+          centers.push(x);
+          if (c<cols-1) x += (2*r) + minGapX + extra[c+1];
+        }
+        centers = _normalizeCenters(centers, Ledge, Redge, r, minSep);
+
+        if (row === 1){
+          const mid = (centers[0] + centers[centers.length-1]) / 2;
+          const spread = 1.28;
+          centers = centers.map(v => mid + (v - mid) * spread);
+          centers = _normalizeCenters(centers, Ledge, Redge, r, minSep);
+        }
+      }
+
+      offBox._rows[row] = centers;
+    }
+
+    rows.push({ row, cols, cy, Ledge, Redge, minGapX });
+
+    for (let col=0; col<cols; col++){
+      const cx = centers[col];
+      slotsFlat.push({ cx, cy, row, col, cols, Ledge, Redge, minGapX });
+    }
+  }
+
+  return { rows, slotsFlat };
+}
+
+function _findRowByBallIndex(bi, layout){
+  let acc = 0;
+  for (const rinfo of layout.rows){
+    const cols = rinfo.cols;
+    if (bi < acc + cols){
+      return { row: rinfo.row, within: bi - acc, cols };
+    }
+    acc += cols;
+  }
+  return null;
+}
+
+function pickSlotForBallIndex(bi, layout, offBox){
+  const pos = _findRowByBallIndex(bi, layout);
+  if (!pos) return null;
+
+  const { row, within, cols } = pos;
+  const rowSlots = layout.slotsFlat.filter(s => s.row === row);
+  if (!rowSlots.length) return null;
+
+  offBox._rowOrder = offBox._rowOrder || {};
+
+  if (!offBox._rowOrder[row]){
+    if (cols === 4){
+      const outer = (Math.random() < 0.5) ? [0,3] : [3,0];
+      const inner = (Math.random() < 0.5) ? [1,2] : [2,1];
+      offBox._rowOrder[row] = outer.concat(inner);
+    } else if (cols === 3){
+      const sides = (Math.random() < 0.5) ? [0,2] : [2,0];
+      offBox._rowOrder[row] = [1].concat(sides);
+    } else {
+      offBox._rowOrder[row] = Array.from({length: cols}, (_,i)=>i);
+    }
+  }
+
+  const col = offBox._rowOrder[row][within] ?? within;
+  return rowSlots.find(s => s.col === col) || rowSlots[within] || null;
+}
+
+/* ===== 台形描画（略：元のまま） ===== */
 function drawLessonTrapezoids(animateLevels=true){
   if (!lessonSvg) return;
   if (lessonListBox.style.display === "none") return;
@@ -2046,12 +2531,10 @@ function drawLessonTrapezoids(animateLevels=true){
       if (!Number.isFinite(rate)) rate = 0;
       rate = clamp(rate, 0, 1);
 
-      /* ✅ target（今回の正しい高さ） */
       const levelYTarget_raw = bottomY - (waveBox.h * (GAUGE_MAX * rate));
       const LEVEL_PAD = 2;
       const levelYTarget = clamp(levelYTarget_raw, topY + LEVEL_PAD, bottomY - LEVEL_PAD);
 
-      /* ✅ start（前回の高さ）→ 戻った時に“伸びる” */
       let levelYStart = levelYTarget;
       if (animateLevels){
         const prev = _lastLevelYMap.get(lessonKey);
@@ -2086,7 +2569,85 @@ function drawLessonTrapezoids(animateLevels=true){
       wavePath.style.pointerEvents = "none";
       gWave.appendChild(wavePath);
 
-      /* ✅ refにstart/target/visRectを保存（アニメ可能に） */
+      /* ✅ review黒丸（台形内） */
+      const ballCount = getReviewBallCount(t);
+      const prevCount = _reviewBallPrevCount.get(lessonKey) ?? 0;
+
+      const ballR = clamp(trapTopW * 0.050, 3.8, 6.5);
+
+      const gBalls = sEl("g");
+      gBalls.setAttribute("clip-path", `url(#${trapClipId})`);
+      gBalls.style.pointerEvents = "none";
+      lessonSvg.appendChild(gBalls);
+
+      const offKey = `${CURRENT.name}|${SELECTED_GRADE}|${lessonKey}`;
+      const offBox = _reviewBallOffsets.get(offKey) || {};
+      _reviewBallOffsets.set(offKey, offBox);
+
+      const layout = buildBallLayoutInTrapezoid({x1,y1,x2,y2,x3,y3,x4,y4}, ballR, offBox);
+      const slotsFlat = layout.slotsFlat;
+
+      const maxBalls = Math.min(ballCount, slotsFlat.length);
+
+      for (let bi=0; bi<maxBalls; bi++){
+        const slot = pickSlotForBallIndex(bi, layout, offBox);
+        if (!slot) continue;
+
+        const bcx = slot.cx;
+        const bcy = slot.cy;
+
+        if (!offBox[bi]){
+          const startScatter = Math.max(ballR * 2.3, slot.minGapX + ballR * 1.8);
+          const startDX = (Math.random()*2 - 1) * startScatter;
+
+          const safe = Math.min(ballR * 0.18, slot.minGapX * 0.18);
+          let sign = 0;
+          if (slot.cols === 3){
+            if (slot.col === 1) sign = 0;
+            else sign = (slot.col === 0) ? -1 : 1;
+          } else {
+            sign = (slot.col % 2 === 0) ? -1 : 1;
+          }
+          const rollTry = sign * safe * (0.65 + Math.random()*0.25);
+          const rollDX = rollTry;
+
+          const dropFrom = -(safeTrapH + 70 + Math.random() * 130);
+
+          offBox[bi] = {
+            landDX: 0,
+            startDX,
+            dropFrom,
+            rollDX,
+            rollMid: rollDX * 0.35
+          };
+        }
+
+        const off = offBox[bi];
+        const isNew = (_reviewBallInitDone && animateLevels && (ballCount > prevCount) && (bi >= prevCount));
+
+        const c = sEl("circle");
+        c.setAttribute("cx", bcx);
+        c.setAttribute("cy", bcy);
+        c.setAttribute("r",  ballR);
+
+        if (isNew){
+          c.setAttribute("class", "reviewBall drop");
+          c.style.setProperty("--dropFrom", `${off.dropFrom}px`);
+          c.style.setProperty("--startDX",  `${off.startDX.toFixed(2)}px`);
+          c.style.setProperty("--landDX",   `0px`);
+          c.style.setProperty("--rollDX",   `${off.rollDX.toFixed(2)}px`);
+          c.style.setProperty("--rollMid",  `${off.rollMid.toFixed(2)}px`);
+          c.style.animationDelay = `${(bi - prevCount) * 70}ms`;
+        } else {
+          c.setAttribute("class", "reviewBall");
+          c.style.transform = `translate(${Number(off.rollDX||0).toFixed(2)}px, 0px)`;
+        }
+
+        gBalls.appendChild(c);
+      }
+
+      _reviewBallPrevCount.set(lessonKey, ballCount);
+
       _tileRefs.set(lessonKey, {
         wavePath,
         waveBox,
@@ -2123,109 +2684,6 @@ function drawLessonTrapezoids(animateLevels=true){
       outline.style.pointerEvents = "none";
       lessonSvg.appendChild(outline);
 
-      const rx = trapTopW / 2;
-      const RING_SHIFT_Y = 8;
-      const ry = Math.max(6, base.lineH * 0.65);
-      const cy = (topY) - ry + RING_SHIFT_Y;
-      const cxRing = cx;
-
-      const isFull = (rate >= 0.999);
-      const RING_FILL = "#ff0000";
-      const RING_STROKE = "#BC3825";
-      const RING_STROKE_W = Math.max(1, Math.round(base.strokeW * 1));
-
-      const ring = sEl("ellipse");
-      ring.setAttribute("cx", cxRing);
-      ring.setAttribute("cy", cy);
-      ring.setAttribute("rx", rx);
-      ring.setAttribute("ry", ry);
-      ring.setAttribute("fill", isFull ? RING_FILL : "none");
-      ring.setAttribute("stroke", isFull ? RING_STROKE : strokeColor);
-      ring.setAttribute("stroke-width", isFull ? RING_STROKE_W : base.strokeW);
-      ring.style.pointerEvents = "none";
-      lessonSvg.appendChild(ring);
-
-      if (isFull){
-        const KAME2 = { scale: 0.72, dx: 0, dy: 0 };
-        const TRI = {
-          dx: -(rx - 73),
-          dy: 7,
-          scale: 0.6,
-          rot: -69,
-          tipShift: 0.00,
-          tipUp:    0.00,
-          baseSpread: 1.30,
-          baseSkew:   0.00,
-          round: 1.6,
-        };
-
-        const ringClipId = `ringclip_${i}_${j}`;
-        const ringClip = sEl("clipPath");
-        ringClip.setAttribute("id", ringClipId);
-        const ringClipEl = sEl("ellipse");
-        ringClipEl.setAttribute("cx", cxRing);
-        ringClipEl.setAttribute("cy", cy);
-        ringClipEl.setAttribute("rx", rx - 1.2);
-        ringClipEl.setAttribute("ry", ry - 1.2);
-        ringClip.appendChild(ringClipEl);
-        defs.appendChild(ringClip);
-
-        const w = (rx * 2 - 2.4) * clamp(KAME2.scale, 0.1, 2.0);
-        const h = (ry * 2 - 2.4) * clamp(KAME2.scale, 0.1, 2.0);
-
-        const k2 = sEl("image");
-        k2.setAttribute("href", "kame2.png");
-        k2.setAttribute("x", cxRing - w/2 + (KAME2.dx || 0));
-        k2.setAttribute("y", cy - h/2 + (KAME2.dy || 0));
-        k2.setAttribute("width", w);
-        k2.setAttribute("height", h);
-        k2.setAttribute("preserveAspectRatio", "xMidYMid meet");
-        k2.setAttribute("clip-path", `url(#${ringClipId})`);
-        k2.style.pointerEvents = "none";
-        lessonSvg.appendChild(k2);
-
-        const GAP = 10;
-        const side = Math.max(10, ry * 2.25) * clamp(TRI.scale, 0.2, 3);
-        const hTri = side * Math.sqrt(3) / 2;
-
-        const baseCxTri = cxRing - rx - GAP - hTri/2;
-        const baseCyTri = cy;
-
-        const cxTri = baseCxTri + (TRI.dx ?? 0);
-        const cyTri = baseCyTri + (TRI.dy ?? 0);
-
-        const tipX = cxTri - hTri/2 + (TRI.tipShift ?? 0);
-        const tipY = cyTri + (TRI.tipUp ?? 0);
-
-        const baseX = cxTri + hTri/2;
-        const spread = clamp(TRI.baseSpread ?? 1, 0.3, 2.2);
-        const skew = (TRI.baseSkew ?? 0);
-
-        const p2x = baseX;
-        const p2y = cyTri - (side/2) * spread - skew;
-        const p3x = baseX;
-        const p3y = cyTri + (side/2) * spread + skew;
-
-        const tri = sEl("path");
-        tri.setAttribute("d", `M ${tipX} ${tipY} L ${p2x} ${p2y} L ${p3x} ${p3y} Z`);
-        tri.setAttribute("fill", RING_FILL);
-
-        const sw = Math.max(2, side * clamp(TRI.round ?? 0.12, 0.02, 0.30));
-        tri.setAttribute("stroke", RING_FILL);
-        tri.setAttribute("stroke-width", String(sw));
-        tri.setAttribute("stroke-linejoin", "round");
-        tri.setAttribute("stroke-linecap", "round");
-        tri.style.paintOrder = "stroke fill";
-        tri.style.pointerEvents = "none";
-
-        const rot = Number(TRI.rot || 0);
-        if (rot){
-          tri.setAttribute("transform", `rotate(${rot} ${cxTri} ${cyTri})`);
-        }
-
-        lessonSvg.appendChild(tri);
-      }
-
       const labelY = topY + safeTrapH*0.47;
       const label = sEl("text");
       label.setAttribute("x", cx);
@@ -2238,50 +2696,11 @@ function drawLessonTrapezoids(animateLevels=true){
       label.style.pointerEvents = "none";
       label.textContent = lessonKey;
       lessonSvg.appendChild(label);
-
-      if (DEBUG_STAGE_RATES){
-        const ss = t.stageStats || {};
-        const pre1 = ss.pre1?.rate;
-        const pre2 = ss.pre2?.rate;
-        const rev  = ss.review?.rate;
-        const sum  = ss.sum_pre1_pre2?.rate;
-
-        const dbg = sEl("text");
-        dbg.setAttribute("x", cx);
-        dbg.setAttribute("y", labelY + 16);
-        dbg.setAttribute("text-anchor", "middle");
-        dbg.setAttribute("dominant-baseline", "hanging");
-        dbg.setAttribute("font-size", 9.5);
-        dbg.setAttribute("font-weight", "800");
-        dbg.setAttribute("fill", "#111");
-        dbg.setAttribute("opacity", "0.78");
-        dbg.style.pointerEvents = "none";
-
-        const lines = [
-          `pre1: ${pctText(pre1)}`,
-          `pre2: ${pctText(pre2)}`,
-          `review: ${pctText(rev)}`,
-          `pre1+pre2: ${pctText(sum)}`,
-          `raw achieveRate: ${pctText(rate)}`
-        ];
-
-        lines.forEach((txt, idx)=>{
-          const tspan = sEl("tspan");
-          tspan.textContent = txt;
-          tspan.setAttribute("x", cx);
-          tspan.setAttribute("dy", idx === 0 ? "0" : "1.15em");
-          dbg.appendChild(tspan);
-        });
-
-        dbg.setAttribute("clip-path", `url(#${trapClipId})`);
-        lessonSvg.appendChild(dbg);
-      }
     }
   }
 
   ensureWaveLoop();
 
-  /* ✅ 描画後：targetへ“伸びる” */
   if (animateLevels) animateTileLevels(650);
   else {
     _tileRefs.forEach((ref, key)=>{
@@ -2289,11 +2708,13 @@ function drawLessonTrapezoids(animateLevels=true){
       if (Number.isFinite(ref.levelY)) _lastLevelYMap.set(key, ref.levelY);
     });
   }
+
+  _reviewBallInitDone = true;
 }
 
 function scheduleLessonRedraw(){
   if (_resizeTick) cancelAnimationFrame(_resizeTick);
-  _resizeTick = requestAnimationFrame(()=>drawLessonTrapezoids(false)); /* ✅ リサイズは即反映 */
+  _resizeTick = requestAnimationFrame(()=>drawLessonTrapezoids(false));
 }
 window.addEventListener("resize", scheduleLessonRedraw);
 
@@ -2344,11 +2765,20 @@ function startQuizWaveLoop(){
 
   _quizRateVis = clamp(_quizRateVis, 0, 1);
 
+  const frameMs = 1000 / Math.max(8, BG_ANIM_FPS_QUIZ);
+  let last = 0;
+
   const loop = (now)=>{
     if (!quizBox || quizBox.style.display === "none"){
       stopQuizWaveLoop();
       return;
     }
+
+    if ((now - last) < frameMs){
+      _quizWaveRAF = requestAnimationFrame(loop);
+      return;
+    }
+    last = now;
 
     const rect = quizProgressSvg.getBoundingClientRect();
     const W = Math.max(1, Math.floor(rect.width));
@@ -2385,7 +2815,7 @@ function startQuizWaveLoop(){
 }
 
 /* =========================
-   ✅ 正解しずく（3滴）生成
+   ✅ 正解しずく（3滴）生成：CSSのみ
 ========================= */
 function spawnDroplets(){
   if (!dropletLayer) return;
@@ -2395,68 +2825,150 @@ function spawnDroplets(){
   const kids = dropletLayer.querySelectorAll(".droplet");
   if (kids.length > 18) dropletLayer.innerHTML = "";
 
-  function waveYAtCenter(){
-    const { W, levelY, phase, amp, wl } = _quizWaveState || {};
-    if (!(W > 0) || !(wl > 0) || !(levelY > 0)) return Infinity;
-
-    const k = (2 * Math.PI) / wl;
-    const x = W * 0.5;
-    const bias = (amp || 0) * 0.22;
-    return levelY + Math.sin(k * x + phase) * (amp || 0) - bias;
-  }
+  const stageH = (dropletLayer.getBoundingClientRect().height) || (_quizWaveState.H || 0);
+  const fromY = -90;
+  const toY   = Math.max(180, stageH + 120);
 
   function makeOne(delayMs){
     setTimeout(()=>{
       const d = document.createElement("div");
       d.className = "droplet";
+      d.style.setProperty("--fromY", `${fromY}px`);
+      d.style.setProperty("--toY", `${toY}px`);
+      d.style.setProperty("--dur", `${980 + Math.random()*420}ms`);
+      d.style.animationDelay = `${Math.max(0, delayMs)}ms`;
+      d.addEventListener("animationend", ()=> d.remove(), { once:true });
       dropletLayer.appendChild(d);
-
-      const start = performance.now();
-      const dur = 1200;
-
-      const dropletH = 60;
-      const stageH = (dropletLayer.getBoundingClientRect().height) || (_quizWaveState.H || 0);
-
-      const fromY = -dropletH - 10;
-      const toY   = stageH + dropletH + 10;
-
-      const easeOut = (t)=> 1 - Math.pow(1 - t, 3);
-
-      function tick(now){
-        const t = (now - start) / dur;
-
-        if (t >= 1){
-          d.remove();
-          return;
-        }
-
-        const p = easeOut(Math.max(0, Math.min(1, t)));
-        const y = fromY + (toY - fromY) * p;
-
-        let op = 0;
-        if (t < 0.10) op = t / 0.10;
-        else op = 1;
-
-        const dropletCenterY = y + dropletH / 2;
-        const wy = waveYAtCenter();
-        if (dropletCenterY >= wy){
-          d.remove();
-          return;
-        }
-
-        d.style.opacity = String(op);
-        d.style.transform = `translateX(-50%) translateY(${y}px) scale(${0.92 + 0.10*p})`;
-
-        requestAnimationFrame(tick);
-      }
-
-      requestAnimationFrame(tick);
-    }, delayMs);
+    }, 0);
   }
 
   makeOne(0);
   makeOne(220);
   makeOne(440);
+}
+
+/* =========================
+   ✅ reviewクイズ：10%ごとに黒丸（画面下に溜める）
+========================= */
+const _quizReviewBallOffsets = new Map();
+const _quizReviewBallPrev    = new Map();
+
+function _tileByLesson(lesson){
+  lesson = normLesson(lesson);
+  return (_lastLessonTiles || []).find(x => normLesson(x.lesson) === lesson) || null;
+}
+function getReviewRate01ForLesson(lesson){
+  const t = _tileByLesson(lesson);
+  const r = t?.stageStats?.review?.rate;
+  return (r != null) ? clamp(Number(r), 0, 1) : 0;
+}
+function getReviewBallCountForLesson(lesson){
+  const r = getReviewRate01ForLesson(lesson);
+  return clamp(Math.floor(r * 10 + 1e-9), 0, 10);
+}
+function setReviewVisualMode(){
+  const isReview = (CURRENT.stage === "review");
+  if (dropletLayer) dropletLayer.style.display = isReview ? "none" : "";
+  if (reviewBallSvg) reviewBallSvg.style.display = isReview ? "" : "none";
+}
+
+function _getQuizBallLayout(){
+  const stageRect = quizStage.getBoundingClientRect();
+
+  const W = Math.max(1, Math.floor(stageRect.width));
+  const H = Math.max(1, Math.floor(stageRect.height));
+
+  const padX = Math.max(16, W * 0.06);
+  const gapX = Math.max(10, W * 0.03);
+
+  const avail = (W - padX * 2 - gapX * 3);
+  let r = (avail / 4) / 2;
+  r = r * 0.92;
+  r = clamp(r, 14, 44);
+
+  const gapY  = Math.max(8, r * 0.30);
+  const stepY = 2 * r + gapY;
+
+  const bottomPad = Math.max(12, r * 0.35);
+  const baseY = (H - bottomPad - r);
+
+  const centersX = [];
+  for (let i=0;i<4;i++){
+    centersX.push(padX + r + i * (2*r + gapX));
+  }
+
+  return { W, H, ballR:r, gapY, stepY, baseY, centersX, gapX };
+}
+
+function renderQuizReviewBalls(lesson, animateFromPrev=false, prevCount=0){
+  if (!reviewBallSvg) return;
+  if (CURRENT.stage !== "review") return;
+
+  const key = `${CURRENT.name}|${SELECTED_GRADE}|${normLesson(lesson)}`;
+  const count = getReviewBallCountForLesson(lesson);
+
+  const stageRect = quizStage.getBoundingClientRect();
+  const W = Math.max(1, Math.floor(stageRect.width));
+  const H = Math.max(1, Math.floor(stageRect.height));
+  reviewBallSvg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  reviewBallSvg.innerHTML = "";
+
+  const layout = _getQuizBallLayout();
+  const { ballR, stepY, baseY, centersX, gapX } = layout;
+
+  const offBox = _quizReviewBallOffsets.get(key) || {};
+  _quizReviewBallOffsets.set(key, offBox);
+
+  const max = Math.max(0, Math.min(count, 60));
+  for (let i=0; i<max; i++){
+    const row = Math.floor(i / 4);
+    const col = i % 4;
+
+    const cx = centersX[col];
+    const cy = baseY - row * stepY;
+
+    if (!offBox[i]){
+      const startDX = (Math.random()*2 - 1) * (ballR * 2.2);
+
+      const safe = Math.min(ballR * 0.18, gapX * 0.18);
+      const sign = (col % 2 === 0) ? -1 : 1;
+      const rollDX = sign * safe * (0.70 + Math.random()*0.20);
+
+      const dropFrom = -(H + 140 + Math.random() * 260);
+
+      offBox[i] = {
+        startDX,
+        rollDX,
+        rollMid: rollDX * 0.35,
+        dropFrom
+      };
+    }
+
+    const off = offBox[i];
+    const isNew = (animateFromPrev && (i >= prevCount));
+
+    const c = sEl("circle");
+    c.setAttribute("cx", cx);
+    c.setAttribute("cy", cy);
+    c.setAttribute("r",  ballR);
+
+    if (isNew){
+      c.setAttribute("class", "reviewBall drop");
+      c.style.setProperty("--dropFrom", `${off.dropFrom}px`);
+      c.style.setProperty("--startDX",  `${off.startDX.toFixed(2)}px`);
+      c.style.setProperty("--landDX",   `0px`);
+      c.style.setProperty("--rollDX",   `${off.rollDX.toFixed(2)}px`);
+      c.style.setProperty("--rollMid",  `${off.rollMid.toFixed(2)}px`);
+      c.style.animationDelay = `${(i - prevCount) * 90}ms`;
+    } else {
+      c.setAttribute("class", "reviewBall");
+      c.style.transform = `translate(${Number(off.rollDX||0).toFixed(2)}px, 0px)`;
+    }
+
+    reviewBallSvg.appendChild(c);
+  }
+
+  _quizReviewBallPrev.set(key, count);
 }
 
 /* ========= 初期化 ========= */
