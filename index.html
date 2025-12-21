@@ -862,6 +862,24 @@
   }, { passive:true });
 
   /* ===== クイズ ===== */
+
+  // ✅ wrongs を「配列」でも「0/1/2のオブジェクト」でも読めるように正規化
+  function normalizeWrongs(wrongsRaw){
+    let arr = [];
+
+    if (Array.isArray(wrongsRaw)) {
+      arr = wrongsRaw;
+    } else if (wrongsRaw && typeof wrongsRaw === "object") {
+      // Realtime DB コンソール手入力で 0/1/2 になりやすい
+      arr = Object.values(wrongsRaw);
+    } else if (typeof wrongsRaw === "string") {
+      // 万一 "a,b,c" や改行区切りでも動くように
+      arr = wrongsRaw.split(/[\n,|]/g);
+    }
+
+    return arr.map(x=>String(x ?? "").trim()).filter(Boolean);
+  }
+
   async function loadStagePool(grade, lesson, stage){
     const sk = STUDENT.studentKey;
     const wordsObj = await dbGet(P.wordsStage(grade, lesson, stage)) || {};
@@ -872,13 +890,24 @@
       for (const wid of Object.keys(wordsObj)){
         const v = wordsObj[wid];
         if (!v) continue;
+
         const word = String(v.word ?? "").trim();
         const meaning = String(v.meaning ?? "").trim();
-        const wrongs = Array.isArray(v.wrongs) ? v.wrongs.map(x=>String(x).trim()).filter(Boolean) : [];
+
+        // ✅ ここが今回の本命修正
+        let wrongs = normalizeWrongs(v.wrongs);
+
+        // 正解と同じ選択肢が混ざると見た目が壊れるので除外（安全策）
+        wrongs = wrongs.filter(x => x !== meaning);
+
+        // 重複も除外
+        wrongs = [...new Set(wrongs)];
+
         if (!word || !meaning || wrongs.length < 2) continue;
         words.push({ id: wid, word, meaning, wrongs });
       }
     }
+
     return { grade, lesson, stage, words, progress: progObj || {} };
   }
 
