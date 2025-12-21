@@ -465,6 +465,30 @@
       cursor:pointer;
     }
     .sessionBackBtn:active{ transform:scale(.99); }
+
+    /* ===== 教師ページの表 ===== */
+    .tableWrap{
+      width:100%;
+      overflow:auto;
+      border:1px solid #eee;
+      border-radius:14px;
+      background:#fff;
+    }
+    table{
+      border-collapse:collapse;
+      width:max(820px,100%);
+      font-size:13px;
+    }
+    th,td{
+      border-bottom:1px solid #eee;
+      padding:8px 10px;
+      text-align:left;
+      white-space:nowrap;
+    }
+    th{ background:#fafafa; font-weight:900; }
+    tr:hover td{ background:#fcfcff; }
+    .right{ text-align:right; }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
   </style>
 </head>
 
@@ -525,26 +549,20 @@
     </div>
   </section>
 
-  <!-- ✅ 管理者（今回は“ローカル鍵”で入る簡易版） -->
+  <!-- ✅ 教師（毎回パスワード要求・保存しない・ページ内にパスワード文字列を出さない） -->
   <section id="adminSec" class="card" style="display:none">
-    <h2 style="margin:0 0 10px">管理者ページ（簡易）</h2>
+    <h2 style="margin:0 0 10px">教師ページ</h2>
+
+    <div class="card" style="margin:0 0 12px">
+      <div class="row" style="justify-content:space-between">
+        <div class="muted" id="adminStatus"></div>
+        <button id="btnLogoutAdmin" class="ghost">教師ページを終了</button>
+      </div>
+    </div>
 
     <div class="grid2">
       <div class="card" style="margin:0">
-        <div style="font-weight:800;margin-bottom:8px">認証キー（ローカル保存）</div>
-        <div class="row">
-          <input id="adminToken" placeholder="hosi1212" style="min-width:260px" />
-          <button id="btnSaveToken" class="secondary">保存</button>
-          <button id="btnLogoutAdmin" class="ghost">管理者を終了</button>
-        </div>
-        <div id="adminStatus" class="muted" style="margin-top:6px"></div>
-        <div class="tiny" style="margin-top:6px">
-          ※これは「簡易」管理。厳密に守るなら、後でルール+Authにする。
-        </div>
-      </div>
-
-      <div class="card" style="margin:0">
-        <div style="font-weight:800;margin-bottom:8px">登録する学年 / 課 / 段階 / クラス（任意）</div>
+        <div style="font-weight:800;margin-bottom:8px">単語登録（学年/課/段階/クラス）</div>
         <div class="row">
           <select id="gradeSel"></select>
           <input id="lessonSel" placeholder="課（例：1課 / L1）" style="min-width:150px" />
@@ -558,6 +576,12 @@
         <div class="muted" style="margin-top:6px">
           1行：<b>word,meaning,wrong1,wrong2[,wrong3,wrong4,wrong5]</b>
         </div>
+      </div>
+
+      <div class="card" style="margin:0">
+        <div style="font-weight:900;margin-bottom:8px">学生名簿（DBの students）</div>
+        <button id="btnLoadStudents" class="secondary">学生一覧を読み込み</button>
+        <div id="studentList" class="muted" style="margin-top:10px;white-space:pre-wrap"></div>
       </div>
     </div>
 
@@ -573,10 +597,24 @@
       <div id="parsePreview" class="muted" style="margin-top:8px;white-space:pre-wrap"></div>
     </div>
 
+    <!-- ✅ 学年別 進捗（課ごと + 全体pre1+pre2） -->
     <div class="card">
-      <div style="font-weight:900;margin-bottom:8px">学生名簿（DBの students）</div>
-      <button id="btnLoadStudents" class="secondary">学生一覧を読み込み</button>
-      <div id="studentList" class="muted" style="margin-top:10px;white-space:pre-wrap"></div>
+      <div style="font-weight:900;margin-bottom:8px">学年別 進捗一覧</div>
+      <div class="row">
+        <select id="reportGradeSel"></select>
+        <button id="btnLoadReport" class="secondary">この学年の進捗を表示</button>
+        <span id="reportStatus" class="muted"></span>
+      </div>
+
+      <div class="muted" style="margin-top:10px">
+        表示：<b>学生名</b> / <b>課</b> / <b>pre1%</b> / <b>pre2%</b> / <b>review%</b> / <b>pre1+pre2(全体%)</b>
+      </div>
+
+      <div id="reportSummary" class="muted" style="margin-top:10px"></div>
+
+      <div class="tableWrap" style="margin-top:10px">
+        <div id="reportTable"></div>
+      </div>
     </div>
   </section>
 </main>
@@ -606,17 +644,12 @@
 <script type="module">
   /* =========================
      ✅ Firebase（UID不要運用）
-     - 学生キー studentKey を localStorage 生成
-     - DBキーは studentKey を使用（UIDは使わない）
   ========================= */
 
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
   import {
-    getDatabase, ref, child, get, set, update, push, runTransaction
+    getDatabase, ref, get, set, update, push, runTransaction
   } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
-
-  // （任意）Authを使いたいなら import して signInAnonymously を足す。
-  // 今回は「UID不要＝Authなしでも動く」設計なので、DBルール次第でAuth無しでOK。
 
   /* ========= Firebase設定（ここをあなたのに差し替え） ========= */
   const firebaseConfig = {
@@ -638,25 +671,30 @@
   const MAX_GRADE = 4;
   const QT_MS = 4000;
 
-  // 簡易管理キー（ローカル照合）
-  // ※本気で守るなら、後でAuth+ルールにする（今は“動くこと”優先）
-  const ADMIN_KEY = "hosi1212";
+  /* =========================
+     ✅ 教師ページ（重要）
+     - 毎回プロンプトで入力させる
+     - 保存しない（localStorageやDBに保存しない）
+     - HTML/JS内に「パスワード文字列」を一切出さない
+     - 代わりに SHA-256 ハッシュ一致で認証する
+  ========================= */
   const ENABLE_ADMIN = true;
 
-  /* =========================
-     ★ localStorage keys
-  ========================= */
-  const NAME_KEY   = "yuko_wordlog_name";
-  const STUDENT_KEY= "yuko_wordlog_studentKey";
-  const TOKEN_KEY  = "yuko_wordlog_admin_token";
-  const GRADE_KEY  = "yuko_wordlog_grade";
+  // パスワードのSHA-256（※元パスワード文字列はこのファイルに存在しません）
+  // ここだけで照合します（UIにも表示しません）
+  const ADMIN_SHA256 = "38da1a0a2fa740b609c9f222ff0f371f9e56b0cd0d96ce259383b11fe6afc1e5";
+
+  let ADMIN_OK = false; // メモリだけ（リロードで必ずfalse）
 
   /* =========================
-     ✅ DBパス設計（重要）
-     - students/{studentKey} : 名簿
-     - words/{grade}/{lesson}/{stage}/{wordId} : 単語バンク
-     - progress/{studentKey}/{grade}/{lesson}/{stage}/{wordId} : 単語ごとの学習
-     - lessonProgress/{studentKey}/{grade}/{lesson}/{stage} : 段階完了
+     ★ localStorage keys（生徒用のみ）
+  ========================= */
+  const NAME_KEY    = "yuko_wordlog_name";
+  const STUDENT_KEY = "yuko_wordlog_studentKey";
+  const GRADE_KEY   = "yuko_wordlog_grade";
+
+  /* =========================
+     ✅ DBパス設計
   ========================= */
   const P = {
     students: (studentKey)=> `students/${studentKey}`,
@@ -714,10 +752,8 @@
   const btnSessionClose = document.getElementById("btnSessionClose");
 
   // admin dom
-  const adminToken = document.getElementById("adminToken");
-  const btnSaveToken = document.getElementById("btnSaveToken");
-  const btnLogoutAdmin = document.getElementById("btnLogoutAdmin");
   const adminStatus = document.getElementById("adminStatus");
+  const btnLogoutAdmin = document.getElementById("btnLogoutAdmin");
   const gradeSel = document.getElementById("gradeSel");
   const lessonSel = document.getElementById("lessonSel");
   const stageSel = document.getElementById("stageSel");
@@ -729,6 +765,13 @@
   const parsePreview = document.getElementById("parsePreview");
   const btnLoadStudents = document.getElementById("btnLoadStudents");
   const studentList = document.getElementById("studentList");
+
+  // teacher report
+  const reportGradeSel = document.getElementById("reportGradeSel");
+  const btnLoadReport  = document.getElementById("btnLoadReport");
+  const reportStatus   = document.getElementById("reportStatus");
+  const reportTable    = document.getElementById("reportTable");
+  const reportSummary  = document.getElementById("reportSummary");
 
   const NS = "http://www.w3.org/2000/svg";
   const sEl = (name)=> document.createElementNS(NS, name);
@@ -758,7 +801,6 @@
   function getOrCreateStudentKey(){
     let k = localStorage.getItem(STUDENT_KEY);
     if (k && /^s_[a-z0-9_]+$/i.test(k)) return k;
-    // 端末固有キー（簡易）
     k = "s_" + Math.random().toString(36).slice(2) + "_" + Date.now().toString(36);
     localStorage.setItem(STUDENT_KEY, k);
     return k;
@@ -785,14 +827,11 @@
     currentQ: null
   };
 
-  // lesson tiles cache
-  let _lastLessonTiles = []; // [{lesson, achieveRate, stageDone:{pre1,pre2,review}, stageStats:{...}}]
-
-  // stage pool cache（クイズ中の読み込み削減）
-  let STAGE_POOL = null; // { lesson, stage, grade, words:[{id,word,meaning,wrongs:[]...}], progress:{id->{...}} }
+  let _lastLessonTiles = [];
+  let STAGE_POOL = null;
 
   /* =========================
-     ✅ 簡易セッション結果
+     ✅ セッション結果
   ========================= */
   let SESSION = null;
   function startSession(lesson, stage, planned=null){
@@ -836,7 +875,7 @@
       gearBtn.title = "トップへ";
     } else {
       gearIcon.textContent = "⚙";
-      gearBtn.title = "管理者";
+      gearBtn.title = "教師";
     }
   }
   function setMode(isAdmin){
@@ -928,11 +967,17 @@
   }
   function buildAdminGradeSelect(){
     gradeSel.innerHTML = "";
+    reportGradeSel.innerHTML = "";
     for (let g=1; g<=MAX_GRADE; g++){
-      const opt = document.createElement("option");
-      opt.value = String(g);
-      opt.textContent = `${g}年生`;
-      gradeSel.appendChild(opt);
+      const opt1 = document.createElement("option");
+      opt1.value = String(g);
+      opt1.textContent = `${g}年生`;
+      gradeSel.appendChild(opt1);
+
+      const opt2 = document.createElement("option");
+      opt2.value = String(g);
+      opt2.textContent = `${g}年生`;
+      reportGradeSel.appendChild(opt2);
     }
   }
 
@@ -957,36 +1002,29 @@
     const sk = STUDENT.studentKey;
     const path = P.students(sk);
     const now = nowTs();
-    // 名簿
     await dbUpdate(path, {
       studentKey: sk,
       name,
       createdAt: now,
       lastSeenAt: now
     });
-    // last seen heartbeat
     try{
       setInterval(()=> dbUpdate(path, { lastSeenAt: nowTs() }).catch(()=>{}), 30000);
     }catch(e){}
   }
 
   /* =========================
-     ✅ lessons集計（絶対必要）
-     - words/{grade} を見て lesson一覧を作る
-     - progress と lessonProgress を見て
-       pre1/pre2/reviewの達成率を計算
+     ✅ lessons集計
   ========================= */
   async function refreshLessons(){
     const grade = SELECTED_GRADE;
     const sk = STUDENT.studentKey;
 
-    // words/grade 全体（lesson keys）
     const wordsGrade = await dbGet(P.wordsGrade(grade));
     const lessonKeys = wordsGrade && typeof wordsGrade === "object"
       ? Object.keys(wordsGrade).map(normLesson).filter(Boolean)
       : [];
 
-    // 進捗 & 完了
     const progressGrade = await dbGet(`progress/${sk}/${grade}`) || {};
     const doneGrade = await dbGet(`lessonProgress/${sk}/${grade}`) || {};
 
@@ -1050,7 +1088,7 @@
   }
 
   /* =========================
-     ✅ stageポップ
+     ✅ stageポップ（pre1/pre2/reviewは常に公開）
   ========================= */
   let _pendingLesson = "";
   let _pendingLessonMeta = null;
@@ -1070,13 +1108,10 @@
 
     stagePopTitle.textContent = `${SELECTED_GRADE}年 / ${lesson}`;
 
-    const pre1Done = !!meta?.stageDone?.pre1;
-    const pre2Done = !!meta?.stageDone?.pre2;
-
-    // gate: pre2はpre1完了後、reviewはpre2完了後（あなたの仕様）
+    // ✅ 常に公開
     btnStagePre1.disabled = false;
-    btnStagePre2.disabled = !pre1Done && (meta?.stageStats?.pre1?.total ?? 0) > 0;
-    btnStageReview.disabled = !pre2Done && (meta?.stageStats?.pre2?.total ?? 0) > 0;
+    btnStagePre2.disabled = false;
+    btnStageReview.disabled = false;
 
     const rect = lessonList.getBoundingClientRect();
     let x = anchorX, y = anchorY;
@@ -1097,9 +1132,7 @@
   }
 
   function stageKeyOk(stage){
-    if (stage==="pre2" && btnStagePre2.disabled) return false;
-    if (stage==="review" && btnStageReview.disabled) return false;
-    return true;
+    return true; // ✅ 常に許可
   }
 
   async function startStage(stage){
@@ -1115,7 +1148,6 @@
     quizResult.textContent = "";
     CURRENT.currentQ = null;
 
-    // stage開始時に pool 読み込み（words + progress）
     STAGE_POOL = await loadStagePool(SELECTED_GRADE, CURRENT.lesson, CURRENT.stage);
 
     startSession(CURRENT.lesson, CURRENT.stage, null);
@@ -1136,9 +1168,6 @@
 
   /* =========================
      ✅ クイズ：stage pool
-     - wordsStage を一括取得
-     - progressStage を一括取得
-     - そこから出題
   ========================= */
   async function loadStagePool(grade, lesson, stage){
     const sk = STUDENT.studentKey;
@@ -1157,7 +1186,6 @@
         words.push({ id: wid, word, meaning, wrongs });
       }
     }
-
     return { grade, lesson, stage, words, progress: progObj || {} };
   }
 
@@ -1166,7 +1194,6 @@
 
     const words = STAGE_POOL.words;
     const prog  = STAGE_POOL.progress || {};
-    // 未mastered優先
     const notMastered = words.filter(w => !(prog?.[w.id]?.mastered === true));
     const pool = notMastered.length ? notMastered : words;
     return pool[Math.floor(Math.random() * pool.length)];
@@ -1308,7 +1335,6 @@
         }
       }
 
-      // progress 更新（単語ごとの学習状況）
       await updateProgress(isCorrect, chosen, correct);
 
       if (SESSION){
@@ -1317,17 +1343,13 @@
         else SESSION.wrongs.push({ word: CURRENT.currentQ.word, meaning: correct });
       }
 
-      // pool内progressも更新（再取得しない）
       if (STAGE_POOL){
         const wid = CURRENT.currentQ.word_id;
         const cur = STAGE_POOL.progress?.[wid] || {};
         STAGE_POOL.progress[wid] = { ...cur, mastered: (isCorrect ? true : (cur.mastered===true)) };
       }
 
-      // lesson一覧の達成度も更新
       refreshLessons().catch(()=>{});
-
-      // 次へ
       setTimeout(()=> nextQuestion(true), 260);
 
     } catch(e){
@@ -1359,7 +1381,6 @@
       if (isCorrect) base.correctCount = (base.correctCount||0) + 1;
       else base.wrongCount = (base.wrongCount||0) + 1;
       base.lastAt = now;
-      // ルール：正解1回でmastered（必要なら回数を増やしてもいい）
       if (isCorrect) base.mastered = true;
       base.lastChosen = String(chosen ?? "");
       base.lastCorrect = String(correct ?? "");
@@ -1368,7 +1389,7 @@
   }
 
   /* =========================
-     ✅ 段階完了（課ごとの学習・pre1/pre2/review達成）
+     ✅ 段階完了
   ========================= */
   btnLessonComplete.onclick = async ()=>{
     if (!CURRENT.lesson || !CURRENT.stage) return;
@@ -1495,7 +1516,6 @@
 
     const tiles = _lastLessonTiles || [];
     if (tiles.length === 0){
-      // 何もないときの表示
       const t = sEl("text");
       t.setAttribute("x", W/2);
       t.setAttribute("y", H/2);
@@ -1503,7 +1523,7 @@
       t.setAttribute("font-size", 16);
       t.setAttribute("font-weight", "900");
       t.setAttribute("fill", "#111");
-      t.textContent = "単語が未登録です（管理者で登録）";
+      t.textContent = "単語が未登録です（教師で登録）";
       lessonSvg.appendChild(t);
       return;
     }
@@ -1683,7 +1703,6 @@
         label.textContent = lessonKey;
         lessonSvg.appendChild(label);
 
-        // 小さくstage達成率を出す（確認用）
         const ss = t.stageStats || {};
         const dbg = sEl("text");
         dbg.setAttribute("x", cx);
@@ -1840,7 +1859,7 @@
   }
 
   /* =========================
-     ✅ 管理者：単語登録（DBへ保存）
+     ✅ 教師：単語登録
   ========================= */
   function parseWordsWithWrongs(text){
     const lines = text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
@@ -1872,10 +1891,16 @@
     parsePreview.textContent = okText + badText;
   };
 
+  function requireAdmin(){
+    if (!ADMIN_OK){
+      return false;
+    }
+    return true;
+  }
+
   btnUploadWords.onclick = async ()=>{
-    const token = (adminToken.value || "").trim();
-    if (token !== ADMIN_KEY){
-      uploadStatus.textContent = "認証キーが違う（簡易管理）";
+    if (!requireAdmin()){
+      uploadStatus.textContent = "権限がありません";
       return;
     }
     const grade = Number(gradeSel.value);
@@ -1910,16 +1935,16 @@
     uploadStatus.textContent = `登録OK：saved=${saved} bad=${bads.length}`;
   };
 
-  btnSaveToken.onclick = ()=>{
-    localStorage.setItem(TOKEN_KEY, adminToken.value.trim());
-    adminStatus.textContent = "保存OK";
+  btnLogoutAdmin.onclick = ()=>{
+    ADMIN_OK = false;          // ✅ セッション認証を破棄（保存しない）
+    adminStatus.textContent = "";
+    setMode(false);
+    showNameScreen();
   };
-  btnLogoutAdmin.onclick = ()=> setMode(false);
 
   btnLoadStudents.onclick = async ()=>{
-    const token = (adminToken.value || "").trim();
-    if (token !== ADMIN_KEY){
-      studentList.textContent = "認証キーが違う（簡易管理）";
+    if (!requireAdmin()){
+      studentList.textContent = "権限がありません";
       return;
     }
     const all = await dbGet("students") || {};
@@ -1934,9 +1959,265 @@
   };
 
   /* =========================
-     ✅ 管理者/戻るボタン
+     ✅ 教師レポート
+  ========================= */
+  function lessonNumKey(lesson){
+    const n = parseFloat(String(lesson).replace(/[^\d.]/g,""));
+    return Number.isFinite(n) ? n : 9999;
+  }
+
+  function countMasteredInStage(pStageObj){
+    let c = 0;
+    if (pStageObj && typeof pStageObj === "object"){
+      for (const wid of Object.keys(pStageObj)){
+        const v = pStageObj[wid];
+        if (v && v.mastered === true) c++;
+      }
+    }
+    return c;
+  }
+
+  function pct01(done, total){
+    if (!(total > 0)) return 0;
+    return clamp(done / total, 0, 1);
+  }
+
+  async function mapLimit(arr, limit, mapper){
+    const out = [];
+    let i = 0;
+    const workers = new Array(Math.max(1, limit)).fill(0).map(async ()=>{
+      while (i < arr.length){
+        const idx = i++;
+        out[idx] = await mapper(arr[idx], idx);
+      }
+    });
+    await Promise.all(workers);
+    return out;
+  }
+
+  async function loadTeacherReport(){
+    if (!requireAdmin()){
+      reportStatus.textContent = "権限がありません";
+      reportTable.innerHTML = "";
+      reportSummary.textContent = "";
+      return;
+    }
+
+    const grade = Number(reportGradeSel.value || "1");
+    reportStatus.textContent = "読み込み中…";
+    reportTable.innerHTML = "";
+    reportSummary.textContent = "";
+
+    const wordsGrade = await dbGet(P.wordsGrade(grade)) || {};
+    const lessonKeys = (wordsGrade && typeof wordsGrade === "object")
+      ? Object.keys(wordsGrade).map(normLesson).filter(Boolean)
+      : [];
+
+    lessonKeys.sort((a,b)=> lessonNumKey(a) - lessonNumKey(b));
+
+    const totalsByLesson = {};
+    for (const lesson of lessonKeys){
+      const wLesson = wordsGrade?.[lesson] || {};
+      const tot = { pre1:0, pre2:0, review:0 };
+      for (const st of ["pre1","pre2","review"]){
+        const stObj = wLesson?.[st] || {};
+        tot[st] = (stObj && typeof stObj === "object") ? Object.keys(stObj).length : 0;
+      }
+      totalsByLesson[lesson] = tot;
+    }
+
+    const studentsObj = await dbGet("students") || {};
+    const students = Object.keys(studentsObj).map(sk=>{
+      const s = studentsObj[sk] || {};
+      return {
+        studentKey: sk,
+        name: String(s.name ?? "").trim(),
+        lastSeenAt: s.lastSeenAt || 0
+      };
+    }).filter(s=>s.name);
+
+    students.sort((a,b)=>{
+      const an = a.name.toLowerCase();
+      const bn = b.name.toLowerCase();
+      if (an < bn) return -1;
+      if (an > bn) return 1;
+      return (b.lastSeenAt||0) - (a.lastSeenAt||0);
+    });
+
+    if (!lessonKeys.length){
+      reportStatus.textContent = "この学年は words が未登録です";
+      reportSummary.textContent = "";
+      reportTable.innerHTML = "";
+      return;
+    }
+    if (!students.length){
+      reportStatus.textContent = "students が空です（まだ入室者がいない）";
+      reportSummary.textContent = "";
+      reportTable.innerHTML = "";
+      return;
+    }
+
+    let gradeTotalPre12 = 0;
+    for (const lesson of lessonKeys){
+      const t = totalsByLesson[lesson];
+      gradeTotalPre12 += (t.pre1 + t.pre2);
+    }
+
+    const results = await mapLimit(students, 8, async (stu)=>{
+      const pg = await dbGet(`progress/${stu.studentKey}/${grade}`) || {};
+      const rows = [];
+      let sumDonePre12 = 0;
+
+      for (const lesson of lessonKeys){
+        const tot = totalsByLesson[lesson];
+        const pLesson = pg?.[lesson] || {};
+        const m1 = countMasteredInStage(pLesson?.pre1);
+        const m2 = countMasteredInStage(pLesson?.pre2);
+        const mr = countMasteredInStage(pLesson?.review);
+
+        const r1 = pct01(m1, tot.pre1);
+        const r2 = pct01(m2, tot.pre2);
+        const rr = pct01(mr, tot.review);
+
+        sumDonePre12 += (m1 + m2);
+
+        const sumRate = pct01((m1 + m2), (tot.pre1 + tot.pre2));
+
+        rows.push({
+          studentName: stu.name,
+          studentKey: stu.studentKey,
+          lesson,
+          pre1: r1,
+          pre2: r2,
+          review: rr,
+          pre12: sumRate
+        });
+      }
+
+      const overallPre12 = pct01(sumDonePre12, gradeTotalPre12);
+
+      return {
+        studentName: stu.name,
+        studentKey: stu.studentKey,
+        overallPre12,
+        rows
+      };
+    });
+
+    const summaryHtml = `
+      <div style="font-weight:900;margin-bottom:6px">全体（${grade}年 / pre1+pre2）</div>
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>学生</th>
+              <th class="right">pre1+pre2（全体%）</th>
+              <th class="mono">key</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${results.map(r=>`
+              <tr>
+                <td>${escapeHtml(r.studentName)}</td>
+                <td class="right">${Math.round(r.overallPre12*100)}%</td>
+                <td class="mono">${escapeHtml(r.studentKey)}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+    reportSummary.innerHTML = summaryHtml;
+
+    const allRows = results.flatMap(x=>x.rows);
+    const detailHtml = `
+      <table>
+        <thead>
+          <tr>
+            <th>学生</th>
+            <th>課</th>
+            <th class="right">pre1%</th>
+            <th class="right">pre2%</th>
+            <th class="right">review%</th>
+            <th class="right">pre1+pre2%</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${allRows.map(r=>`
+            <tr>
+              <td>${escapeHtml(r.studentName)}</td>
+              <td>${escapeHtml(r.lesson)}</td>
+              <td class="right">${Math.round(r.pre1*100)}%</td>
+              <td class="right">${Math.round(r.pre2*100)}%</td>
+              <td class="right">${Math.round(r.review*100)}%</td>
+              <td class="right">${Math.round(r.pre12*100)}%</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
+    reportTable.innerHTML = detailHtml;
+
+    reportStatus.textContent = `表示OK：${students.length}人 / ${lessonKeys.length}課`;
+  }
+
+  btnLoadReport.onclick = loadTeacherReport;
+  reportGradeSel.onchange = ()=>{ loadTeacherReport().catch(()=>{}); };
+
+  /* =========================
+     ✅ 教師ページ：毎回パスワード要求（保存しない）
+  ========================= */
+  function toHex(bytes){
+    return [...bytes].map(b=>b.toString(16).padStart(2,"0")).join("");
+  }
+
+  async function sha256Hex(text){
+    const enc = new TextEncoder();
+    const buf = enc.encode(String(text ?? ""));
+    const digest = await crypto.subtle.digest("SHA-256", buf);
+    return toHex(new Uint8Array(digest));
+  }
+
+  async function enterAdminWithPassword(){
+    if (!ENABLE_ADMIN){
+      alert("この端末では教師ページは無効です。");
+      return;
+    }
+
+    if (!window.crypto?.subtle){
+      alert("このブラウザでは認証に必要な機能が使えません。");
+      return;
+    }
+
+    // ✅ 毎回必ず聞く（保存しない）
+    const inKey = prompt("教師ページに入るにはパスワードが必要です。入力してください。") || "";
+    const token = String(inKey);
+
+    try{
+      const hex = await sha256Hex(token);
+      if (hex !== ADMIN_SHA256){
+        alert("認証失敗");
+        ADMIN_OK = false;
+        return;
+      }
+    } catch(e){
+      alert("認証処理に失敗しました。");
+      ADMIN_OK = false;
+      return;
+    }
+
+    ADMIN_OK = true;
+    adminStatus.textContent = "認証OK";
+    reportGradeSel.value = String(SELECTED_GRADE);
+    setMode(true);
+    loadTeacherReport().catch(()=>{});
+  }
+
+  /* =========================
+     ✅ 教師/戻るボタン（⚙）
   ========================= */
   gearBtn.onclick = async ()=>{
+    // 生徒画面での「戻る」挙動は維持
     if (IN_ROOM){
       setStuStatus("", true);
       stopQuestionTimer();
@@ -1948,26 +2229,9 @@
       }
       return;
     }
-    if (!ENABLE_ADMIN){
-      alert("今回は管理者を無効にしています。");
-      return;
-    }
-    // 簡易：ローカル保存キーで入る
-    const token = (adminToken.value || "").trim();
-    if (token === ADMIN_KEY){
-      adminStatus.textContent = "認証OK（簡易）";
-      setMode(true);
-      return;
-    }
-    const inKey = prompt("管理者キーを入力（例 hosi1212）") || "";
-    if (inKey.trim() === ADMIN_KEY){
-      adminToken.value = inKey.trim();
-      localStorage.setItem(TOKEN_KEY, inKey.trim());
-      adminStatus.textContent = "認証OK（簡易）";
-      setMode(true);
-    } else {
-      alert("認証失敗");
-    }
+
+    // ここから教師ページ（毎回認証）
+    await enterAdminWithPassword();
   };
 
   /* =========================
@@ -2003,12 +2267,8 @@
   /* =========================
      ✅ 初期化
   ========================= */
-  // restore
   const savedName = localStorage.getItem(NAME_KEY);
   if (savedName) stuName.value = savedName;
-
-  const savedToken = localStorage.getItem(TOKEN_KEY);
-  if (savedToken) adminToken.value = savedToken;
 
   buildGradeButtons();
   buildAdminGradeSelect();
