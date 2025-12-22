@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="ja">
 <head>
@@ -445,15 +446,26 @@
     }
 
     /* ✅ セッション結果モーダル（要求仕様版） */
-    #sessionBack .modal{
-      position:relative;
-      width:min(520px, 100%);
-      background:#fff;
-      border-radius:18px;
-      border:1px solid #eee;
-      box-shadow:0 24px 70px rgba(0,0,0,.35);
-      padding:18px 16px 56px;
-    }
+/* ✅ セッション結果モーダル：lowRateと同じ「内容に合わせて縮む」 */
+#sessionBack .modal{
+  position:relative;
+
+  /* ✅ 中身に合わせて縮む（JSで最終確定） */
+  width:auto;
+
+  /* ✅ 画面からはみ出さない上限（lowRateと同じ） */
+  max-width:min(92vw, 520px);
+
+  /* ✅ 小さすぎ防止（lowRateと同じ） */
+  min-width:260px;
+
+  background:#fff;
+  border-radius:18px;
+  border:1px solid #eee;
+  box-shadow:0 24px 70px rgba(0,0,0,.35);
+  padding:18px 16px 56px;
+}
+
     .sessionCenter{
       text-align:center;
       font-weight:950;
@@ -554,6 +566,216 @@
         );
       }
     }
+
+    /* =========================
+       ✅ 追加：pre1/pre2が40%未満のときのlowRateポップ
+       - 外側クリックで閉じる
+       - 閉じるボタンなし
+       - 「たとえば...」の下に 3つの「単語 - 正解」ランダム表示
+       - 左：黒ボタン白字「できそう！💧」でクイズ開始
+       - 右：「おぼえる👀」は後で設定（今は閉じるだけ）
+    ========================= */
+/* ✅ 追加：lowRateポップ（外側クリックで閉じる / 閉じるボタンなし） */
+#lowRateBack{
+  z-index:1400;
+  background: rgba(0,0,0,.42);
+}
+#lowRateBack .modal{
+  position:relative;
+
+  /* ✅ 中身に合わせて縮む（JSで最終確定） */
+  width:auto;
+
+  /* ✅ 画面からはみ出さない上限 */
+  max-width:min(92vw, 520px);
+
+  /* ✅ 小さすぎ防止（好みで調整OK） */
+  min-width:260px;
+
+  padding:16px 16px 14px;
+  border-radius:18px;
+}
+
+    .lrHead{
+      font-weight:950;
+      font-size:14px;
+      opacity:.86;
+      text-align:center;
+      margin-bottom:10px;
+      user-select:none;
+      color:#111;
+  display:none;
+    }
+    .lrExampleLabel{
+      font-weight:900;
+      font-size:14px;
+      opacity:.80;
+      margin:6px 0 8px;
+      user-select:none;
+      color:#111;
+    }
+    .lrList{
+      list-style:none;
+      padding:0;
+      margin:0;
+      border:1px solid #eee;
+      border-radius:14px;
+      overflow:hidden;
+      max-height:38vh;
+      overflow:auto;
+      background:#fff;
+    }
+    .lrList li{
+      padding:10px 12px;
+      border-top:1px solid #eee;
+      font-weight:900;
+      color:#111;
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+    }
+    .lrList li:first-child{ border-top:0; }
+    .lrList .lrWord{
+      min-width:50px;
+      opacity:.95;
+    }
+    .lrList .lrDash{
+      opacity:.5;
+      flex:0 0 auto;
+    }
+    .lrList .lrMean{
+      opacity:.90;
+      font-weight:850;
+      word-break:break-word;
+    }
+    .lrBtns{
+      margin-top:12px;
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:10px;
+    }
+    .lrStart{
+      background:#111;
+      color:#fff;
+      font-weight:950;
+      border-radius:14px;
+      padding:12px 14px;
+    }
+    .lrMem{
+      background:#fff;
+      color:#111;
+      font-weight:950;
+      border-radius:14px;
+      padding:12px 14px;
+      border:1px solid #ccc;
+    }
+    .lrStart:active, .lrMem:active{ transform:scale(.99); }
+
+/* =========================
+   ✅ 追加：フラッシュカード（おぼえる👀）
+   - 左スワイプで次
+   - 2秒で自動次
+   - スライドアニメ
+========================= */
+#flashBack{
+  z-index:1500; /* lowRate(1400)より上 */
+  background: rgba(0,0,0,.42);
+}
+#flashBack{
+  z-index:1500; /* lowRate(1400)より上 */
+  background: rgba(0,0,0,.42);
+}
+
+/* ✅ lowRate/session と同じ：内容に合わせて縮む幅（JSで確定） */
+#flashBack .flashModal{
+  width:auto;                          /* ←縮む */
+  max-width:min(92vw, 520px);          /* ←はみ出し防止 */
+  min-width:260px;                     /* ←小さすぎ防止 */
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+}
+
+#flashBack .flashCard{
+  width:100%;                          /* ←modal幅に追従 */
+  background:#fff;
+  border-radius:18px;
+  border:1px solid #eee;
+  box-shadow:0 24px 70px rgba(0,0,0,.35);
+  padding:18px 16px;
+  user-select:none;
+  touch-action: none; /* ✅横ドラッグを最優先（スクロール/ジェスチャでカクつかない） */
+  contain: layout paint; /* ✅周辺への影響を減らして安定 */
+  will-change: transform, opacity;
+}
+
+#flashBack .flashTop{
+  font-weight:950;
+  font-size:34px;
+  line-height:1.15;
+  text-align:center;
+  color:#111;
+  padding:8px 6px 10px;
+  word-break:break-word;
+}
+#flashBack .flashDivider{
+  height:1px;
+  background:#eee;
+  margin:6px 0 10px;
+}
+#flashBack .flashBottom{
+  font-weight:900;
+  font-size:22px;
+  line-height:1.25;
+  text-align:center;
+  color:#111;
+  opacity:.92;
+  padding:6px;
+  word-break:break-word;
+}
+#flashBack .flashPager{
+  font-weight:900;
+  font-size:13px;
+  color:#fff;
+  opacity:.92;
+  user-select:none;
+  text-shadow:0 6px 18px rgba(0,0,0,.35);
+}
+
+/* 次へ：スライド（左へ出て→右から入る） */
+/* =========================
+   ✅ Flash：両方向スライド（GPUでなめらか）
+========================= */
+#flashBack .flashCard{
+  /* 既にある will-change はOK。より滑らかにするため3D化 */
+  transform: translate3d(0,0,0);
+  backface-visibility: hidden;
+}
+
+@keyframes flashOutLeft{
+  0%   { transform: translate3d(var(--flashFromX, 0px),0,0); opacity:1; }
+  100% { transform: translate3d(-105%,0,0); opacity:0; }
+}
+@keyframes flashOutRight{
+  0%   { transform: translate3d(var(--flashFromX, 0px),0,0); opacity:1; }
+  100% { transform: translate3d(105%,0,0); opacity:0; }
+}
+@keyframes flashInRight{
+  0%   { transform: translate3d(105%,0,0); opacity:0; }
+  100% { transform: translate3d(0,0,0); opacity:1; }
+}
+@keyframes flashInLeft{
+  0%   { transform: translate3d(-105%,0,0); opacity:0; }
+  100% { transform: translate3d(0,0,0); opacity:1; }
+}
+
+/* クラス適用 */
+.flashOutLeft  { animation: flashOutLeft  .18s cubic-bezier(.22,.84,.44,1) both; }
+.flashInRight  { animation: flashInRight  .18s cubic-bezier(.22,.84,.44,1) both; }
+.flashOutRight { animation: flashOutRight .18s cubic-bezier(.22,.84,.44,1) both; }
+.flashInLeft   { animation: flashInLeft   .18s cubic-bezier(.22,.84,.44,1) both; }
+
   </style>
 </head>
 
@@ -575,11 +797,11 @@
           <div class="title" id="stagePopTitle">課</div>
           <div class="btnRow">
             <button class="sbtn pre1"   id="btnStagePre1"   type="button">
-              <span class="label">単語1 <span class="icon">💧</span></span>
+              <span class="label">単語1 <span class="icon">🥛</span></span>
               <span></span>
             </button>
             <button class="sbtn pre2"   id="btnStagePre2"   type="button">
-              <span class="label">単語2 <span class="icon">💧</span></span>
+              <span class="label">単語2 <span class="icon">🥛</span></span>
               <span></span>
             </button>
             <button class="sbtn review" id="btnStageReview" type="button">
@@ -634,12 +856,27 @@
     <div class="sessionCenter">
       <div class="line1">結果！</div>
       <div class="line2" id="sessionPct">--%</div>
-      <div class="line3">間違えた単語</div>
+      <div class="line3">間違えたことば</div>
     </div>
 
     <ul class="sessionWrongList" id="wrongList"></ul>
 
     <button id="btnSessionClose" class="sessionBackBtn" type="button">戻る</button>
+  </div>
+</div>
+
+<!-- ✅ 追加：lowRateポップ（外側クリックで閉じる / 閉じるボタンなし） -->
+<div class="modalBack" id="lowRateBack" aria-label="low rate hint">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="lrHead" id="lowRateTitle">…</div>
+
+    <div class="lrExampleLabel">たとえば...</div>
+    <ul class="lrList" id="lowRateList"></ul>
+
+    <div class="lrBtns">
+      <button id="btnLowRateStart" class="lrStart" type="button">できそう！🥛</button>
+      <button id="btnLowRateMem" class="lrMem" type="button">おぼえる👀</button>
+    </div>
   </div>
 </div>
 
@@ -649,6 +886,20 @@
     <circle class="fg" id="qTimerFg" cx="22" cy="22" r="18"></circle>
   </svg>
 </div>
+
+
+<!-- ✅ 追加：フラッシュカード（おぼえる👀） -->
+<div class="modalBack" id="flashBack" aria-label="flash cards">
+  <div class="flashModal" role="dialog" aria-modal="true">
+    <div class="flashCard" id="flashCard">
+      <div class="flashTop" id="flashTop">…</div>
+      <div class="flashDivider"></div>
+      <div class="flashBottom" id="flashBottom">…</div>
+    </div>
+    <div class="flashPager" id="flashPager">1/1</div>
+  </div>
+</div>
+
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
@@ -816,6 +1067,19 @@ const sessionBack = document.getElementById("sessionBack");
 const sessionPct  = document.getElementById("sessionPct");
 const wrongList   = document.getElementById("wrongList");
 const btnSessionClose = document.getElementById("btnSessionClose");
+
+/* ✅ lowRateポップDOM */
+const lowRateBack = document.getElementById("lowRateBack");
+const lowRateTitle = document.getElementById("lowRateTitle");
+const lowRateList = document.getElementById("lowRateList");
+const btnLowRateStart = document.getElementById("btnLowRateStart");
+const btnLowRateMem = document.getElementById("btnLowRateMem");
+/* ✅ フラッシュカードDOM（おぼえる👀） */
+const flashBack   = document.getElementById("flashBack");
+const flashCard   = document.getElementById("flashCard");
+const flashTop    = document.getElementById("flashTop");
+const flashBottom = document.getElementById("flashBottom");
+const flashPager  = document.getElementById("flashPager");
 
 /* ========= 初期：名前復元 ========= */
 const savedName = localStorage.getItem(NAME_KEY);
@@ -1107,10 +1371,396 @@ function setStuStatus(text, ok=true){
 }
 
 /* =========================
-   ✅ 変更点（ここが本題）
-   reviewクイズの黒玉は「クイズ中は落ちない」
-   → 最後の問題が終わった瞬間だけ達成率を再取得して落下
-   さらに：落下が全部終わってから2秒後に結果表示
+   ✅ 追加：pre1/pre2 40%未満なら lowRateポップ
+========================= */
+const LOW_RATE_THRESHOLD = 0.40;  // ★ここを変更すれば閾値変更
+let _lowRatePending = null;       // { lesson, stage, meta }
+
+function getStageRate01FromMeta(meta, stage){
+  try{
+    if (!meta || !meta.stageStats || !meta.stageStats[stage]) return null;
+    const r = meta.stageStats[stage].rate;
+    return (r != null) ? clamp(Number(r), 0, 1) : null;
+  }catch(e){ return null; }
+}
+
+function closeLowRatePop(){
+  if (!lowRateBack) return;
+  lowRateBack.style.display = "none";
+  if (lowRateList) lowRateList.innerHTML = "";
+  _lowRatePending = null;
+}
+
+async function fetchRandomExamples(grade, lesson, stage, n=3){
+  const obj = await dbGet(P.wordsStage(grade, lesson, stage));
+  const arr = [];
+  if (obj && typeof obj === "object"){
+    for (const v of Object.values(obj)){
+      if (!v || typeof v !== "object") continue;
+      const word = String(v.word ?? "").trim();
+      const meaning = String(v.meaning ?? "").trim();
+      if (!word || !meaning) continue;
+      arr.push({ word, meaning });
+    }
+  }
+  if (!arr.length) return [];
+  shuffleInPlace(arr);
+  return arr.slice(0, Math.max(0, n|0));
+}
+
+async function openLowRatePop(lesson, stage, meta){
+  _lowRatePending = { lesson:normLesson(lesson), stage:String(stage||"pre1"), meta: meta || null };
+
+
+  if (lowRateList) lowRateList.innerHTML = "";
+
+  let ex = [];
+  try{
+    ex = await fetchRandomExamples(SELECTED_GRADE, _lowRatePending.lesson, _lowRatePending.stage, 3);
+  }catch(e){
+    ex = [];
+  }
+
+  if (lowRateList){
+    if (!ex.length){
+      const li = document.createElement("li");
+      li.innerHTML = `<span class="lrWord">（例なし）</span><span class="lrDash">-</span><span class="lrMean">単語データがありません</span>`;
+      lowRateList.appendChild(li);
+    } else {
+      ex.forEach(({word, meaning})=>{
+        const li = document.createElement("li");
+        li.innerHTML =
+          `<span class="lrWord">${escapeHtml(word)}</span>` +
+          `<span class="lrDash">-</span>` +
+          `<span class="lrMean">${escapeHtml(meaning)}</span>`;
+        lowRateList.appendChild(li);
+      });
+    }
+  }
+
+  lowRateBack.style.display = "flex";
+requestAnimationFrame(fitLowRateModalWidth);
+
+}
+
+/* 外側クリックで閉じる（閉じるボタンなし） */
+lowRateBack.addEventListener("pointerdown", (e)=>{
+  if (e.target === lowRateBack) closeLowRatePop();
+}, { passive:true });
+lowRateBack.querySelector(".modal")?.addEventListener("pointerdown", (e)=> e.stopPropagation(), { passive:true });
+
+btnLowRateStart.onclick = ()=>{
+  const p = _lowRatePending;
+  closeLowRatePop();
+  if (!p) return;
+  // ✅ 通常の開始処理（閾値チェック無し）へ
+  startStageCore(p.stage, p.meta, p.lesson);
+};
+/* =========================
+   ✅ 追加：フラッシュカード（おぼえる👀）
+========================= */
+const FLASH = {
+  list: [],
+  i: 0,
+  timer: null,
+  anim: false,
+
+  dragging: false,
+  startX: 0,
+  lastDX: 0,
+  suppressClick: false, // スワイプ後のclick誤発火防止
+  raf: 0,          // ✅追加：ドラッグ描画をrAFで間引く
+  pendingDX: 0,    // ✅追加：次フレームに反映するdx
+
+};
+
+function flashApplyDrag(){
+  FLASH.raf = 0;
+  const dx = FLASH.pendingDX;
+  const limited = Math.max(-160, Math.min(160, dx));
+  flashCard.style.transform = `translate3d(${limited}px,0,0)`;
+}
+function flashCancelRAF(){
+  if (FLASH.raf){
+    cancelAnimationFrame(FLASH.raf);
+    FLASH.raf = 0;
+  }
+}
+
+
+function clearFlashTimer(){
+  if (FLASH.timer){
+    clearTimeout(FLASH.timer);
+    FLASH.timer = null;
+  }
+}
+
+function closeFlash(){
+  if (!flashBack) return;
+  clearFlashTimer();
+  FLASH.list = [];
+  FLASH.i = 0;
+  FLASH.anim = false;
+  FLASH.dragging = false;
+  FLASH.suppressClick = false;
+
+  // ✅ 途中状態を完全リセット（カクつき防止）
+  flashCard.classList.remove("flashInRight","flashOutLeft","flashOutRight","flashInLeft");
+  flashCard.style.transform = "";
+  flashCard.style.transition = "";
+
+  flashBack.style.display = "none";
+}
+
+
+function renderFlashCard(){
+  const n = FLASH.list.length;
+  if (!n){
+    flashTop.textContent = "…";
+    flashBottom.textContent = "…";
+    flashPager.textContent = "0/0";
+    return;
+  }
+  const cur = FLASH.list[FLASH.i];
+  flashTop.textContent = cur.word || "";
+  flashBottom.textContent = cur.meaning || "";
+  flashPager.textContent = `${FLASH.i + 1}/${n}`;
+requestAnimationFrame(fitFlashModalWidth);
+
+}
+
+function scheduleFlashAuto(){
+  clearFlashTimer();
+  if (!FLASH.list.length) return;
+  FLASH.timer = setTimeout(()=>{
+    flashGo(1, false); // 自動は「次へ」固定
+  }, 2000);
+}
+
+function flashGo(dir, withAnim=true, fromX=0){
+  if (!FLASH.list.length) return;
+  if (FLASH.anim) return;
+
+  clearFlashTimer();
+
+  const n = FLASH.list.length;
+  const nextIndex = (FLASH.i + dir + n) % n;
+
+  if (!withAnim){
+    FLASH.i = nextIndex;
+    renderFlashCard();
+    scheduleFlashAuto();
+    return;
+  }
+
+  FLASH.anim = true;
+
+  // ✅ outアニメ開始位置を「今の位置(fromX)」に固定（戻り1フレーム防止）
+  const sx = Math.max(-160, Math.min(160, Number(fromX) || 0));
+  flashCard.style.transition = ""; // ← "none" のままだとアニメが変になるので解除
+  flashCard.style.setProperty("--flashFromX", `${sx}px`);
+  flashCard.style.transform = `translate3d(${sx}px,0,0)`;
+
+  const outClass = (dir > 0) ? "flashOutLeft"  : "flashOutRight";
+  const inClass  = (dir > 0) ? "flashInRight"  : "flashInLeft";
+
+  flashCard.classList.remove("flashInRight","flashOutLeft","flashOutRight","flashInLeft");
+  void flashCard.offsetWidth;
+  flashCard.classList.add(outClass);
+
+  flashCard.addEventListener("animationend", ()=>{
+    flashCard.classList.remove(outClass);
+
+    // ✅ outが終わったらリセット（次のinに干渉させない）
+    flashCard.style.transform = "";
+    flashCard.style.removeProperty("--flashFromX");
+
+    FLASH.i = nextIndex;
+    renderFlashCard();
+
+    void flashCard.offsetWidth;
+    flashCard.classList.add(inClass);
+
+    flashCard.addEventListener("animationend", ()=>{
+      flashCard.classList.remove(inClass);
+      FLASH.anim = false;
+      scheduleFlashAuto();
+    }, { once:true });
+
+  }, { once:true });
+}
+
+function flashNext(withAnim=true){ flashGo(1, withAnim); }
+function flashPrev(withAnim=true){ flashGo(-1, withAnim); }
+
+
+async function openFlashCards(grade, lesson, stage){
+  if (!flashBack) return;
+
+  flashTop.textContent = "読み込み中…";
+  flashBottom.textContent = "";
+  flashPager.textContent = "--/--";
+  flashBack.style.display = "flex";
+requestAnimationFrame(fitFlashModalWidth);
+
+  let list = [];
+  try{
+    const obj = await dbGet(P.wordsStage(grade, lesson, stage));
+    if (obj && typeof obj === "object"){
+      const entries = Object.entries(obj);
+      entries.sort((a,b)=> String(a[0]).localeCompare(String(b[0]))); // 安定順
+      for (const [, v] of entries){
+        if (!v || typeof v !== "object") continue;
+        const word = String(v.word ?? "").trim();
+        const meaning = String(v.meaning ?? "").trim();
+        if (!word || !meaning) continue;
+        list.push({ word, meaning });
+      }
+    }
+  }catch(e){
+    list = [];
+  }
+
+  if (!list.length){
+    FLASH.list = [{ word:"（データなし）", meaning:"単語がありません" }];
+  } else {
+    FLASH.list = list;
+  }
+
+  FLASH.i = 0;
+  FLASH.anim = false;
+  renderFlashCard();
+  scheduleFlashAuto();
+}
+
+/* 外側クリックで閉じる */
+flashBack.addEventListener("pointerdown", (e)=>{
+  if (e.target === flashBack) closeFlash();
+}, { passive:true });
+flashBack.querySelector(".flashModal")?.addEventListener("pointerdown", (e)=> e.stopPropagation(), { passive:true });
+
+/* 左スワイプで次（カード上） */
+/* 左右スワイプ（左=次 / 右=戻る） */
+flashCard.addEventListener("pointerdown", (e)=>{
+  if (FLASH.anim) return;
+
+  FLASH.dragging = true;
+  FLASH.startX = e.clientX;
+  FLASH.lastDX = 0;
+  FLASH.pendingDX = 0;
+  FLASH.suppressClick = false;
+
+  clearFlashTimer();
+
+  // ✅ここ重要：ドラッグ開始時は transition/アニメを完全停止
+  flashCancelRAF();
+  flashCard.classList.remove("flashInRight","flashOutLeft","flashOutRight","flashInLeft");
+  flashCard.style.transition = "none";
+  flashCard.style.transform = "translate3d(0,0,0)";
+
+  try{ flashCard.setPointerCapture(e.pointerId); }catch(_){}
+
+  // ✅ブラウザの余計な処理を止める（カクつき減）
+  e.preventDefault();
+}, { passive:false });
+
+flashCard.addEventListener("pointermove", (e)=>{
+  if (!FLASH.dragging) return;
+
+  const dx = e.clientX - FLASH.startX;
+  FLASH.lastDX = dx;
+
+  if (Math.abs(dx) > 8) FLASH.suppressClick = true;
+
+  // ✅rAFで1フレーム1回だけ反映（move連打による詰まり防止）
+  FLASH.pendingDX = dx;
+  if (!FLASH.raf){
+    FLASH.raf = requestAnimationFrame(flashApplyDrag);
+  }
+
+  e.preventDefault();
+}, { passive:false });
+
+flashCard.addEventListener("pointerup", (e)=>{
+  if (!FLASH.dragging) return;
+  FLASH.dragging = false;
+
+  flashCancelRAF();
+
+  const dx = FLASH.lastDX;
+  const limited = Math.max(-160, Math.min(160, dx));
+
+  // ✅ここで最終位置を確定（rAF未反映の最後のdxを反映）
+  flashCard.style.transition = ""; // いったん解除
+  flashCard.style.transform = `translate3d(${limited}px,0,0)`;
+
+  // しきい値
+  if (dx < -45){
+    // ✅成立：0に戻さず、その位置から out アニメ開始
+    flashGo(1, true, limited);
+  } else if (dx > 45){
+    flashGo(-1, true, limited);
+  } else {
+    // ✅不成立だけ、スムーズに元へ戻す
+    flashCard.style.transition = "transform .14s ease";
+    flashCard.style.transform = "translate3d(0,0,0)";
+    setTimeout(()=>{ flashCard.style.transition = ""; }, 160);
+    scheduleFlashAuto();
+  }
+
+  try{ flashCard.releasePointerCapture(e.pointerId); }catch(_){}
+  e.preventDefault();
+}, { passive:false });
+
+flashCard.addEventListener("pointercancel", (e)=>{
+  if (!FLASH.dragging) return;
+  FLASH.dragging = false;
+
+  flashCancelRAF();
+
+  flashCard.style.transition = "transform .14s ease";
+  flashCard.style.transform = "translate3d(0,0,0)";
+  setTimeout(()=>{ flashCard.style.transition = ""; }, 160);
+
+  scheduleFlashAuto();
+
+  try{ flashCard.releasePointerCapture(e.pointerId); }catch(_){}
+  e.preventDefault();
+}, { passive:false });
+
+/* ✅ クリックでもめくる（左側タップ=戻る / 右側タップ=次） */
+flashCard.addEventListener("click", (e)=>{
+  if (FLASH.anim) return;
+  if (FLASH.dragging) return;
+
+  // スワイプ後のclick誤発火を無視
+  if (FLASH.suppressClick){
+    FLASH.suppressClick = false;
+    return;
+  }
+
+  clearFlashTimer();
+
+  const rect = flashCard.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  if (x < rect.width * 0.45){
+    flashPrev(true);
+  } else {
+    flashNext(true);
+  }
+});
+
+/* ✅ lowRateの「おぼえる👀」：その lesson/stage の全単語フラッシュカードを開く */
+btnLowRateMem.onclick = async ()=>{
+  const p = _lowRatePending;
+  closeLowRatePop();
+  if (!p) return;
+  await openFlashCards(SELECTED_GRADE, p.lesson, p.stage);
+};
+
+
+/* =========================
+   ✅ 変更点（review黒玉の挙動）
 ========================= */
 let QUIZ_REVIEW_BALLS_FROZEN = false;     // クイズ中フリーズ
 let QUIZ_REVIEW_BALLS_START_COUNT = 0;    // 開始時の玉数
@@ -1133,6 +1783,139 @@ function freezeReviewBallsStart(){
   // まずは“静止表示”（落とさない）
   renderQuizReviewBalls(CURRENT.lesson, false, QUIZ_REVIEW_BALLS_START_COUNT);
 }
+
+function fitLowRateModalWidth(){
+  if (!lowRateBack) return;
+  if (lowRateBack.style.display === "none") return;
+
+  const modal = lowRateBack.querySelector(".modal");
+  if (!modal) return;
+
+  // いったん自然幅に戻す（測定のため）
+  modal.style.width = "auto";
+
+  const maxW = Math.min(window.innerWidth * 0.92, 520);
+  const minW = 260;
+
+  let maxContentW = 0;
+
+  const targets = [
+    modal.querySelector(".lrExampleLabel"),
+    ...modal.querySelectorAll("#lowRateList li"),
+    ...modal.querySelectorAll(".lrBtns button"),
+  ].filter(Boolean);
+
+  for (const el of targets){
+    // scrollWidth = 折り返し前提じゃない「実コンテンツ幅」を取りやすい
+    maxContentW = Math.max(maxContentW, el.scrollWidth || 0);
+  }
+
+  const cs = getComputedStyle(modal);
+  const pad =
+    (parseFloat(cs.paddingLeft) || 0) +
+    (parseFloat(cs.paddingRight) || 0);
+  const border =
+    (parseFloat(cs.borderLeftWidth) || 0) +
+    (parseFloat(cs.borderRightWidth) || 0);
+
+  let w = maxContentW + pad + border + 2; // ちょい余白
+  w = Math.max(w, minW);
+  w = Math.min(w, maxW);
+
+  modal.style.width = `${Math.round(w)}px`;
+}
+
+// ✅ 画面回転/リサイズでも追従
+window.addEventListener("resize", ()=>{
+  if (lowRateBack && lowRateBack.style.display === "flex"){
+    requestAnimationFrame(fitLowRateModalWidth);
+  }
+  if (sessionBack && sessionBack.style.display === "flex"){
+    requestAnimationFrame(fitSessionModalWidth);
+  }
+  if (flashBack && flashBack.style.display === "flex"){
+    requestAnimationFrame(fitFlashModalWidth);
+  }
+});
+function fitSessionModalWidth(){
+  if (!sessionBack) return;
+  if (sessionBack.style.display === "none") return;
+
+  const modal = sessionBack.querySelector(".modal");
+  if (!modal) return;
+
+  // いったん自然幅に戻す（測定のため）
+  modal.style.width = "auto";
+
+  const maxW = Math.min(window.innerWidth * 0.92, 520);
+  const minW = 260;
+
+  let maxContentW = 0;
+
+  const targets = [
+    modal.querySelector(".line1"),
+    modal.querySelector(".line2"),
+    modal.querySelector(".line3"),
+    ...modal.querySelectorAll("#wrongList li .w"),
+    ...modal.querySelectorAll("#wrongList li .m"),
+    modal.querySelector("#btnSessionClose"),
+  ].filter(Boolean);
+
+  for (const el of targets){
+    maxContentW = Math.max(maxContentW, el.scrollWidth || 0);
+  }
+
+  const cs = getComputedStyle(modal);
+  const pad =
+    (parseFloat(cs.paddingLeft) || 0) +
+    (parseFloat(cs.paddingRight) || 0);
+  const border =
+    (parseFloat(cs.borderLeftWidth) || 0) +
+    (parseFloat(cs.borderRightWidth) || 0);
+
+  let w = maxContentW + pad + border + 2; // ちょい余白
+  w = Math.max(w, minW);
+  w = Math.min(w, maxW);
+
+  modal.style.width = `${Math.round(w)}px`;
+}
+
+function fitFlashModalWidth(){
+  if (!flashBack) return;
+  if (flashBack.style.display === "none") return;
+
+  const modal = flashBack.querySelector(".flashModal");
+  if (!modal) return;
+
+  // 測定のため一旦auto
+  modal.style.width = "auto";
+
+  const maxW = Math.min(window.innerWidth * 0.92, 520);
+  const minW = 260;
+
+  let maxContentW = 0;
+  const targets = [flashTop, flashBottom, flashPager].filter(Boolean);
+  for (const el of targets){
+    maxContentW = Math.max(maxContentW, el.scrollWidth || 0);
+  }
+
+  // 余白は「カード側」のpadding/borderを加味（lowRate/sessionと同じ考え方）
+  const cs = getComputedStyle(flashCard);
+  const pad =
+    (parseFloat(cs.paddingLeft) || 0) +
+    (parseFloat(cs.paddingRight) || 0);
+  const border =
+    (parseFloat(cs.borderLeftWidth) || 0) +
+    (parseFloat(cs.borderRightWidth) || 0);
+
+  let w = maxContentW + pad + border + 2;
+  w = Math.max(w, minW);
+  w = Math.min(w, maxW);
+
+  modal.style.width = `${Math.round(w)}px`;
+}
+
+
 
 /* =========================
    ✅ review結果表示待ち（落下完了→2秒）
@@ -1237,6 +2020,7 @@ function showNameScreen(){
   document.body.classList.remove("lesson-bg","quiz-bg");
   closeStagePop();
   closeSessionResult();
+  closeLowRatePop();
 
   stopQuizWaveLoop();
 
@@ -1268,6 +2052,7 @@ async function showLessonList(){
   await refreshLessons();
   closeStagePop();
   closeSessionResult();
+  closeLowRatePop();
 
   stopQuizWaveLoop();
 
@@ -1298,6 +2083,7 @@ function showQuiz(){
 
   closeStagePop();
   closeSessionResult();
+  closeLowRatePop();
 
   /* ✅ 波は“背景”：クイズ処理を止めない（低FPSで回すだけ） */
   startQuizWaveLoop();
@@ -1318,6 +2104,7 @@ backFab.onclick = async ()=>{
   stopQuestionTimer();
   resetPrefetch();
   closeSessionResult();
+  closeLowRatePop();
 
   // ✅ review結果待ちキャンセル
   clearReviewResultWait();
@@ -1453,9 +2240,9 @@ async function refreshLessons(){
   syncDropletColorToGauge();
 
   // ✅ reviewクイズ中は黒玉を「更新しない」
- if (isQuizVisible() && CURRENT.stage === "review"){
-   if (!QUIZ_REVIEW_BALLS_FROZEN && !QUIZ_REVIEW_FINALIZING){   
-   const key = `${CURRENT.name}|${SELECTED_GRADE}|${normLesson(CURRENT.lesson)}`;
+  if (isQuizVisible() && CURRENT.stage === "review"){
+    if (!QUIZ_REVIEW_BALLS_FROZEN && !QUIZ_REVIEW_FINALIZING){
+      const key = `${CURRENT.name}|${SELECTED_GRADE}|${normLesson(CURRENT.lesson)}`;
       const prev = _quizReviewBallPrev.get(key) ?? getReviewBallCountForLesson(CURRENT.lesson);
       renderQuizReviewBalls(CURRENT.lesson, false, prev);
     }
@@ -1526,6 +2313,8 @@ function openSessionResult(){
   });
 
   sessionBack.style.display = "flex";
+requestAnimationFrame(fitSessionModalWidth);
+
 }
 function closeSessionResult(){
   sessionBack.style.display = "none";
@@ -1591,12 +2380,15 @@ function openStagePop(lesson, meta, anchorX, anchorY){
   if (_stageTimer){ clearTimeout(_stageTimer); }
   _stageTimer = setTimeout(closeStagePop, 5000);
 }
-function startStage(stage){
-  if (!_pendingLesson) return;
-  if (stage === "pre2" && btnStagePre2.disabled) return;
-  if (stage === "review" && btnStageReview.disabled) return;
 
-  CURRENT.lesson = normLesson(_pendingLesson);
+/* ✅ 開始処理の“本体”（閾値チェックなし） */
+function startStageCore(stage, metaOverride=null, lessonOverride=null){
+  const meta = metaOverride ?? _pendingLessonMeta;
+  const lesson = normLesson(lessonOverride ?? _pendingLesson);
+
+  if (!lesson) return;
+
+  CURRENT.lesson = lesson;
   CURRENT.stage = stage;
 
   if (lessonInfo) lessonInfo.textContent = `${SELECTED_GRADE}年 / ${CURRENT.lesson}`;
@@ -1608,7 +2400,7 @@ function startStage(stage){
   if (quizResult) quizResult.textContent = "";
   CURRENT.currentQ = null;
 
-  startSession(CURRENT.lesson, CURRENT.stage, _pendingLessonMeta);
+  startSession(CURRENT.lesson, CURRENT.stage, meta || null);
 
   // ✅ reviewなら「開始時点で玉数固定（フリーズ開始）」
   if (stage === "review"){
@@ -1627,6 +2419,29 @@ function startStage(stage){
   loadQuestion();
   closeStagePop();
 }
+
+/* ✅ 閾値チェック付きの入口（pre1/pre2のみ） */
+async function startStage(stage){
+  if (!_pendingLesson) return;
+  if (stage === "pre2" && btnStagePre2.disabled) return;
+  if (stage === "review" && btnStageReview.disabled) return;
+
+  // ✅ pre1/pre2 だけ 40%未満なら lowRateポップ
+  if (stage === "pre1" || stage === "pre2"){
+    const r = getStageRate01FromMeta(_pendingLessonMeta, stage);
+    if (r != null && r < LOW_RATE_THRESHOLD){
+      const lesson = normLesson(_pendingLesson);
+      const meta = _pendingLessonMeta || null;
+      closeStagePop();
+      await openLowRatePop(lesson, stage, meta);
+      return;
+    }
+  }
+
+  // 普通に開始
+  startStageCore(stage, _pendingLessonMeta, _pendingLesson);
+}
+
 btnStagePre1.onclick = ()=> startStage("pre1");
 btnStagePre2.onclick = ()=> startStage("pre2");
 btnStageReview.onclick = ()=> startStage("review");
@@ -2811,8 +3626,6 @@ function drawLessonTrapezoids(animateLevels=true){
         }
         lessonSvg.appendChild(tri);
       }
-
-
     }
   }
 
