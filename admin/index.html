@@ -4,74 +4,71 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Yuko Wordlog（教師管理）</title>
+
   <style>
     :root{
-      --bg:#0f1220;
-      --card:#151a2e;
-      --card2:#101427;
-      --text:#f2f3f8;
-      --muted:rgba(242,243,248,.70);
-      --line:rgba(255,255,255,.10);
-      --accent:#7deB24;
-      --danger:#ff5a7a;
-      --warn:#ffcc66;
-      --btn:#ffffff;
-      --btnText:#101427;
-      --chip:#222a4a;
-      --chipText:#e9ecff;
-      --shadow: 0 18px 50px rgba(0,0,0,.45);
-      --r:18px;
+      /* ✅ 白ベース（見やすく） */
+      --bg:#f6f7fb;
+      --card:#ffffff;
+      --card2:#ffffff;
+      --text:#111827;
+      --muted:rgba(17,24,39,.62);
+      --line:rgba(17,24,39,.14);
+      --accent:#22c55e;
+      --danger:#ef4444;
+      --warn:#f59e0b;
+
+      --btn:#111827;
+      --btnText:#ffffff;
+      --shadow: 0 18px 50px rgba(0,0,0,.08);
+      --r:16px;
     }
+
     *{box-sizing:border-box}
     body{
       margin:0;
       font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-      background:
-        radial-gradient(900px 500px at 20% 15%, rgba(125,235,36,.12), transparent 60%),
-        radial-gradient(700px 450px at 80% 30%, rgba(140,120,255,.12), transparent 60%),
-        linear-gradient(180deg, #0b0e1a, #0f1220);
+      background: var(--bg);
       color:var(--text);
     }
     a{color:inherit}
     header{
       position:sticky; top:0; z-index:50;
       backdrop-filter: blur(10px);
-      background: rgba(10,12,22,.55);
+      background: rgba(246,247,251,.86);
       border-bottom:1px solid var(--line);
     }
     .wrap{max-width:1200px;margin:0 auto;padding:14px 16px}
     .row{display:flex; gap:12px; align-items:center; flex-wrap:wrap}
     .space{flex:1}
     h1{font-size:16px;margin:0;font-weight:950;letter-spacing:.2px}
+
     .pill{
       display:inline-flex; align-items:center; gap:8px;
       padding:8px 12px; border:1px solid var(--line);
-      border-radius:999px; background: rgba(255,255,255,.04);
+      border-radius:999px; background: rgba(255,255,255,.8);
       color:var(--muted); font-weight:850; font-size:12px;
     }
     .pill b{color:var(--text)}
-    .tabs{
-      display:flex; gap:8px; flex-wrap:wrap;
-    }
+
+    .tabs{display:flex; gap:8px; flex-wrap:wrap;}
     .tab{
       padding:10px 12px; border-radius:999px;
       border:1px solid var(--line);
-      background: rgba(255,255,255,.03);
-      color:var(--muted);
+      background: rgba(255,255,255,.9);
+      color: var(--muted);
       cursor:pointer; font-weight:950;
     }
     .tab.active{
-      background: rgba(255,255,255,.92);
-      color:#101427;
-      border-color: rgba(255,255,255,.92);
+      background: #111827;
+      color:#fff;
+      border-color: #111827;
     }
 
     main{max-width:1200px;margin:0 auto;padding:16px}
-    .grid2{display:grid; grid-template-columns: 1.1fr .9fr; gap:14px}
-    @media (max-width: 980px){ .grid2{grid-template-columns:1fr; } }
 
     .card{
-      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      background: var(--card);
       border:1px solid var(--line);
       border-radius: var(--r);
       box-shadow: var(--shadow);
@@ -81,36 +78,39 @@
       padding:14px 14px;
       display:flex; align-items:center; gap:10px; flex-wrap:wrap;
       border-bottom:1px solid var(--line);
-      background: rgba(255,255,255,.03);
+      background: rgba(17,24,39,.02);
     }
     .cardHead h2{margin:0;font-size:14px;font-weight:950}
     .cardBody{padding:14px}
+
     .muted{color:var(--muted);font-size:12px;font-weight:800}
+
     .btn{
       border:0; cursor:pointer;
-      background: rgba(255,255,255,.92);
-      color: #101427;
+      background: var(--btn);
+      color: var(--btnText);
       font-weight:950;
       padding:10px 12px;
       border-radius: 12px;
     }
     .btn.secondary{
-      background: rgba(255,255,255,.08);
+      background: #fff;
       color: var(--text);
       border: 1px solid var(--line);
     }
     .btn.danger{
-      background: rgba(255,90,122,.15);
-      color: #ffd6de;
-      border: 1px solid rgba(255,90,122,.35);
+      background: rgba(239,68,68,.10);
+      color: #b91c1c;
+      border: 1px solid rgba(239,68,68,.30);
     }
     .btn:active{transform:scale(.99)}
+
     input,select,textarea{
       width:100%;
       padding:10px 12px;
       border-radius: 12px;
       border:1px solid var(--line);
-      background: rgba(255,255,255,.06);
+      background: #fff;
       color: var(--text);
       outline:none;
       font-weight:850;
@@ -119,54 +119,71 @@
     label{display:block; font-size:12px; font-weight:950; color:var(--muted); margin:0 0 6px}
     .formRow{display:grid; grid-template-columns: 1fr 1fr; gap:10px}
     @media (max-width: 700px){ .formRow{grid-template-columns:1fr;} }
+
     .hr{height:1px;background:var(--line);margin:12px 0}
-    .chip{
-      display:inline-flex; gap:8px; align-items:center;
-      padding:7px 10px;
+
+    /* ✅ 学年ボタン */
+    .gradeBtns{display:flex; gap:8px; flex-wrap:wrap}
+    .gbtn{
+      padding:10px 12px;
       border-radius:999px;
       border:1px solid var(--line);
-      background: rgba(255,255,255,.04);
-      color: var(--chipText);
+      background:#fff;
+      color:var(--text);
       font-weight:950;
-      font-size:12px;
+      cursor:pointer;
+      min-width:72px;
+      text-align:center;
     }
-    .chip .dot{
-      width:8px;height:8px;border-radius:999px;background:var(--accent);
-      box-shadow:0 0 0 3px rgba(125,235,36,.15);
+    .gbtn.active{
+      background:#111827;
+      color:#fff;
+      border-color:#111827;
     }
-    .chip.warn .dot{background:var(--warn); box-shadow:0 0 0 3px rgba(255,204,102,.15)}
-    .chip.bad .dot{background:var(--danger); box-shadow:0 0 0 3px rgba(255,90,122,.15)}
-    .kpi{
-      display:grid; grid-template-columns: repeat(4, 1fr);
-      gap:10px;
-    }
-    @media (max-width: 900px){ .kpi{grid-template-columns:repeat(2,1fr)} }
-    .k{
-      padding:12px; border-radius: 16px;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.04);
-    }
-    .k .v{font-size:18px;font-weight:980}
-    .k .t{font-size:12px;color:var(--muted);font-weight:900;margin-top:4px}
 
-    table{width:100%; border-collapse: collapse}
-    th,td{padding:10px 10px; border-bottom:1px solid rgba(255,255,255,.08); vertical-align: top}
-    th{font-size:12px;color:var(--muted);font-weight:950;text-align:left}
-    td{font-size:13px;font-weight:800}
+    /* ✅ 表は「枠」つける */
+    table{
+      width:100%;
+      border-collapse:collapse;
+      border:1px solid var(--line);
+      background:#fff;
+    }
+    th,td{
+      padding:10px 10px;
+      border:1px solid var(--line);
+      vertical-align:middle;
+    }
+    th{
+      font-size:12px;
+      color:var(--muted);
+      font-weight:950;
+      text-align:center;
+      background: rgba(17,24,39,.03);
+      white-space:nowrap;
+    }
+    td{
+      font-size:13px;
+      font-weight:850;
+      text-align:center;
+      white-space:nowrap;
+    }
+    td.left, th.left{text-align:left}
     .trBtn{cursor:pointer}
-    .trBtn:hover{background: rgba(255,255,255,.04)}
+    .trBtn:hover{background: rgba(17,24,39,.02)}
     .right{text-align:right}
     .small{font-size:12px;color:var(--muted);font-weight:850}
     .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px}
+
     .pct{font-weight:980}
-    .pct.good{color: #baf78a}
-    .pct.mid{color: #ffd48a}
-    .pct.bad{color: #ff9ab0}
+    .pct.good{color: #16a34a}
+    .pct.mid{color: #d97706}
+    .pct.bad{color: #dc2626}
+
     .tag{
       display:inline-flex; align-items:center; gap:6px;
       padding:6px 10px; border-radius:999px;
       border:1px solid var(--line);
-      background: rgba(255,255,255,.03);
+      background: #fff;
       font-size:12px; font-weight:950; color:var(--muted);
       white-space:nowrap;
     }
@@ -174,7 +191,7 @@
     /* modal */
     .back{
       position:fixed; inset:0; display:none; align-items:center; justify-content:center;
-      background: rgba(0,0,0,.55); z-index:100;
+      background: rgba(0,0,0,.45); z-index:100;
       padding:16px;
     }
     .modal{
@@ -183,43 +200,44 @@
       overflow:auto;
       border-radius: 18px;
       border:1px solid var(--line);
-      background: rgba(15,18,32,.92);
-      box-shadow: 0 24px 80px rgba(0,0,0,.55);
+      background: #fff;
+      box-shadow: 0 24px 80px rgba(0,0,0,.22);
     }
     .modalHead{
       position:sticky; top:0; z-index:2;
       display:flex; gap:10px; align-items:center; flex-wrap:wrap;
       padding:14px;
       border-bottom:1px solid var(--line);
-      background: rgba(10,12,22,.78);
+      background: rgba(246,247,251,.92);
       backdrop-filter: blur(10px);
     }
     .modalHead h3{margin:0;font-size:14px;font-weight:980}
     .modalBody{padding:14px}
+
     .notice{
       padding:10px 12px;
       border-radius: 14px;
-      border:1px solid rgba(255,204,102,.30);
-      background: rgba(255,204,102,.10);
-      color: #ffe7b8;
+      border:1px solid rgba(245,158,11,.30);
+      background: rgba(245,158,11,.10);
+      color: #92400e;
       font-weight:900;
       font-size:12px;
     }
     .okline{
       padding:10px 12px;
       border-radius: 14px;
-      border:1px solid rgba(125,235,36,.26);
-      background: rgba(125,235,36,.10);
-      color: #dfffc8;
+      border:1px solid rgba(34,197,94,.26);
+      background: rgba(34,197,94,.10);
+      color: #14532d;
       font-weight:900;
       font-size:12px;
     }
     .badline{
       padding:10px 12px;
       border-radius: 14px;
-      border:1px solid rgba(255,90,122,.26);
-      background: rgba(255,90,122,.10);
-      color: #ffd6de;
+      border:1px solid rgba(239,68,68,.26);
+      background: rgba(239,68,68,.10);
+      color: #7f1d1d;
       font-weight:900;
       font-size:12px;
     }
@@ -230,14 +248,14 @@
       width:min(520px, 100%);
       border-radius: 18px;
       border:1px solid var(--line);
-      background: rgba(15,18,32,.92);
-      box-shadow: 0 24px 80px rgba(0,0,0,.55);
+      background: #fff;
+      box-shadow: 0 24px 80px rgba(0,0,0,.22);
       overflow:hidden;
     }
     .loginHead{
       padding:16px;
       border-bottom:1px solid var(--line);
-      background: rgba(255,255,255,.03);
+      background: rgba(17,24,39,.02);
     }
     .loginHead .t1{font-weight:980}
     .loginBody{padding:16px}
@@ -253,10 +271,12 @@
       <span class="pill">DB: <b id="dbHost">-</b></span>
       <span class="pill">ログイン: <b id="who">未</b></span>
       <div class="space"></div>
+
       <div class="tabs" id="tabs" style="display:none">
         <button class="tab active" data-tab="students" type="button">学生管理</button>
         <button class="tab" data-tab="words" type="button">単語管理</button>
       </div>
+
       <button class="btn secondary" id="btnReload" type="button" style="display:none">再読込</button>
       <button class="btn danger" id="btnLogout" type="button" style="display:none">ログアウト</button>
     </div>
@@ -266,175 +286,122 @@
 <main id="app" style="display:none">
   <!-- Students Tab -->
   <section id="tab_students">
-    <div class="grid2">
-      <div class="card">
-        <div class="cardHead">
-          <h2>学生一覧</h2>
-          <span class="muted">クリックで詳細（課/単語ごとの成績）</span>
-          <div class="space"></div>
-          <div style="min-width:160px">
-            <select id="stuGradeSel">
-              <option value="1">1年</option>
-              <option value="2">2年</option>
-              <option value="3">3年</option>
-              <option value="4">4年</option>
-            </select>
-          </div>
-          <div style="min-width:220px">
-            <input id="stuSearch" placeholder="名前で検索（部分一致）" />
-          </div>
-          <button class="btn secondary" id="btnRefreshStudents" type="button">更新</button>
-        </div>
-        <div class="cardBody">
-          <div class="kpi" id="stuKpi">
-            <div class="k"><div class="v" id="kStuCount">-</div><div class="t">学生数</div></div>
-            <div class="k"><div class="v" id="kActive24">-</div><div class="t">24時間以内アクセス</div></div>
-            <div class="k"><div class="v" id="kLessons">-</div><div class="t">課数（選択学年）</div></div>
-            <div class="k"><div class="v" id="kWords">-</div><div class="t">単語数（選択学年）</div></div>
-          </div>
-          <div class="hr"></div>
-          <div id="stuMsg" class="muted">読み込み待ち…</div>
-          <div style="overflow:auto;margin-top:10px">
-            <table>
-              <thead>
-                <tr>
-                  <th style="min-width:190px">学生</th>
-                  <th style="min-width:140px">最終アクセス</th>
-                  <th style="min-width:160px">進捗サマリ（選択学年）</th>
-                  <th class="right" style="min-width:120px">操作</th>
-                </tr>
-              </thead>
-              <tbody id="stuTbody"></tbody>
-            </table>
-          </div>
-          <div class="small" style="margin-top:10px">
-            ※ 進捗サマリは「pre1+pre2 の mastered / 総数」を学年内で合算して表示します。詳細は学生をクリック。
-          </div>
-        </div>
+    <div class="card">
+      <div class="cardHead">
+        <h2>学生管理</h2>
+        <div class="space"></div>
+
+        <button class="btn secondary" id="btnMode" type="button">review表示</button>
+        <button class="btn secondary" id="btnRefreshStudents" type="button">更新</button>
       </div>
 
-      <div class="card">
-        <div class="cardHead">
-          <h2>メモ</h2>
+      <div class="cardBody">
+        <div class="row" style="margin-bottom:10px">
+          <div class="gradeBtns" id="gradeBtns"></div>
           <div class="space"></div>
-          <span class="chip warn"><span class="dot"></span>重要</span>
+          <div class="muted" id="stuMsg">読み込み待ち…</div>
         </div>
-        <div class="cardBody">
-          <div class="notice">
-            この管理ページは「Firebase Auth（メール/パスワード）」でログイン必須です。<br>
-            さらに <b>ログイン状態は保存しません</b>（リロードで毎回ログイン）。<br>
-            DBルールを「教師のみ書き込み可」にしたい場合は、下の手順（このページ下部の説明）に従って設定してください。
-          </div>
-          <div class="hr"></div>
-          <div class="muted">
-            学年（1〜4）は学生ページ側で選ぶ仕様のため、教師側でも「学年フィルタ」で切り替えて集計します。<br>
-            （もし学生の「現在学年」をDBに保存したいなら、学生ページの enterStudent() に grade を書き足すだけでOK。）
-          </div>
+
+        <div style="overflow:auto">
+          <table>
+            <thead id="stuThead"></thead>
+            <tbody id="stuTbody"></tbody>
+          </table>
+        </div>
+
+        <div class="small" style="margin-top:10px">
+          ※ pre表示：各課の <span class="mono">pre1 / pre2</span> を表示（右端に合計の <span class="mono">pre1+pre2</span>）。<br>
+          ※ review表示：各課の <span class="mono">review</span> を表示（右端に合計 review）。<br>
+          ※ 行クリックで「学生詳細」（課ごとの内訳・単語詳細）を開きます。<br>
+          ※ pre1+pre2 合計が <span class="mono">1%未満</span> の学生は一覧に表示しません。
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Words Tab -->
-  <section id="tab_words" style="display:none">
-    <div class="grid2">
-      <div class="card">
-        <div class="cardHead">
-          <h2>単語リスト</h2>
-          <div class="space"></div>
-          <div style="min-width:140px">
-            <select id="wGradeSel">
-              <option value="1">1年</option>
-              <option value="2">2年</option>
-              <option value="3">3年</option>
-              <option value="4">4年</option>
-            </select>
-          </div>
-          <div style="min-width:220px">
-            <input id="wLessonSel" placeholder="課（例: 1, 2, L1 など）" />
-          </div>
-          <div style="min-width:140px">
-            <select id="wStageSel">
-              <option value="pre1">pre1（単語1）</option>
-              <option value="pre2">pre2（単語2）</option>
-              <option value="review">review（復習）</option>
-            </select>
-          </div>
-          <button class="btn secondary" id="btnLoadWords" type="button">読み込み</button>
+  <!-- Words Tab（消さない） -->
+  <section id="tab_words" style="display:none; margin-top:14px;">
+    <div class="row" style="margin-bottom:12px">
+      <span class="muted">単語管理ページはそのまま残しています。</span>
+    </div>
+
+    <div class="card" style="margin-bottom:14px">
+      <div class="cardHead">
+        <h2>単語リスト</h2>
+        <div class="space"></div>
+        <div style="min-width:140px">
+          <select id="wGradeSel">
+            <option value="1">1年</option>
+            <option value="2">2年</option>
+            <option value="3">3年</option>
+            <option value="4">4年</option>
+          </select>
         </div>
-        <div class="cardBody">
-          <div id="wordsMsg" class="muted">学年・課・stage を指定して「読み込み」</div>
-          <div style="overflow:auto;margin-top:10px">
-            <table>
-              <thead>
-                <tr>
-                  <th style="min-width:160px">単語（表示）</th>
-                  <th style="min-width:240px">正解（meaning）</th>
-                  <th style="min-width:340px">誤選択肢（wrongs）</th>
-                  <th class="right" style="min-width:150px">操作</th>
-                </tr>
-              </thead>
-              <tbody id="wordsTbody"></tbody>
-            </table>
-          </div>
+        <div style="min-width:220px">
+          <input id="wLessonSel" placeholder="課（例: 1, 2, L1 など）" />
+        </div>
+        <div style="min-width:140px">
+          <select id="wStageSel">
+            <option value="pre1">pre1（単語1）</option>
+            <option value="pre2">pre2（単語2）</option>
+            <option value="review">review（復習）</option>
+          </select>
+        </div>
+        <button class="btn secondary" id="btnLoadWords" type="button">読み込み</button>
+      </div>
+      <div class="cardBody">
+        <div id="wordsMsg" class="muted">学年・課・stage を指定して「読み込み」</div>
+        <div style="overflow:auto;margin-top:10px">
+          <table>
+            <thead>
+              <tr>
+                <th style="min-width:160px" class="left">単語</th>
+                <th style="min-width:240px" class="left">正解</th>
+                <th style="min-width:320px" class="left">誤選択肢</th>
+                <th style="min-width:320px" class="left">例文</th>
+                <th style="min-width:150px">操作</th>
+              </tr>
+            </thead>
+            <tbody id="wordsTbody"></tbody>
+          </table>
+        </div>
+        <div class="small" style="margin-top:10px">
+          ※ 例文を登録したいとき：一括追加では「誤答のどれかに <span class="mono">誤答：例文</span> 」を混ぜてもOK（全角<span class="mono">：</span>も可）。<br>
+          例）<span class="mono">みかん, ぶどう：我喜欢吃苹果。</span> → DBに <span class="mono">example</span> として保存
         </div>
       </div>
+    </div>
 
-      <div class="card">
-        <div class="cardHead">
-          <h2>単語を追加</h2>
-          <div class="space"></div>
-          <span class="chip"><span class="dot"></span>簡単追加</span>
-        </div>
-        <div class="cardBody">
+    <div class="card">
+      <div class="cardHead">
+        <h2>単語を追加</h2>
+        <div class="space"></div>
+        <span class="tag">一括追加のみ</span>
+      </div>
+      <div class="cardBody">
 
-          <!-- ✅ 一括追加 -->
-          <div>
-            <label>一括追加（1行=1問 / 「、」区切り）</label>
-            <textarea id="bulkAddText" placeholder="例：
-苹果、りんご、みかん、ぶどう
+        <!-- ✅ 一括追加（下の追加欄は削除） -->
+        <div>
+          <label>一括追加（1行=1問 / 「、」区切り）</label>
+          <textarea id="bulkAddText" placeholder="例：
+苹果、りんご、みかん、ぶどう：我喜欢吃苹果。
 学生、学生、先生、図書館
 跑步、走る、食べる、寝る"></textarea>
-            <div class="small" style="margin-top:6px">
-              形式：<span class="mono">問題、正解、誤答1、誤答2（誤答は2個以上）</span>　※誤答は3個以上もOK
-            </div>
-            <div class="row" style="margin-top:10px">
-              <button class="btn secondary" id="btnBulkPreview" type="button">プレビュー</button>
-              <button class="btn" id="btnBulkAdd" type="button">一括追加</button>
-              <button class="btn secondary" id="btnBulkClear" type="button">クリア</button>
-              <div class="space"></div>
-              <span class="muted">追加先：<span id="addPath" class="mono">-</span></span>
-            </div>
-            <div id="bulkMsg" class="muted" style="margin-top:10px">—</div>
-            <div id="bulkPreview" style="margin-top:10px"></div>
+          <div class="small" style="margin-top:6px">
+            形式：<span class="mono">問題、正解、誤答1、誤答2（誤答は2個以上）</span>　※誤答は3個以上もOK<br>
+            例文：<span class="mono">誤答のどれかに「誤答：例文」</span>（任意）
           </div>
-
-          <div class="hr"></div>
-
-          <!-- ✅ 1件ずつ追加（従来） -->
-          <div class="formRow">
-            <div>
-              <label>単語（word）</label>
-              <input id="addWord" placeholder="例：苹果 / 学生に見せる語" />
-            </div>
-            <div>
-              <label>正解（meaning）</label>
-              <input id="addMeaning" placeholder="例：りんご" />
-            </div>
-          </div>
-          <div style="margin-top:10px">
-            <label>誤選択肢（wrongs）※ 2個以上、改行 or カンマ（, / 、）区切りOK</label>
-            <textarea id="addWrongs" placeholder="例：みかん, ぶどう, もも"></textarea>
-          </div>
-          <div class="hr"></div>
-          <div class="row">
-            <button class="btn" id="btnAddWord" type="button">追加</button>
-            <button class="btn secondary" id="btnClearAdd" type="button">クリア</button>
+          <div class="row" style="margin-top:10px">
+            <button class="btn secondary" id="btnBulkPreview" type="button">プレビュー</button>
+            <button class="btn" id="btnBulkAdd" type="button">一括追加</button>
+            <button class="btn secondary" id="btnBulkClear" type="button">クリア</button>
             <div class="space"></div>
-            <span class="muted">追加先：<span class="mono" id="addPath2">（上の一括追加と同じ）</span></span>
+            <span class="muted">追加先：<span id="addPath" class="mono">-</span></span>
           </div>
-          <div id="addMsg" class="muted" style="margin-top:10px">—</div>
+          <div id="bulkMsg" class="muted" style="margin-top:10px">—</div>
+          <div id="bulkPreview" style="margin-top:10px"></div>
         </div>
+
       </div>
     </div>
   </section>
@@ -492,10 +459,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-  import {
-    getDatabase, ref, get, set, update, remove, push
-  } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
-
+  import { getDatabase, ref, get, set, update, remove, push } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
   import {
     getAuth, setPersistence, inMemoryPersistence,
     signInWithEmailAndPassword, signOut, onAuthStateChanged
@@ -522,7 +486,6 @@
   const MAX_GRADE = 4;
 
   const P = {
-    students: (sk)=> `students/${sk}`,
     studentsRoot: ()=> `students`,
     wordsGrade: (g)=> `words/${g}`,
     wordsStage: (g, lesson, stage)=> `words/${g}/${lesson}/${stage}`,
@@ -534,7 +497,6 @@
     .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
     .replaceAll('"',"&quot;").replaceAll("'","&#39;");
   const clamp = (v,a,b)=> Math.max(a, Math.min(b, v));
-  const nowTs = ()=> Date.now();
 
   function fmtTime(ts){
     if (!ts) return "-";
@@ -548,6 +510,7 @@
       return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
     }catch(e){ return "-"; }
   }
+
   function pctClass(p){
     if (!Number.isFinite(p)) return "bad";
     if (p >= 0.8) return "good";
@@ -564,9 +527,8 @@
     return snap.exists() ? snap.val() : null;
   }
   async function dbSet(path, v){ await set(ref(db, path), v); }
-  async function dbUpdate(path, patch){ await update(ref(db, path), patch); }
   async function dbRemove(path){ await remove(ref(db, path)); }
-  async function dbMultiUpdate(patch){ await update(ref(db), patch); } // ✅ 複数パスを一括更新
+  async function dbMultiUpdate(patch){ await update(ref(db), patch); }
 
   // UI refs
   const dbHost = $("dbHost");
@@ -584,19 +546,15 @@
   const loginMsg   = $("loginMsg");
   const btnLogin   = $("btnLogin");
   const btnLoginTest = $("btnLoginTest");
-
   const appRoot = $("app");
 
   // Students
-  const stuGradeSel = $("stuGradeSel");
-  const stuSearch = $("stuSearch");
+  const gradeBtns = $("gradeBtns");
   const btnRefreshStudents = $("btnRefreshStudents");
+  const btnMode = $("btnMode");
   const stuMsg = $("stuMsg");
+  const stuThead = $("stuThead");
   const stuTbody = $("stuTbody");
-  const kStuCount = $("kStuCount");
-  const kActive24 = $("kActive24");
-  const kLessons  = $("kLessons");
-  const kWords    = $("kWords");
 
   // Detail modal
   const detailBack = $("detailBack");
@@ -615,16 +573,6 @@
   const wordsMsg = $("wordsMsg");
   const wordsTbody = $("wordsTbody");
 
-  // Add single
-  const addWord = $("addWord");
-  const addMeaning = $("addMeaning");
-  const addWrongs = $("addWrongs");
-  const btnAddWord = $("btnAddWord");
-  const btnClearAdd = $("btnClearAdd");
-  const addPath = $("addPath");     // ✅ 一括追加の表示も兼ねる
-  const addPath2 = $("addPath2");   // ✅ 1件追加側の表示
-  const addMsg = $("addMsg");
-
   // Bulk
   const bulkAddText = $("bulkAddText");
   const btnBulkPreview = $("btnBulkPreview");
@@ -632,6 +580,7 @@
   const btnBulkClear = $("btnBulkClear");
   const bulkMsg = $("bulkMsg");
   const bulkPreview = $("bulkPreview");
+  const addPath = $("addPath");
 
   // show db host
   try{
@@ -655,9 +604,7 @@
   });
 
   btnReload.onclick = ()=> location.reload();
-  btnLogout.onclick = async ()=>{
-    try{ await signOut(auth); }catch(e){}
-  };
+  btnLogout.onclick = async ()=>{ try{ await signOut(auth); }catch(e){} };
 
   // login
   function setLoginMsg(s, ok=true){
@@ -667,7 +614,7 @@
   btnLoginTest.onclick = async ()=>{
     try{
       setLoginMsg("DB接続テスト中…");
-      await dbGet("words"); // 読めるか試す
+      await dbGet("words");
       setLoginMsg("OK：DBに接続できました");
     }catch(e){
       setLoginMsg("NG：DBに接続できません（ルール/ネット制限/URL間違い）", false);
@@ -683,7 +630,6 @@
     try{
       setLoginMsg("ログイン中…");
       await signInWithEmailAndPassword(auth, email, pass);
-      // onAuthStateChangedで画面切替
     }catch(e){
       setLoginMsg("ログイン失敗：メール/パスワード、またはAuth未設定", false);
     }
@@ -713,7 +659,34 @@
   });
 
   // ---------- Students ----------
+  let currentGrade = 1;
+  let viewMode = "pre"; // "pre" | "review"
   let _wordsCacheByGrade = new Map(); // grade -> wordsGradeObj
+
+  function initGradeButtons(){
+    gradeBtns.innerHTML = "";
+    for (let g=1; g<=MAX_GRADE; g++){
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "gbtn" + (g===currentGrade ? " active" : "");
+      b.textContent = `${g}年`;
+      b.onclick = async ()=>{
+        currentGrade = g;
+        [...gradeBtns.querySelectorAll(".gbtn")].forEach(x=> x.classList.remove("active"));
+        b.classList.add("active");
+        await refreshStudents();
+      };
+      gradeBtns.appendChild(b);
+    }
+  }
+  initGradeButtons();
+
+  btnMode.onclick = async ()=>{
+    viewMode = (viewMode === "pre") ? "review" : "pre";
+    btnMode.textContent = (viewMode === "pre") ? "review表示" : "pre表示";
+    await refreshStudents();
+  };
+
   function parseLessonKeys(wordsGradeObj){
     if (!wordsGradeObj || typeof wordsGradeObj !== "object") return [];
     return Object.keys(wordsGradeObj).map(x=>String(x).trim()).filter(Boolean).sort((a,b)=>{
@@ -721,18 +694,6 @@
       const bx = parseFloat(b.replace(/[^\d.]/g,"")) || 9999;
       return ax - bx;
     });
-  }
-  function countWordsInGrade(wordsGradeObj){
-    const lessons = parseLessonKeys(wordsGradeObj);
-    let totalWords = 0;
-    for (const lesson of lessons){
-      const obj = wordsGradeObj?.[lesson] || {};
-      for (const st of ["pre1","pre2","review"]){
-        const sObj = obj?.[st] || {};
-        if (sObj && typeof sObj === "object") totalWords += Object.keys(sObj).length;
-      }
-    }
-    return { lessonCount: lessons.length, wordCount: totalWords, lessons };
   }
 
   async function getWordsGradeCached(grade){
@@ -743,53 +704,83 @@
     return wg;
   }
 
-  function sumProgressForGrade(wordsGradeObj, progressGradeObj){
-    // 合算サマリ：pre1+pre2 の mastered / 総数
-    const lessons = parseLessonKeys(wordsGradeObj);
-    let total = 0;
+  function stageStats(wordsGradeObj, progressGradeObj, lesson, stage){
+    const wStage = (wordsGradeObj?.[lesson]?.[stage]) || {};
+    const ids = (wStage && typeof wStage === "object") ? Object.keys(wStage) : [];
+    const total = ids.length;
+
+    const pStage = (progressGradeObj?.[lesson]?.[stage]) || {};
     let mastered = 0;
+    for (const wid of ids){
+      if (pStage?.[wid]?.mastered === true) mastered += 1;
+    }
+    const rate = total>0 ? clamp(mastered/total,0,1) : 0;
+    return { total, mastered, rate };
+  }
 
+  function sumStageAllLessons(wordsGradeObj, progressGradeObj, lessons, stage){
+    let total=0, mastered=0;
     for (const lesson of lessons){
-      const wLesson = wordsGradeObj?.[lesson] || {};
-      for (const st of ["pre1","pre2"]){
-        const stWords = wLesson?.[st] || {};
-        const stIds = (stWords && typeof stWords === "object") ? Object.keys(stWords) : [];
-        total += stIds.length;
+      const s = stageStats(wordsGradeObj, progressGradeObj, lesson, stage);
+      total += s.total;
+      mastered += s.mastered;
+    }
+    const rate = total>0 ? clamp(mastered/total,0,1) : 0;
+    return { total, mastered, rate };
+  }
 
-        const pStage = progressGradeObj?.[lesson]?.[st] || {};
-        for (const wid of stIds){
-          if (pStage?.[wid]?.mastered === true) mastered += 1;
-        }
+  // ✅ 追加：複数stage（例：pre1+pre2）を合算
+  function sumStagesAllLessons(wordsGradeObj, progressGradeObj, lessons, stages){
+    let total=0, mastered=0;
+    for (const lesson of lessons){
+      for (const st of stages){
+        const s = stageStats(wordsGradeObj, progressGradeObj, lesson, st);
+        total += s.total;
+        mastered += s.mastered;
       }
     }
     const rate = total>0 ? clamp(mastered/total,0,1) : 0;
     return { total, mastered, rate };
   }
 
-  function filterByName(list, q){
-    q = String(q||"").trim().toLowerCase();
-    if (!q) return list;
-    return list.filter(x=>{
-      const n = String(x?.name||"").toLowerCase();
-      return n.includes(q);
-    });
+  function buildThead(lessons){
+    if (viewMode === "pre"){
+      const top = `
+        <tr>
+          <th class="left" rowspan="2" style="min-width:180px">名前</th>
+          ${lessons.map(ls=>`<th colspan="2">${esc(ls)}</th>`).join("")}
+          <th rowspan="2">合計<div class="small">pre1+pre2</div></th>
+        </tr>
+      `;
+      const sub = `
+        <tr>
+          ${lessons.map(()=>`<th>pre1</th><th>pre2</th>`).join("")}
+        </tr>
+      `;
+      stuThead.innerHTML = top + sub;
+      return;
+    }
+
+    stuThead.innerHTML = `
+      <tr>
+        <th class="left" style="min-width:180px">名前</th>
+        ${lessons.map(ls=>`<th>${esc(ls)}<div class="small">review</div></th>`).join("")}
+        <th>合計<div class="small">review</div></th>
+      </tr>
+    `;
   }
 
   async function refreshStudents(){
-    const grade = Number(stuGradeSel.value || "1");
-    const q = String(stuSearch.value || "").trim();
+    const grade = Number(currentGrade || 1);
 
     stuMsg.textContent = "読み込み中…";
+    stuThead.innerHTML = "";
     stuTbody.innerHTML = "";
-    kStuCount.textContent = "-";
-    kActive24.textContent = "-";
-    kLessons.textContent = "-";
-    kWords.textContent = "-";
 
     const wg = await getWordsGradeCached(grade);
-    const { lessonCount, wordCount } = countWordsInGrade(wg);
-    kLessons.textContent = String(lessonCount);
-    kWords.textContent = String(wordCount);
+    const lessons = parseLessonKeys(wg);
+
+    buildThead(lessons);
 
     const studentsObj = await dbGet(P.studentsRoot()) || {};
     let list = [];
@@ -806,68 +797,103 @@
       }
     }
     list.sort((a,b)=> (b.lastSeenAt||0) - (a.lastSeenAt||0));
-    list = filterByName(list, q);
 
-    const since24 = nowTs() - 24*60*60*1000;
-    const active24 = list.filter(x => (x.lastSeenAt||0) >= since24).length;
-
-    kStuCount.textContent = String(list.length);
-    kActive24.textContent = String(active24);
-
-    // progress 合算を軽量に出す（学生ごとに progress/{sk}/{grade} を読む）
-    const rows = [];
-    for (const s of list){
-      let sum = { total:0, mastered:0, rate:0 };
-      try{
-        const pg = await dbGet(P.progressGrade(s.studentKey, grade)) || {};
-        sum = sumProgressForGrade(wg, pg);
-      }catch(e){}
-      rows.push({ ...s, sum });
-    }
-
-    if (rows.length === 0){
+    if (list.length === 0){
       stuMsg.textContent = "学生がいません（students にデータなし）";
       return;
     }
-    stuMsg.textContent = `表示：${rows.length} 人（${grade}年）`;
+    if (lessons.length === 0){
+      stuMsg.textContent = `${grade}年：words がありません（単語管理で追加してください）`;
+      stuThead.innerHTML = `<tr><th class="left">名前</th><th>最終アクセス</th></tr>`;
+      for (const s of list){
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="left">${esc(s.name || "(no name)")}</td>
+          <td>${esc(fmtTime(s.lastSeenAt))}</td>
+        `;
+        tr.className = "trBtn";
+        tr.onclick = ()=> openStudentDetail(s.studentKey, s.name, grade, wg);
+        stuTbody.appendChild(tr);
+      }
+      return;
+    }
+
+    const rowsAll = await Promise.all(list.map(async (s)=>{
+      let pg = {};
+      try{ pg = await dbGet(P.progressGrade(s.studentKey, grade)) || {}; }catch(e){}
+      const preSum = sumStagesAllLessons(wg, pg, lessons, ["pre1","pre2"]);
+      return { ...s, pg, preSum };
+    }));
+
+    const rows = rowsAll.filter(r => (r.preSum?.rate ?? 0) >= 0.01);
+
+    rows.sort((a,b)=>{
+      const da = (a.preSum?.rate ?? 0);
+      const dbb = (b.preSum?.rate ?? 0);
+      if (dbb !== da) return dbb - da;
+      return (b.lastSeenAt||0) - (a.lastSeenAt||0);
+    });
+
+    stuMsg.textContent =
+      `表示：${rows.length}/${rowsAll.length} 人（${grade}年） / 表示モード：${viewMode === "pre" ? "pre" : "review"}`;
+
+    if (rows.length === 0){
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td class="left" colspan="${1 + lessons.length*(viewMode==='pre'?2:1) + 1}">
+        <span class="muted">pre1+pre2 合計が 1% 以上の学生がいません</span>
+      </td>`;
+      stuTbody.appendChild(tr);
+      return;
+    }
 
     for (const r of rows){
       const tr = document.createElement("tr");
       tr.className = "trBtn";
-      tr.innerHTML = `
-        <td>
-          <div style="font-weight:980">${esc(r.name || "(no name)")}</div>
-          <div class="mono small">${esc(r.studentKey)}</div>
-        </td>
-        <td>
-          <div>${esc(fmtTime(r.lastSeenAt))}</div>
-          <div class="small">作成: ${esc(fmtTime(r.createdAt))}</div>
-        </td>
-        <td>
-          <span class="pct ${pctClass(r.sum.rate)}">${esc(pctText01(r.sum.rate))}</span>
-          <span class="small">（${r.sum.mastered}/${r.sum.total}）</span>
-        </td>
-        <td class="right">
-          <button class="btn secondary" data-act="detail" type="button">詳細</button>
-        </td>
-      `;
-      tr.addEventListener("click", async (e)=>{
-        const b = e.target.closest("button");
-        if (b && b.dataset.act === "detail"){
-          e.stopPropagation();
-        }
-        await openStudentDetail(r.studentKey, r.name, grade, wg);
-      });
+
+      if (viewMode === "pre"){
+        const perLesson = lessons.map(lesson=>{
+          const p1 = stageStats(wg, r.pg, lesson, "pre1");
+          const p2 = stageStats(wg, r.pg, lesson, "pre2");
+          return `
+            <td><span class="pct ${pctClass(p1.rate)}">${esc(pctText01(p1.rate))}</span></td>
+            <td><span class="pct ${pctClass(p2.rate)}">${esc(pctText01(p2.rate))}</span></td>
+          `;
+        }).join("");
+
+        const totalPre = r.preSum || sumStagesAllLessons(wg, r.pg, lessons, ["pre1","pre2"]);
+
+        tr.innerHTML = `
+          <td class="left">
+            <div style="font-weight:980">${esc(r.name || "(no name)")}</div>
+            <div class="small">最終：${esc(fmtTime(r.lastSeenAt))}</div>
+          </td>
+          ${perLesson}
+          <td><span class="pct ${pctClass(totalPre.rate)}">${esc(pctText01(totalPre.rate))}</span></td>
+        `;
+      }else{
+        const perLesson = lessons.map(lesson=>{
+          const rv = stageStats(wg, r.pg, lesson, "review");
+          return `<td><span class="pct ${pctClass(rv.rate)}">${esc(pctText01(rv.rate))}</span></td>`;
+        }).join("");
+
+        const totalRv = sumStageAllLessons(wg, r.pg, lessons, "review");
+
+        tr.innerHTML = `
+          <td class="left">
+            <div style="font-weight:980">${esc(r.name || "(no name)")}</div>
+            <div class="small">最終：${esc(fmtTime(r.lastSeenAt))}</div>
+          </td>
+          ${perLesson}
+          <td><span class="pct ${pctClass(totalRv.rate)}">${esc(pctText01(totalRv.rate))}</span></td>
+        `;
+      }
+
+      tr.addEventListener("click", ()=> openStudentDetail(r.studentKey, r.name, grade, wg));
       stuTbody.appendChild(tr);
     }
   }
 
   btnRefreshStudents.onclick = refreshStudents;
-  stuGradeSel.onchange = refreshStudents;
-  stuSearch.oninput = ()=>{
-    if (window.__t) clearTimeout(window.__t);
-    window.__t = setTimeout(refreshStudents, 350);
-  };
 
   // ---------- Student Detail Modal ----------
   btnDetailClose.onclick = ()=>{ detailBack.style.display = "none"; };
@@ -887,38 +913,22 @@
     const lessons = parseLessonKeys(wordsGradeObj);
 
     let totalWordsPre = 0, masteredPre = 0;
-
     const parts = [];
 
     for (const lesson of lessons){
-      const wLesson = wordsGradeObj?.[lesson] || {};
-      const pLesson = pg?.[lesson] || {};
-
       const stageRows = [];
       for (const st of ["pre1","pre2","review"]){
-        const wStage = wLesson?.[st] || {};
-        const ids = (wStage && typeof wStage === "object") ? Object.keys(wStage) : [];
-        const total = ids.length;
-
-        let mastered = 0;
-        const pStage = pLesson?.[st] || {};
-        for (const wid of ids){
-          if (pStage?.[wid]?.mastered === true) mastered += 1;
-        }
-
-        const rate = total>0 ? mastered/total : 0;
-
+        const s = stageStats(wordsGradeObj, pg, lesson, st);
         if (st === "pre1" || st === "pre2"){
-          totalWordsPre += total;
-          masteredPre += mastered;
+          totalWordsPre += s.total;
+          masteredPre += s.mastered;
         }
-
-        stageRows.push({ st, total, mastered, rate });
+        stageRows.push({ st, ...s });
       }
 
-      const preRate = (stageRows[0].total + stageRows[1].total) > 0
-        ? (stageRows[0].mastered + stageRows[1].mastered) / (stageRows[0].total + stageRows[1].total)
-        : 0;
+      const preTotal = stageRows[0].total + stageRows[1].total;
+      const preMastered = stageRows[0].mastered + stageRows[1].mastered;
+      const preRate = preTotal>0 ? preMastered/preTotal : 0;
 
       parts.push(`
         <div class="card" style="margin-bottom:12px">
@@ -965,6 +975,7 @@
         const lesson = btn.dataset.openwords;
         const box = $("words_"+lesson);
         if (!box) return;
+
         if (box.dataset.loaded === "1"){
           box.style.display = (box.style.display === "none") ? "" : "none";
           return;
@@ -1005,7 +1016,7 @@
         const cc = Number(p.correctCount||0);
         const wc = Number(p.wrongCount||0);
         const mastered = (p.mastered===true);
-        rows.push({ st, wid, word, meaning, cc, wc, mastered, lastAt: Number(p.lastAt||0) });
+        rows.push({ st, word, meaning, cc, wc, mastered, lastAt: Number(p.lastAt||0) });
       }
     }
     rows.sort((a,b)=> (b.lastAt||0) - (a.lastAt||0));
@@ -1020,10 +1031,10 @@
           <thead>
             <tr>
               <th>stage</th>
-              <th>単語</th>
-              <th>正解</th>
-              <th class="right">正解数</th>
-              <th class="right">誤答数</th>
+              <th class="left">単語</th>
+              <th class="left">正解</th>
+              <th>正解数</th>
+              <th>誤答数</th>
               <th>mastered</th>
               <th>最終</th>
             </tr>
@@ -1032,10 +1043,10 @@
             ${rows.map(r=>`
               <tr>
                 <td><span class="mono">${esc(r.st)}</span></td>
-                <td>${esc(r.word)}</td>
-                <td>${esc(r.meaning)}</td>
-                <td class="right">${r.cc}</td>
-                <td class="right">${r.wc}</td>
+                <td class="left">${esc(r.word)}</td>
+                <td class="left">${esc(r.meaning)}</td>
+                <td>${r.cc}</td>
+                <td>${r.wc}</td>
                 <td>${r.mastered ? '<span class="pct good">true</span>' : '<span class="pct bad">false</span>'}</td>
                 <td class="small">${esc(fmtTime(r.lastAt))}</td>
               </tr>
@@ -1056,19 +1067,18 @@
   }
   function updateAddPath(){
     const p = currentWordsPath();
-    const text = p ? p : "(学年/課/stage を指定)";
-    addPath.textContent = text;
-    addPath2.textContent = text;
+    addPath.textContent = p ? p : "(学年/課/stage を指定)";
   }
   wGradeSel.onchange = updateAddPath;
   wLessonSel.oninput = updateAddPath;
   wStageSel.onchange = updateAddPath;
   updateAddPath();
 
+  function normalizeColons(text){
+    return String(text||"").replaceAll("：", ":");
+  }
   function normalizeDelims(text){
-    return String(text||"")
-      .replaceAll("，", ",")
-      .replaceAll("、", ","); // ✅ 「、」もカンマ扱い
+    return String(text||"").replaceAll("，", ",").replaceAll("、", ",");
   }
 
   function uniqStrings(list){
@@ -1085,32 +1095,93 @@
     return out;
   }
 
-  function parseWrongs(text){
-    const raw = normalizeDelims(text);
-    const parts = raw.split(/\n|,/).map(x=>x.trim()).filter(Boolean);
-    return uniqStrings(parts);
+  // ✅ 誤答トークンから「誤答」と「例文」を抽出（誤答:例文）
+  function splitWrongAndExample(token){
+    const t = normalizeColons(token).trim();
+    const i = t.indexOf(":");
+    if (i === -1){
+      return { wrong: t, example: "" };
+    }
+    const wrong = t.slice(0, i).trim();
+    const example = t.slice(i+1).trim();
+    return { wrong, example };
   }
 
-  // ✅ 1行「問題、正解、A、B...」を解釈
+  // ✅ 誤答欄（input）を「wrongs + example」に分解（互換用：誤答:例文 もOK）
+  function parseWrongsAndExample(text){
+    const raw = normalizeDelims(normalizeColons(text));
+    const parts = raw.split(/\n|,/).map(x=>x.trim()).filter(Boolean);
+
+    let wrongs = [];
+    let exs = [];
+    for (const p of parts){
+      const { wrong, example } = splitWrongAndExample(p);
+      if (wrong) wrongs.push(wrong);
+      if (example) exs.push(example);
+    }
+    wrongs = uniqStrings(wrongs);
+    exs = uniqStrings(exs);
+    const example = exs.join(" / ");
+    return { wrongs, example };
+  }
+
+  // ✅ 既存DBデータ互換：wrongsに「誤答:例文」が混ざっている場合は吸い出す
+  function normalizeDbWrongsAndExample(wrongs, example){
+    const arr = Array.isArray(wrongs) ? wrongs.map(x=>String(x||"").trim()).filter(Boolean) : [];
+    const ex0 = String(example||"").trim();
+
+    let outWrongs = [];
+    let exs = [];
+    for (const t of arr){
+      const { wrong, example: ex } = splitWrongAndExample(t);
+      if (wrong) outWrongs.push(wrong);
+      if (ex) exs.push(ex);
+    }
+    outWrongs = uniqStrings(outWrongs);
+
+    exs = uniqStrings(exs);
+    const exFromWrongs = exs.join(" / ");
+    const exFinal = ex0 || exFromWrongs; // DBのexampleがあれば優先
+    return { wrongs: outWrongs, example: exFinal };
+  }
+
+  // ✅ DB保存用（example はある時だけ付与）
+  function buildWordPayload(word, meaning, wrongs, example){
+    const payload = { word, meaning, wrongs };
+    if (example) payload.example = example;
+    return payload;
+  }
+
   function parseBulkLine(line){
-    const raw = normalizeDelims(line).trim();
+    const raw = normalizeDelims(normalizeColons(line)).trim();
     if (!raw) return { ok:false, reason:"空行", line };
-    // カンマ split（= 「、」も含まれる）
     const parts = raw.split(",").map(x=>x.trim()).filter(Boolean);
     if (parts.length < 4){
       return { ok:false, reason:"項目不足（問題、正解、誤答1、誤答2 が必要）", line };
     }
+
     const word = parts[0];
     const meaning = parts[1];
-    let wrongs = uniqStrings(parts.slice(2));
 
-    // 正解が誤答に混ざってたら消す（ありがち）
-    wrongs = wrongs.filter(w => w.toLowerCase() !== meaning.toLowerCase());
+    let wrongs = [];
+    let exs = [];
+    for (const tok of parts.slice(2)){
+      const { wrong, example } = splitWrongAndExample(tok);
+      if (wrong) wrongs.push(wrong);
+      if (example) exs.push(example);
+    }
+
+    wrongs = uniqStrings(wrongs);
+    // 正解と同じ誤答を除外
+    wrongs = wrongs.filter(w => w.toLowerCase() !== String(meaning||"").toLowerCase());
+
+    exs = uniqStrings(exs);
+    const example = exs.join(" / ");
 
     if (!word || !meaning || wrongs.length < 2){
       return { ok:false, reason:"問題/正解/誤答(2個以上) が必要", line };
     }
-    return { ok:true, word, meaning, wrongs, line };
+    return { ok:true, word, meaning, wrongs, example, line };
   }
 
   function parseBulkText(text){
@@ -1144,18 +1215,20 @@
             <thead>
               <tr>
                 <th style="min-width:60px">行</th>
-                <th style="min-width:180px">問題</th>
-                <th style="min-width:220px">正解</th>
-                <th>誤答</th>
+                <th class="left" style="min-width:180px">単語</th>
+                <th class="left" style="min-width:220px">正解</th>
+                <th class="left" style="min-width:240px">誤選択肢</th>
+                <th class="left" style="min-width:260px">例文</th>
               </tr>
             </thead>
             <tbody>
               ${ok.map(x=>`
                 <tr>
                   <td class="mono">${x.idx}</td>
-                  <td>${esc(x.word)}</td>
-                  <td>${esc(x.meaning)}</td>
-                  <td>${esc(x.wrongs.join(" / "))}</td>
+                  <td class="left">${esc(x.word)}</td>
+                  <td class="left">${esc(x.meaning)}</td>
+                  <td class="left">${esc(x.wrongs.join(" / "))}</td>
+                  <td class="left">${x.example ? esc(x.example) : '<span class="muted">—</span>'}</td>
                 </tr>
               `).join("")}
             </tbody>
@@ -1175,16 +1248,16 @@
             <thead>
               <tr>
                 <th style="min-width:60px">行</th>
-                <th style="min-width:220px">理由</th>
-                <th>内容</th>
+                <th class="left" style="min-width:220px">理由</th>
+                <th class="left">内容</th>
               </tr>
             </thead>
             <tbody>
               ${bad.map(x=>`
                 <tr>
                   <td class="mono">${x.idx}</td>
-                  <td>${esc(x.reason)}</td>
-                  <td class="mono">${esc(x.line)}</td>
+                  <td class="left">${esc(x.reason)}</td>
+                  <td class="mono left">${esc(x.line)}</td>
                 </tr>
               `).join("")}
             </tbody>
@@ -1229,7 +1302,6 @@
       return;
     }
 
-    // 念のためプレビュー表示
     renderBulkPreview(parsed);
 
     const msg = `OK ${ok.length} 件を追加します。NG ${bad.length} 件は無視します。実行しますか？`;
@@ -1238,20 +1310,15 @@
     setBulkMsg("一括追加中…", true);
 
     try{
-      // ✅ 複数pushキーを作って multi-location update（まとめて書く）
       const patch = {};
       for (const row of ok){
         const key = push(ref(db, p)).key;
-        patch[`${p}/${key}`] = { word: row.word, meaning: row.meaning, wrongs: row.wrongs };
+        patch[`${p}/${key}`] = buildWordPayload(row.word, row.meaning, row.wrongs, row.example);
       }
       await dbMultiUpdate(patch);
 
       setBulkMsg(`追加OK：${ok.length} 件（NG ${bad.length} 件）`, true);
-
-      // 入力クリア（必要ならコメントアウトしてOK）
       bulkAddText.value = "";
-
-      // 一覧を自動再読み込み（同じ条件のとき）
       try{ btnLoadWords.click(); }catch(e){}
     }catch(e){
       setBulkMsg("追加失敗（DBルール/ネット制限）", false);
@@ -1286,33 +1353,54 @@
         const w = obj[id] || {};
         const word = String(w.word||"");
         const meaning = String(w.meaning||"");
-        const wrongs = Array.isArray(w.wrongs) ? w.wrongs : [];
+        const wrongs0 = Array.isArray(w.wrongs) ? w.wrongs : [];
+        const example0 = String(w.example||"").trim();
+
+        // ✅ 互換：wrongsに「誤答:例文」が混在していたら吸い出す
+        const norm = normalizeDbWrongsAndExample(wrongs0, example0);
+        const wrongs = norm.wrongs;
+        const example = norm.example;
+
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td><input data-k="word" value="${esc(word)}"></td>
-          <td><input data-k="meaning" value="${esc(meaning)}"></td>
-          <td><input data-k="wrongs" value="${esc(wrongs.join(", "))}"></td>
-          <td class="right">
+          <td class="left"><input data-k="word" value="${esc(word)}"></td>
+          <td class="left"><input data-k="meaning" value="${esc(meaning)}"></td>
+          <td class="left"><input data-k="wrongs" value="${esc(wrongs.join(", "))}"></td>
+          <td class="left"><input data-k="example" value="${esc(example)}" placeholder="（任意）"></td>
+          <td>
             <button class="btn secondary" data-act="save" type="button">保存</button>
             <button class="btn danger" data-act="del" type="button">削除</button>
           </td>
         `;
+
         tr.querySelector('button[data-act="save"]').onclick = async ()=>{
           const w2 = tr.querySelector('input[data-k="word"]').value.trim();
           const m2 = tr.querySelector('input[data-k="meaning"]').value.trim();
-          const ws = parseWrongs(tr.querySelector('input[data-k="wrongs"]').value);
+
+          // ✅ wrongs欄に「誤答:例文」を入れても動く（互換）
+          const parsed = parseWrongsAndExample(tr.querySelector('input[data-k="wrongs"]').value);
+          let ws = parsed.wrongs;
+
+          // 例文は「例文欄」を優先（空なら誤答:例文から拾う）
+          const exInput = tr.querySelector('input[data-k="example"]').value.trim();
+          const ex = exInput || parsed.example;
+
+          // 正解と同じ誤答を除外
+          ws = uniqStrings(ws.filter(x => String(x||"").toLowerCase() !== String(m2||"").toLowerCase()));
+
           if (!w2 || !m2 || ws.length < 2){
-            wordsMsg.textContent = "保存NG：word/meaning と wrongs(2個以上) が必要";
+            wordsMsg.textContent = "保存NG：単語/正解 と 誤選択肢(2個以上) が必要（※正解と同じ誤答は除外）";
             return;
           }
           wordsMsg.textContent = "保存中…";
           try{
-            await dbSet(p + "/" + id, { word:w2, meaning:m2, wrongs: ws });
+            await dbSet(p + "/" + id, buildWordPayload(w2, m2, ws, ex));
             wordsMsg.textContent = "保存OK";
           }catch(e){
             wordsMsg.textContent = "保存失敗（DBルール/ネット制限）";
           }
         };
+
         tr.querySelector('button[data-act="del"]').onclick = async ()=>{
           if (!confirm("削除しますか？（元に戻せません）")) return;
           wordsMsg.textContent = "削除中…";
@@ -1324,53 +1412,13 @@
             wordsMsg.textContent = "削除失敗（DBルール/ネット制限）";
           }
         };
+
         wordsTbody.appendChild(tr);
       }
     }catch(e){
       wordsMsg.textContent = "読み込み失敗（DBルール/ネット制限）";
     }
   };
-
-  btnAddWord.onclick = async ()=>{
-    const p = currentWordsPath();
-    if (!p){
-      addMsg.textContent = "追加NG：課（lesson）を入力して";
-      addMsg.className = "badline";
-      return;
-    }
-    const w = String(addWord.value||"").trim();
-    const m = String(addMeaning.value||"").trim();
-    const ws = parseWrongs(addWrongs.value);
-    if (!w || !m || ws.length < 2){
-      addMsg.textContent = "追加NG：word/meaning と wrongs(2個以上) が必要";
-      addMsg.className = "badline";
-      return;
-    }
-    addMsg.textContent = "追加中…";
-    addMsg.className = "notice";
-    try{
-      const key = push(ref(db, p)).key;
-      await dbSet(p + "/" + key, { word:w, meaning:m, wrongs: ws });
-      addMsg.textContent = "追加OK（一覧を再読み込みして確認して）";
-      addMsg.className = "okline";
-      addWord.value = "";
-      addMeaning.value = "";
-      addWrongs.value = "";
-      try{ btnLoadWords.click(); }catch(e){}
-    }catch(e){
-      addMsg.textContent = "追加失敗（DBルール/ネット制限）";
-      addMsg.className = "badline";
-    }
-  };
-
-  btnClearAdd.onclick = ()=>{
-    addWord.value = "";
-    addMeaning.value = "";
-    addWrongs.value = "";
-    addMsg.textContent = "—";
-    addMsg.className = "muted";
-  };
-
 </script>
 </body>
 </html>
