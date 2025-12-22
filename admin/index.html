@@ -348,6 +348,9 @@
           </select>
         </div>
         <button class="btn secondary" id="btnLoadWords" type="button">読み込み</button>
+
+        <!-- ✅ 追加：課の単語リスト 一括削除（確認コード必須） -->
+        <button class="btn danger" id="btnBulkDeleteWords" type="button">一括削除</button>
       </div>
       <div class="cardBody">
         <div id="wordsMsg" class="muted">学年・課・stage を指定して「読み込み」</div>
@@ -366,8 +369,8 @@
           </table>
         </div>
         <div class="small" style="margin-top:10px">
-          ※ 例文を登録したいとき：一括追加では「誤答のどれかに <span class="mono">誤答：例文</span> 」を混ぜてもOK（全角<span class="mono">：</span>も可）。<br>
-          例）<span class="mono">みかん, ぶどう：我喜欢吃苹果。</span> → DBに <span class="mono">example</span> として保存
+          ※ 例文は「誤答のどれかに <span class="mono">誤答：例文</span>（<span class="mono">:</span>/<span class="mono">：</span>/<span class="mono">;</span>/<span class="mono">；</span>）」でOK。<br>
+          ※ その区切りの後は、たとえ <span class="mono">、</span> や <span class="mono">,</span> が入っても「全部」例文として扱います。
         </div>
       </div>
     </div>
@@ -384,12 +387,12 @@
         <div>
           <label>一括追加（1行=1問 / 「、」区切り）</label>
           <textarea id="bulkAddText" placeholder="例：
-苹果、りんご、みかん、ぶどう：我喜欢吃苹果。
+苹果、りんご、みかん、ぶどう：我喜欢吃苹果。并且，里面可以有、逗号
 学生、学生、先生、図書館
-跑步、走る、食べる、寝る"></textarea>
+跑步、走る、食べる、寝る；例文も；でOK、ここは例文として丸ごと"></textarea>
           <div class="small" style="margin-top:6px">
             形式：<span class="mono">問題、正解、誤答1、誤答2（誤答は2個以上）</span>　※誤答は3個以上もOK<br>
-            例文：<span class="mono">誤答のどれかに「誤答：例文」</span>（任意）
+            例文：誤答のどれかに <span class="mono">誤答：例文</span>（<span class="mono">:</span>/<span class="mono">：</span>/<span class="mono">;</span>/<span class="mono">；</span>）を混ぜてもOK（区切りの後はカンマが入っても例文扱い）
           </div>
           <div class="row" style="margin-top:10px">
             <button class="btn secondary" id="btnBulkPreview" type="button">プレビュー</button>
@@ -570,6 +573,7 @@
   const wLessonSel = $("wLessonSel");
   const wStageSel = $("wStageSel");
   const btnLoadWords = $("btnLoadWords");
+  const btnBulkDeleteWords = $("btnBulkDeleteWords"); // ✅ 追加
   const wordsMsg = $("wordsMsg");
   const wordsTbody = $("wordsTbody");
 
@@ -1074,10 +1078,12 @@
   wStageSel.onchange = updateAddPath;
   updateAddPath();
 
-  function normalizeColons(text){
-    return String(text||"").replaceAll("：", ":");
-  }
+  // ========= ここから：区切り仕様（: ： ; ；）対応 =========
+  const SEP_CHARS = new Set([",","，","、"]);
+  const MARK_CHARS = new Set([":","：",";","；"]);
+
   function normalizeDelims(text){
+    // 「区切りのカンマ」を統一したい場所だけで使用（例文部分には使わない）
     return String(text||"").replaceAll("，", ",").replaceAll("、", ",");
   }
 
@@ -1095,37 +1101,63 @@
     return out;
   }
 
-  // ✅ 誤答トークンから「誤答」と「例文」を抽出（誤答:例文）
+  // ✅ token内の「誤答:例文 / 誤答；例文」対応（DB互換用）
   function splitWrongAndExample(token){
-    const t = normalizeColons(token).trim();
-    const i = t.indexOf(":");
-    if (i === -1){
+    const t = String(token||"").trim();
+    if (!t) return { wrong:"", example:"" };
+
+    // 最初に見つかった : ： ; ； を採用
+    let pos = -1;
+    for (let i=0; i<t.length; i++){
+      if (MARK_CHARS.has(t[i])) { pos = i; break; }
+    }
+    if (pos === -1){
       return { wrong: t, example: "" };
     }
-    const wrong = t.slice(0, i).trim();
-    const example = t.slice(i+1).trim();
+    const wrong = t.slice(0, pos).trim();
+    const example = t.slice(pos+1).trim();
     return { wrong, example };
   }
 
-  // ✅ 誤答欄（input）を「wrongs + example」に分解（互換用：誤答:例文 もOK）
+  // ✅ 誤答欄(input)を「wrongs + example」に分解
+  //    - : ： ; ； を見つけたら「その後ろ全部」を例文として扱う（例文内の , 、 は分割しない）
   function parseWrongsAndExample(text){
-    const raw = normalizeDelims(normalizeColons(text));
-    const parts = raw.split(/\n|,/).map(x=>x.trim()).filter(Boolean);
-
+    const s = String(text||"");
     let wrongs = [];
-    let exs = [];
-    for (const p of parts){
-      const { wrong, example } = splitWrongAndExample(p);
-      if (wrong) wrongs.push(wrong);
-      if (example) exs.push(example);
+    let buf = "";
+    let example = "";
+
+    for (let i=0; i<s.length; i++){
+      const ch = s[i];
+
+      if (MARK_CHARS.has(ch)){
+        const w = buf.trim();
+        if (w) wrongs.push(w);
+        example = s.slice(i+1).trim(); // 以降は全部例文（カンマが入ってもOK）
+        buf = "";
+        break;
+      }
+
+      if (ch === "\n" || ch === "\r" || SEP_CHARS.has(ch)){
+        const w = buf.trim();
+        if (w) wrongs.push(w);
+        buf = "";
+        continue;
+      }
+
+      buf += ch;
     }
+
+    if (!example){
+      const w = buf.trim();
+      if (w) wrongs.push(w);
+    }
+
     wrongs = uniqStrings(wrongs);
-    exs = uniqStrings(exs);
-    const example = exs.join(" / ");
-    return { wrongs, example };
+    return { wrongs, example: String(example||"").trim() };
   }
 
-  // ✅ 既存DBデータ互換：wrongsに「誤答:例文」が混ざっている場合は吸い出す
+  // ✅ 既存DBデータ互換：wrongsに「誤答:例文 / 誤答；例文」が混ざっている場合は吸い出す
   function normalizeDbWrongsAndExample(wrongs, example){
     const arr = Array.isArray(wrongs) ? wrongs.map(x=>String(x||"").trim()).filter(Boolean) : [];
     const ex0 = String(example||"").trim();
@@ -1152,37 +1184,100 @@
     return payload;
   }
 
+  // ✅ 一括追加：1行の解析
+  //    - 区切りは「,」「，」「、」
+  //    - 例文マークは「:」「：」「;」「；」
+  //    - 例文マークが出たら「その後ろ全部」を例文として扱う（例文内の , 、 は分割しない）
   function parseBulkLine(line){
-    const raw = normalizeDelims(normalizeColons(line)).trim();
-    if (!raw) return { ok:false, reason:"空行", line };
-    const parts = raw.split(",").map(x=>x.trim()).filter(Boolean);
-    if (parts.length < 4){
+    const s0 = String(line||"").trim();
+    if (!s0) return { ok:false, reason:"空行", line };
+
+    const s = s0; // 例文を壊したくないので置換しない
+    let fields = [];
+    let buf = "";
+    let i = 0;
+
+    // 1) word / meaning を取る（2個の区切りまで読む）
+    while (i < s.length){
+      const ch = s[i];
+
+      if (SEP_CHARS.has(ch)){
+        const token = buf.trim();
+        if (token) fields.push(token);
+        else fields.push("");
+        buf = "";
+
+        // 連続区切り・空白を飛ばす
+        i++;
+        while (i < s.length && (SEP_CHARS.has(s[i]) || s[i] === " " || s[i] === "\t")) i++;
+
+        if (fields.length >= 2) break; // word と meaning を確定（meaningの後の区切りまで到達）
+        continue;
+      }
+
+      buf += ch;
+      i++;
+    }
+
+    if (fields.length < 2){
+      // 途中で終わった（区切りが足りない）
+      const token = buf.trim();
+      if (token) fields.push(token);
+    }
+
+    if (fields.length < 2){
       return { ok:false, reason:"項目不足（問題、正解、誤答1、誤答2 が必要）", line };
     }
 
-    const word = parts[0];
-    const meaning = parts[1];
+    const word = String(fields[0]||"").trim();
+    const meaning = String(fields[1]||"").trim();
 
+    // 2) 残り（誤答〜）を解析（例文マークが来たら残り全部 example）
     let wrongs = [];
-    let exs = [];
-    for (const tok of parts.slice(2)){
-      const { wrong, example } = splitWrongAndExample(tok);
-      if (wrong) wrongs.push(wrong);
-      if (example) exs.push(example);
+    let example = "";
+    buf = "";
+
+    // i は「meaningの後の区切り」の次の位置
+    for (; i < s.length; i++){
+      const ch = s[i];
+
+      if (MARK_CHARS.has(ch)){
+        const w = buf.trim();
+        if (w) wrongs.push(w);
+
+        // ✅ 以降は全部例文（カンマが入ってもOK）
+        example = s.slice(i+1).trim();
+        buf = "";
+        break;
+      }
+
+      if (SEP_CHARS.has(ch)){
+        const w = buf.trim();
+        if (w) wrongs.push(w);
+        buf = "";
+        continue;
+      }
+
+      buf += ch;
+    }
+
+    if (!example){
+      const w = buf.trim();
+      if (w) wrongs.push(w);
     }
 
     wrongs = uniqStrings(wrongs);
+
     // 正解と同じ誤答を除外
     wrongs = wrongs.filter(w => w.toLowerCase() !== String(meaning||"").toLowerCase());
-
-    exs = uniqStrings(exs);
-    const example = exs.join(" / ");
 
     if (!word || !meaning || wrongs.length < 2){
       return { ok:false, reason:"問題/正解/誤答(2個以上) が必要", line };
     }
+
     return { ok:true, word, meaning, wrongs, example, line };
   }
+  // ========= ここまで：区切り仕様対応 =========
 
   function parseBulkText(text){
     const lines = String(text||"").split(/\r?\n/);
@@ -1332,6 +1427,46 @@
     bulkMsg.className = "muted";
   };
 
+  // ✅ 追加：課の単語リストを一括削除（確認コード 121212 必須）
+  btnBulkDeleteWords.onclick = async ()=>{
+    const p = currentWordsPath();
+    wordsTbody.innerHTML = wordsTbody.innerHTML; // no-op（既存に影響しない）
+    if (!p){
+      wordsMsg.textContent = "一括削除NG：課（lesson）を入力してください";
+      return;
+    }
+
+    const g = String(wGradeSel.value||"1").trim();
+    const lesson = String(wLessonSel.value||"").trim();
+    const st = String(wStageSel.value||"pre1").trim();
+
+    const code = prompt("【危険】一括削除の確認コードを入力してください（121212）");
+    if (code === null) return;
+
+    if (String(code).trim() !== "121212"){
+      wordsMsg.textContent = "確認コードが違います（削除中止）";
+      return;
+    }
+
+    const msg1 = `【危険】以下を一括削除します（元に戻せません）\n\n${g}年 / 課：${lesson} / stage：${st}\n\n実行しますか？`;
+    if (!confirm(msg1)) return;
+
+    wordsMsg.textContent = "一括削除中…";
+    try{
+      await dbRemove(p);          // ✅ ノードごと削除
+      wordsTbody.innerHTML = "";  // ✅ 表を空に
+      wordsMsg.textContent = "一括削除OK：0 件";
+
+      // ✅ 学年キャッシュを破棄（学生管理の集計に反映しやすくする）
+      _wordsCacheByGrade.delete(String(g));
+      if (Number(currentGrade) === Number(g)){
+        try{ await refreshStudents(); }catch(e){}
+      }
+    }catch(e){
+      wordsMsg.textContent = "一括削除失敗（DBルール/ネット制限）";
+    }
+  };
+
   btnLoadWords.onclick = async ()=>{
     const p = currentWordsPath();
     wordsTbody.innerHTML = "";
@@ -1356,7 +1491,7 @@
         const wrongs0 = Array.isArray(w.wrongs) ? w.wrongs : [];
         const example0 = String(w.example||"").trim();
 
-        // ✅ 互換：wrongsに「誤答:例文」が混在していたら吸い出す
+        // ✅ 互換：wrongsに「誤答:例文 / 誤答；例文」が混在していたら吸い出す
         const norm = normalizeDbWrongsAndExample(wrongs0, example0);
         const wrongs = norm.wrongs;
         const example = norm.example;
@@ -1377,11 +1512,12 @@
           const w2 = tr.querySelector('input[data-k="word"]').value.trim();
           const m2 = tr.querySelector('input[data-k="meaning"]').value.trim();
 
-          // ✅ wrongs欄に「誤答:例文」を入れても動く（互換）
+          // ✅ wrongs欄に「誤答:例文 / 誤答；例文」を入れても動く
+          //    （マーク後はカンマが入っても例文扱い）
           const parsed = parseWrongsAndExample(tr.querySelector('input[data-k="wrongs"]').value);
           let ws = parsed.wrongs;
 
-          // 例文は「例文欄」を優先（空なら誤答:例文から拾う）
+          // 例文は「例文欄」を優先（空なら誤答マークから拾う）
           const exInput = tr.querySelector('input[data-k="example"]').value.trim();
           const ex = exInput || parsed.example;
 
