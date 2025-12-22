@@ -1,4 +1,5 @@
 
+
 <!doctype html>
 <html lang="ja">
 <head>
@@ -961,6 +962,8 @@ const P = {
   progressWord: (studentKey, grade, lesson, stage, wordId)=> `progress/${studentKey}/${grade}/${lesson}/${stage}/${wordId}`,
   lessonStageDone: (studentKey, grade, lesson, stage)=> `lessonProgress/${studentKey}/${grade}/${lesson}/${stage}`,
   wordsGrade: (grade)=> `words/${grade}`,
+  bestStage: (studentKey, grade, lesson, stage)=> `bestProgress/${studentKey}/${grade}/${lesson}/${stage}`,
+
 };
 
 /* ✅ 名前→同一進行（同じ名前なら同じDBパス） */
@@ -985,7 +988,8 @@ const QUIZ_RULES = {
   shuffleChoices:  true,
   repeatPerWord:   1,
   maxQuestions:    "all",
-  uniqueFetchTriesPerPick: 12
+  uniqueFetchTriesPerPick: 12,
+ askAllWordsAlways: true,//今は全部出題（出題形式を変えるならここ）
 };
 
 const DEBUG_STAGE_RATES = false;
@@ -1224,14 +1228,17 @@ async function apiLessons(name, grade){
 
     await dbUpdate(P.students(sk), { lastGrade:g, lastSeenAt: nowTs() }).catch(()=>{});
 
-    const [wordsGrade, progGrade, doneGrade] = await Promise.all([
-      dbGet(P.wordsGrade(g)),
-      dbGet(`progress/${sk}/${g}`),
-      dbGet(`lessonProgress/${sk}/${g}`)
-    ]);
+const [wordsGrade, bestGrade, progGrade, doneGrade] = await Promise.all([
+  dbGet(P.wordsGrade(g)),
+  dbGet(`bestProgress/${sk}/${g}`),     // ✅ 追加：ベスト％
+  dbGet(`progress/${sk}/${g}`),         // （互換のため残す：bestが無い時だけ旧方式で計算用）
+  dbGet(`lessonProgress/${sk}/${g}`)
+]);
+
 
     const wG = (wordsGrade && typeof wordsGrade==="object") ? wordsGrade : {};
-    const pG = (progGrade && typeof progGrade==="object") ? progGrade : {};
+const bG = (bestGrade && typeof bestGrade==="object") ? bestGrade : {};
+const pG = (progGrade && typeof progGrade==="object") ? progGrade : {};
     const dG = (doneGrade && typeof doneGrade==="object") ? doneGrade : {};
 
     const lessons = Object.keys(wG).sort((a,b)=>{
@@ -1241,26 +1248,48 @@ async function apiLessons(name, grade){
       return String(a).localeCompare(String(b), "ja");
     });
 
-    function calc(lesson, stage){
-      const stageObj = (wG[lesson] && wG[lesson][stage] && typeof wG[lesson][stage]==="object") ? wG[lesson][stage] : {};
-      const wordIds = Object.keys(stageObj);
-      const total = wordIds.length;
-      const pStage = (pG[lesson] && pG[lesson][stage] && typeof pG[lesson][stage]==="object") ? pG[lesson][stage] : {};
-      let mastered = 0;
-      for (const wid of wordIds){
-        if (pStage[wid] && pStage[wid].mastered) mastered++;
-      }
-      const rate = total>0 ? (mastered/total) : null;
-      return { total, mastered, rate };
-    }
+function calc(lesson, stage){
+  // ✅ 1) ベスト％があればそれを採用（これが本命）
+  const bStage = (bG[lesson] && bG[lesson][stage] && typeof bG[lesson][stage] === "object")
+    ? bG[lesson][stage]
+    : null;
+
+  const bestPct = bStage ? Number(bStage.bestPct) : null;
+  const rateFromBest = (Number.isFinite(bestPct)) ? clamp(bestPct/100, 0, 1) : null;
+
+  if (rateFromBest != null){
+    // stage_rates互換の形（mastered/totalは「％表現」として扱う）
+    return {
+      total: 100,
+      mastered: Math.round(rateFromBest * 100),
+      rate: rateFromBest
+    };
+  }
+
+  // ✅ 2) bestProgressがまだ無い古いデータ用フォールバック（旧：単語mastered計算）
+  const stageObj = (wG[lesson] && wG[lesson][stage] && typeof wG[lesson][stage]==="object") ? wG[lesson][stage] : {};
+  const wordIds = Object.keys(stageObj);
+  const total = wordIds.length;
+
+  const pStage = (pG[lesson] && pG[lesson][stage] && typeof pG[lesson][stage]==="object") ? pG[lesson][stage] : {};
+  let mastered = 0;
+  for (const wid of wordIds){
+    if (pStage[wid] && pStage[wid].mastered) mastered++;
+  }
+  const rate = total>0 ? (mastered/total) : null;
+  return { total, mastered, rate };
+}
+
 
     const outLessons = lessons.map(lesson=>{
       const pre1 = calc(lesson,"pre1");
       const pre2 = calc(lesson,"pre2");
       const review = calc(lesson,"review");
 
-      const denom = (pre1.total||0) + (pre2.total||0);
-      const achieveRate = denom>0 ? ((pre1.mastered||0)+(pre2.mastered||0))/denom : 0;
+// ✅ pre1/pre2 のベスト％（rate）を平均して課の達成度にする
+const r1 = (pre1.rate != null) ? pre1.rate : 0;
+const r2 = (pre2.rate != null) ? pre2.rate : 0;
+const achieveRate = clamp((r1 + r2) / 2, 0, 1);
 
       const done = dG[lesson] || {};
       const stage_status = {
@@ -1291,10 +1320,10 @@ async function apiQuestion(name, grade, lesson, stage){
       return { ok:false, error:"no_words" };
     }
 
+    // ✅ 常に全単語から候補
     let candidates = STAGE_POOL.words;
-    const un = candidates.filter(w=> !(STAGE_POOL.prog && STAGE_POOL.prog[w.id] && STAGE_POOL.prog[w.id].mastered));
-    if (un.length) candidates = un;
 
+    // ✅ repeatPerWord（1回だけ等）を守る：出せるものがある時だけ絞る
     try{
       if (typeof canAskWordId === "function" && SESSION){
         const okc = candidates.filter(w=>canAskWordId(w.id));
@@ -1305,7 +1334,6 @@ async function apiQuestion(name, grade, lesson, stage){
     const w = candidates[Math.floor(Math.random()*candidates.length)];
     const options = makeOptionsForWord(w);
 
-    /* ✅ 重要：正解も返す（これで“即色変更”が可能） */
     return { ok:true, word_id:w.id, word:w.word, options, correct: w.meaning };
   }catch(e){
     return { ok:false, error:(e&&e.message)?e.message:String(e) };
@@ -1366,6 +1394,43 @@ async function apiLessonComplete(name, grade, lesson, stage){
     const l = String(lesson||"");
     const s = String(stage||"pre1");
     await dbSet(P.lessonStageDone(sk, g, l, s), { completedAt: nowTs() });
+    return { ok:true };
+  }catch(e){
+    return { ok:false, error:(e&&e.message)?e.message:String(e) };
+  }
+}
+async function apiSaveBestStage(name, grade, lesson, stage, pct){
+  try{
+    const sk = STUDENT.studentKey;
+    const g = Number(grade) || SELECTED_GRADE;
+    const l = String(lesson||"");
+    const s = String(stage||"pre1");
+    const p = clamp(Number(pct)||0, 0, 100);
+
+    const path = P.bestStage(sk, g, l, s);
+
+    await runTransaction(ref(db, path), (cur)=>{
+      const now = nowTs();
+      const base = (cur && typeof cur === "object") ? cur : {
+        bestPct: 0,
+        bestAt: 0,
+        lastPct: 0,
+        lastAt: 0,
+        plays: 0
+      };
+
+      base.plays = (base.plays||0) + 1;
+      base.lastPct = p;
+      base.lastAt = now;
+
+      const curBest = Number(base.bestPct||0);
+      if (!Number.isFinite(curBest) || p > curBest){
+        base.bestPct = p;
+        base.bestAt = now;
+      }
+      return base;
+    });
+
     return { ok:true };
   }catch(e){
     return { ok:false, error:(e&&e.message)?e.message:String(e) };
@@ -2343,6 +2408,16 @@ function openSessionResult(){
 
   const totalAsked = Math.max(1, SESSION.asked);
   const pct = Math.round((SESSION.correct / totalAsked) * 100);
+  // ✅ ベスト％をDBに保存（最大値だけ残す）
+  // 表示の邪魔をしないように裏で実行
+  (async ()=>{
+    try{
+      await apiSaveBestStage(CURRENT.name, SELECTED_GRADE, SESSION.lesson, SESSION.stage, pct);
+      // ベスト更新があり得るので、一覧側の表示も追従させる
+      // （review中の黒玉は既に「最後だけ落とす」設計なので、ここは軽くrefreshだけ）
+      defer(()=> refreshLessons().catch(()=>{}));
+    }catch(_){}
+  })();
 
   sessionPct.textContent = `${pct}%`;
 
