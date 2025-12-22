@@ -742,6 +742,22 @@
   user-select:none;
   text-shadow:0 6px 18px rgba(0,0,0,.35);
 }
+/* ✅ 追加：フラッシュカードの例文 */
+#flashBack .flashExample{
+  font-weight:800;
+  font-size:14px;
+  line-height:1.45;
+  text-align:left;
+  color:#111;
+  opacity:.78;
+  padding:8px 10px;
+  border-radius:12px;
+  background:rgba(0,0,0,.04);
+  margin:2px 2px 10px;
+  word-break:break-word;
+  white-space:pre-wrap;
+}
+
 
 /* 次へ：スライド（左へ出て→右から入る） */
 /* =========================
@@ -894,6 +910,8 @@
     <div class="flashCard" id="flashCard">
       <div class="flashTop" id="flashTop">…</div>
       <div class="flashDivider"></div>
+  <div class="flashExample" id="flashExample" style="display:none">…</div>
+
       <div class="flashBottom" id="flashBottom">…</div>
     </div>
     <div class="flashPager" id="flashPager">1/1</div>
@@ -1080,6 +1098,7 @@ const flashCard   = document.getElementById("flashCard");
 const flashTop    = document.getElementById("flashTop");
 const flashBottom = document.getElementById("flashBottom");
 const flashPager  = document.getElementById("flashPager");
+const flashExample = document.getElementById("flashExample"); 
 
 /* ========= 初期：名前復元 ========= */
 const savedName = localStorage.getItem(NAME_KEY);
@@ -1517,17 +1536,40 @@ function renderFlashCard(){
   const n = FLASH.list.length;
   if (!n){
     flashTop.textContent = "…";
+    if (flashExample){
+      flashExample.textContent = "";
+      flashExample.style.display = "none";
+    }
     flashBottom.textContent = "…";
     flashPager.textContent = "0/0";
     return;
   }
-  const cur = FLASH.list[FLASH.i];
-  flashTop.textContent = cur.word || "";
-  flashBottom.textContent = cur.meaning || "";
-  flashPager.textContent = `${FLASH.i + 1}/${n}`;
+
+const cur = FLASH.list[FLASH.i];
+
+// ✅ 入れ替え：上に正解（meaning）
+flashTop.textContent = cur.meaning || "";
+
+// ✅ 例文はそのまま（中段）
+const ex = String(cur.example ?? "").trim();
+if (flashExample){
+  if (ex){
+    flashExample.textContent = ex;
+    flashExample.style.display = "";
+  } else {
+    flashExample.textContent = "";
+    flashExample.style.display = "none";
+  }
+}
+
+// ✅ 入れ替え：下に単語（word）
+flashBottom.textContent = cur.word || "";
+
+flashPager.textContent = `${FLASH.i + 1}/${FLASH.list.length}`;
 requestAnimationFrame(fitFlashModalWidth);
 
 }
+
 
 function scheduleFlashAuto(){
   clearFlashTimer();
@@ -1614,7 +1656,8 @@ requestAnimationFrame(fitFlashModalWidth);
         const word = String(v.word ?? "").trim();
         const meaning = String(v.meaning ?? "").trim();
         if (!word || !meaning) continue;
-        list.push({ word, meaning });
+const example = String(v.example ?? "").trim(); // ✅追加（DBのexample）
+list.push({ word, meaning, example });
       }
     }
   }catch(e){
@@ -1894,7 +1937,7 @@ function fitFlashModalWidth(){
   const minW = 260;
 
   let maxContentW = 0;
-  const targets = [flashTop, flashBottom, flashPager].filter(Boolean);
+const targets = [flashTop, flashExample, flashBottom, flashPager].filter(Boolean);
   for (const el of targets){
     maxContentW = Math.max(maxContentW, el.scrollWidth || 0);
   }
