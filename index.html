@@ -734,8 +734,8 @@ font-size: var(--reviewWordMaxPx);
    - スライドアニメ
 ========================= */
 #flashBack{
-  z-index:1500; /* lowRate(1400)より上 */
-  background: rgba(0,0,0,.42);
+  align-items:flex-end; /* ✅ 要望：位置を少し下げる */
+  padding:32px 16px 24px;
 }
 #flashBack{
   z-index:1500; /* lowRate(1400)より上 */
@@ -830,6 +830,8 @@ font-size: var(--reviewWordMaxPx);
   font-size:16px;
   line-height:1.1;
 }
+
+
 .flashModeBtn .flashModeDesc{
   font-size:13px;
   line-height:1.45;
@@ -1028,7 +1030,7 @@ font-size: var(--reviewWordMaxPx);
       <button class="flashModeBtn" type="button" data-mode="fast" id="flashModeFast">
         <div class="flashModeLabel">はやく🐇</div>
         <div class="flashModeDesc">语言学习中，最重要的是反复。
-每个单词只用 约 2 秒，用日语和中文说一遍，马上进入下一个。
+每个单词只花 约 2 秒，用日语和中文快速念两遍，马上进入下一个。
 不要慢慢地一天背 30 个，而是 一天快速看 50～100 个单词，再从头快速重复。
 同一个单词 一天至少看 10 次，坚持一周很重要。
 不用拼命去记。只要 看・说・反复・坚持，就足够了。</div>
