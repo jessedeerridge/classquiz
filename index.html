@@ -2489,6 +2489,7 @@ function openSessionResult(){
   sessionPct.textContent = `${pct}%`;
 
   wrongList.innerHTML = "";
+  const shouldShowMeaning = SESSION.stage !== "review";
   (SESSION.wrongs || []).forEach(x=>{
     const li = document.createElement("li");
     // ✅ もし問題文に（）が含まれていたら、入力ボックスに置き換えて空所埋め形式で再表示
@@ -2496,16 +2497,18 @@ function openSessionResult(){
     const displayWord = (hasParens && x.meaning)
       ? fillAnswerIntoParens(x.word, x.meaning)
       : x.word;
+    const meaningHtml = (shouldShowMeaning && x.meaning)
+      ? `<div class="m">${escapeHtml(x.meaning)}</div>`
+      : "";
 
     li.innerHTML =
       `<div class="w">${escapeHtml(displayWord)}</div>` +
-      `<div class="m">${escapeHtml(x.meaning)}</div>`;
- wrongList.appendChild(li);
+      meaningHtml;
+    wrongList.appendChild(li);
   });
 
   sessionBack.style.display = "flex";
-requestAnimationFrame(fitSessionModalWidth);
-
+  requestAnimationFrame(fitSessionModalWidth);
 }
 function closeSessionResult(){
   sessionBack.style.display = "none";
