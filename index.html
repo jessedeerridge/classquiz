@@ -906,7 +906,7 @@ font-size: var(--reviewWordMaxPx);
   <section id="studentSec">
     <div class="student-top" id="studentTop">
       <input id="stuName" placeholder="Enter name" />
-      <button id="btnStart">スタート</button>
+      <button id="btnStart">アルバイトをはじめる</button>
       <div id="stuStatus" class="muted" style="text-align:center"></div>
     </div>
 
@@ -2842,8 +2842,7 @@ function openStagePop(lesson, meta, anchorX, anchorY){
 
   _pendingLesson = lesson;
   _pendingLessonMeta = meta || null;
-  stagePopTitle.textContent = `${SELECTED_GRADE}年 / ${lesson}`;
-
+  stagePopTitle.textContent = `${gradeLabel(SELECTED_GRADE)} / ${lesson}`;
   const hasInfo = !!(meta && meta.stageDone && (meta.stageDone.pre1 || meta.stageDone.pre2 || meta.stageDone.review));
   const pre1Done = hasInfo ? !!meta.stageDone.pre1 : null;
   const pre2Done = hasInfo ? !!meta.stageDone.pre2 : null;
@@ -2882,7 +2881,7 @@ function startStageCore(stage, metaOverride=null, lessonOverride=null){
   CURRENT.lesson = lesson;
   CURRENT.stage = stage;
 
-  if (lessonInfo) lessonInfo.textContent = `${SELECTED_GRADE}年 / ${CURRENT.lesson}`;
+  if (lessonInfo) lessonInfo.textContent = `${gradeLabel(SELECTED_GRADE)} / ${CURRENT.lesson}`;
   if (stageBadge){
     stageBadge.style.display = "";
     stageBadge.textContent = stageLabel(stage);
