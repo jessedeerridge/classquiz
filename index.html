@@ -1115,8 +1115,9 @@ const QUIZ_RULES = {
 };
 
 const DEBUG_STAGE_RATES = false;
-const MAX_GRADE = 4;
-
+const DEFAULT_MAX_GRADE = 4;
+const GRADE_SETTINGS_PATH = "settings/gradeButtons";
+  
 /* ✅ アニメは“背景”として：FPSを落としてクイズに干渉しない */
 const BG_ANIM_FPS_LESSON = 24;
 const BG_ANIM_FPS_QUIZ   = 24;
@@ -1237,17 +1238,61 @@ if (savedName) stuName.value = savedName;
 /* =========================
    ★ 学年（増える版）
 ========================= */
-let SELECTED_GRADE = Number(localStorage.getItem(GRADE_KEY) || "1");
-if (!Number.isFinite(SELECTED_GRADE) || SELECTED_GRADE < 1) SELECTED_GRADE = 1;
-if (SELECTED_GRADE > MAX_GRADE) SELECTED_GRADE = MAX_GRADE;
+function defaultGradeSettings(){
+  return Array.from({length: DEFAULT_MAX_GRADE}, (_,i)=>({ id: i+1, label: String(i+1), enabled: true }));
+}
+function normalizeGradeSettings(obj){
+  const base = defaultGradeSettings();
+  if (!obj || typeof obj !== "object") return base;
+  const out = [];
+  for (const [k,v] of Object.entries(obj)){
+    const id = Number(k);
+    if (!Number.isFinite(id) || id < 1) continue;
+    const label = String((v && typeof v === "object") ? (v.label ?? k) : (v ?? k)).trim() || String(id);
+    const enabled = (v && typeof v === "object" && v.enabled === false) ? false : true;
+    out.push({ id, label, enabled });
+  }
+  if (out.length === 0) return base;
+  out.sort((a,b)=> a.id - b.id);
+  return out;
+}
+function activeGradeIds(){
+  return gradeSettings
+    .filter(g=>g && g.enabled !== false && Number.isFinite(g.id))
+    .map(g=>Number(g.id))
+    .filter(g=>g>=1)
+    .sort((a,b)=>a-b);
+}
+function gradeLabel(g){
+  const cfg = gradeSettings.find(x=>Number(x.id) === Number(g));
+  const lbl = String(cfg?.label ?? g).trim();
+  return lbl || String(g);
+}
+function normalizeSelectedGrade(g){
+  const active = activeGradeIds();
+  if (!active.length) return 1;
+  const n = Number(g);
+  if (Number.isFinite(n) && active.includes(n)) return n;
+  return active[0];
+}
 
-function buildGradeButtons(){
+let gradeSettings = defaultGradeSettings();
+let SELECTED_GRADE = normalizeSelectedGrade(Number(localStorage.getItem(GRADE_KEY) || "1"));
+  
+  function buildGradeButtons(){
   gradeFab.innerHTML = "";
-  for (let g=1; g<=MAX_GRADE; g++){
+  const active = activeGradeIds();
+  if (!active.length) return;
+
+  for (const cfg of gradeSettings){
+    if (!cfg || cfg.enabled === false) continue;
+    const g = Number(cfg.id);
+    if (!Number.isFinite(g)) continue;
+
     const b = document.createElement("button");
     b.className = "gbtn";
     b.type = "button";
-    b.textContent = String(g);
+    b.textContent = gradeLabel(g);
     b.dataset.grade = String(g);
     b.onclick = async ()=>{
       SELECTED_GRADE = g;
@@ -1258,11 +1303,24 @@ function buildGradeButtons(){
   }
 }
 function renderGradeButtons(){
+    SELECTED_GRADE = normalizeSelectedGrade(SELECTED_GRADE);
   [...gradeFab.querySelectorAll(".gbtn")].forEach(b=>{
     const g = Number(b.dataset.grade || "0");
     b.classList.toggle("active", g === SELECTED_GRADE);
   });
   localStorage.setItem(GRADE_KEY, String(SELECTED_GRADE));
+}
+
+  async function loadGradeSettings(){
+  try{
+    const raw = await dbGet(GRADE_SETTINGS_PATH);
+    gradeSettings = normalizeGradeSettings(raw);
+  }catch(e){
+    gradeSettings = defaultGradeSettings();
+  }
+  SELECTED_GRADE = normalizeSelectedGrade(Number(localStorage.getItem(GRADE_KEY) || SELECTED_GRADE || 1));
+  buildGradeButtons();
+  renderGradeButtons();
 }
 
 /* ========= DB（Firebase） ========= */
@@ -1341,7 +1399,7 @@ async function apiMenu(name){
     return {
       ok:true,
       last_grade: Number.isFinite(last) && last>=1 ? last : null,
-      grades: Array.from({length: MAX_GRADE}, (_,i)=>i+1)
+      grades: activeGradeIds()
     };
   }catch(e){
     return { ok:false, error:(e&&e.message)?e.message:String(e) };
@@ -3204,8 +3262,8 @@ async function applyLastGradeFromMenu(){
   if (m.ok && m.last_grade != null){
     let g = Number(m.last_grade);
     if (!Number.isFinite(g)) g = 1;
-    g = Math.max(1, Math.min(MAX_GRADE, Math.trunc(g)));
-    SELECTED_GRADE = g;
+    g = Math.trunc(g);
+    SELECTED_GRADE = normalizeSelectedGrade(g);
     renderGradeButtons();
   }
 }
@@ -4291,8 +4349,7 @@ function renderQuizReviewBalls(lesson, animateFromPrev=false, prevCount=0){
 }
 
 /* ========= 初期化 ========= */
-buildGradeButtons();
-renderGradeButtons();
+await loadGradeSettings();
 showNameScreen();
 syncDropletColorToGauge();
 </script>
