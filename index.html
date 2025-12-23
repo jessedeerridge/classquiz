@@ -1,3 +1,5 @@
+review quizの問題の文字サイズを最大の文字サイズは決めたい
+
 
 
 <!doctype html>
@@ -227,6 +229,42 @@
       user-select:none;
       z-index:3;
     }
+/* =========================
+   ✅ review問題：改行しない + 自動縮小（JSでfont-size調整）
+========================= */
+.quizCenterWord.oneLine{
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; /* 最低サイズでも収まらない時の保険 */
+}
+
+/* ✅ review問題の下：例文を小さく表示 */
+.quizExample{
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  width: calc(100% - 40px);
+  z-index:3;
+
+  font-weight:850;
+  font-size:14px;
+  line-height:1.45;
+  color: var(--quizTextColor);
+  opacity:.70;
+
+  padding:8px 10px;
+  border-radius:12px;
+  background: rgba(0,0,0,.05);
+
+  /* 例文は複数行OK */
+  white-space: pre-wrap;
+  word-break: break-word;
+
+  /* topはJSで「問題のすぐ下」に動的配置 */
+  top: 52%;
+  pointer-events:none;
+  user-select:none;
+}
 
     .quizOptions{
       position:absolute;
@@ -854,6 +892,7 @@
 
           <div class="dropletLayer" id="dropletLayer" aria-hidden="true"></div>
           <div class="quizCenterWord" id="quizWord">…</div>
+<div class="quizExample" id="quizExample" style="display:none">…</div>
           <div class="quizOptions" id="optGrid"></div>
         </div>
       </div>
@@ -1072,6 +1111,7 @@ const quizResult = document.getElementById("quizResult");
 const btnNext = document.getElementById("btnNext");
 const btnLessonComplete = document.getElementById("btnLessonComplete");
 const btnBackLessons = document.getElementById("btnBackLessons");
+const quizExample = document.getElementById("quizExample");
 
 const quizStage = document.getElementById("quizStage");
 const quizProgressSvg = document.getElementById("quizProgressSvg");
@@ -1172,7 +1212,8 @@ async function ensureStagePool(grade, lesson, stage){
       const meaning = String(v.meaning ?? "").trim();
       const wrongs = Array.isArray(v.wrongs) ? v.wrongs.map(x=>String(x||"").trim()).filter(Boolean) : [];
       if (!word || !meaning || wrongs.length < 2) continue;
-      words.push({ id:String(wid), word, meaning, wrongs });
+const example = String(v.example ?? "").trim();
+words.push({ id:String(wid), word, meaning, wrongs, example });
     }
   }
 
@@ -1334,7 +1375,14 @@ async function apiQuestion(name, grade, lesson, stage){
     const w = candidates[Math.floor(Math.random()*candidates.length)];
     const options = makeOptionsForWord(w);
 
-    return { ok:true, word_id:w.id, word:w.word, options, correct: w.meaning };
+return {
+  ok:true,
+  word_id: w.id,
+  word: w.word,
+  options,
+  correct: w.meaning,
+  example: w.example || ""
+};
   }catch(e){
     return { ok:false, error:(e&&e.message)?e.message:String(e) };
   }
@@ -1944,6 +1992,11 @@ window.addEventListener("resize", ()=>{
   if (flashBack && flashBack.style.display === "flex"){
     requestAnimationFrame(fitFlashModalWidth);
   }
+  // ✅ review表示の追従（縮小＆例文位置）
+  if (quizBox && quizBox.style.display !== "none" && CURRENT.stage === "review"){
+    requestAnimationFrame(applyReviewPromptLayout);
+  }
+
 });
 function fitSessionModalWidth(){
   if (!sessionBack) return;
@@ -2443,6 +2496,77 @@ btnSessionClose.onclick = async ()=>{
 };
 sessionBack.addEventListener("click", ()=>{ /* do nothing */ });
 sessionBack.querySelector(".modal")?.addEventListener("click", (e)=> e.stopPropagation());
+/* =========================
+   ✅ review：問題を改行しない＆自動縮小
+   ✅ 問題の下に例文（example）を表示
+========================= */
+const REVIEW_WORD_BASE_PX = 40;
+const REVIEW_WORD_MIN_PX  = 18;
+
+function positionQuizExampleUnderWord(){
+  if (!quizStage || !quizWord || !quizExample) return;
+  if (quizExample.style.display === "none") return;
+
+  const stageRect = quizStage.getBoundingClientRect();
+  const wordRect  = quizWord.getBoundingClientRect();
+
+  const top = (wordRect.bottom - stageRect.top) + 10; // 10px下に
+  quizExample.style.top = `${Math.round(top)}px`;
+}
+
+function applyReviewPromptLayout(){
+  if (!quizWord) return;
+
+  const isReview = (CURRENT.stage === "review");
+
+  // reset
+  quizWord.classList.toggle("oneLine", isReview);
+
+  if (!isReview){
+    // 通常は元の見た目に戻す
+    quizWord.style.fontSize = "";
+    quizWord.style.whiteSpace = "";
+    quizWord.style.overflow = "";
+    quizWord.style.textOverflow = "";
+
+    if (quizExample){
+      quizExample.textContent = "";
+      quizExample.style.display = "none";
+      quizExample.style.top = "";
+    }
+    return;
+  }
+
+  // review：1行固定＋縮小
+  quizWord.style.whiteSpace = "nowrap";
+  quizWord.style.overflow = "hidden";
+  quizWord.style.textOverflow = "ellipsis";
+
+  // まずベースサイズに戻してから測定
+  let fs = REVIEW_WORD_BASE_PX;
+  quizWord.style.fontSize = `${fs}px`;
+
+  // 収まるまで縮小（scrollWidth > clientWidth の間）
+  // ※ +1 は小数誤差の保険
+  while (fs > REVIEW_WORD_MIN_PX && (quizWord.scrollWidth > quizWord.clientWidth + 1)){
+    fs -= 1;
+    quizWord.style.fontSize = `${fs}px`;
+  }
+
+  // 例文
+  const ex = String(CURRENT.currentQ?.example ?? "").trim();
+  if (quizExample){
+    if (ex){
+      quizExample.textContent = ex;
+      quizExample.style.display = "";
+      // 問題のサイズが確定してから位置合わせ
+      requestAnimationFrame(positionQuizExampleUnderWord);
+    } else {
+      quizExample.textContent = "";
+      quizExample.style.display = "none";
+    }
+  }
+}
 
 function escapeHtml(s){
   return String(s ?? "")
@@ -2722,6 +2846,8 @@ function renderQuestionJson(j){
   if (j && (j.error === "session_done" || j.error === "no_more_unique")){
     clearOptions();
     quizWord.textContent = "おつかれさま！";
+    quizExample.style.display = "none";
+
     stopQuestionTimer();
 
     // ✅ reviewは「最後の瞬間に達成率→玉落下」してから、落下完了+2秒で結果
@@ -2752,8 +2878,13 @@ function renderQuestionJson(j){
   options = options.slice();
   if (QUIZ_RULES.shuffleChoices) shuffleInPlace(options);
 
-  CURRENT.currentQ = { raw:j, word_id: wordId, word, correct };
-  quizWord.textContent = word || "（no word）";
+const example = (j.example != null) ? String(j.example) : "";
+
+CURRENT.currentQ = { raw:j, word_id: wordId, word, correct, example };
+quizWord.textContent = word || "（no word）";
+
+// ✅ reviewのとき：改行しない＆自動縮小＆例文表示
+requestAnimationFrame(applyReviewPromptLayout);
 
   const st = j.stage || CURRENT.stage;
   if (stageBadge){
