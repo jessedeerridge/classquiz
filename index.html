@@ -2469,14 +2469,18 @@ function readStageStats(x){
 
 /* ========= lessons ========= */
 let _lastLessonTiles = [];
+let _refreshLessonsRunId = 0;
 async function refreshLessons(){
+  const runId = ++_refreshLessonsRunId;
   const j = await apiLessons(CURRENT.name, SELECTED_GRADE);
+  if (runId !== _refreshLessonsRunId) return j; // 最新の呼び出しだけ反映
+
   if (!j.ok){
     setStuStatus(`課の取得失敗：${j.error||"unknown"}`, false);
     CURRENT.lessons = [];
     _lastLessonTiles = [];
     drawLessonTrapezoids();
-    return;
+    return j;
   }
 
   CURRENT.grade = Number(j.grade || SELECTED_GRADE) || SELECTED_GRADE;
@@ -2520,6 +2524,7 @@ async function refreshLessons(){
       renderQuizReviewBalls(CURRENT.lesson, false, prev);
     }
   }
+ return j;
 }
 
 function stageLabel(s){
@@ -3246,10 +3251,7 @@ let _levelAnimRAF = null;
 const _lastLevelYMap = new Map(); // lessonKey -> 前回のlevelY（SVG座標）
 
 function stopLevelAnim(){
-  // 進行中の高さを保持しておく（途中で描画をやり直したときに二重に伸びないように）
-  _tileRefs.forEach((ref, key)=>{
-    if (Number.isFinite(ref.levelY)) _lastLevelYMap.set(key, ref.levelY);
-  }); 
+ 
 
  if (_levelAnimRAF) cancelAnimationFrame(_levelAnimRAF);
   _levelAnimRAF = null;
