@@ -286,6 +286,30 @@
 <main id="app" style="display:none">
   <!-- Students Tab -->
   <section id="tab_students">
+        <div class="card" style="margin-bottom:14px">
+      <div class="cardHead">
+        <h2>学年ボタン表示設定</h2>
+        <div class="space"></div>
+        <button class="btn secondary" id="btnGradeSettingsReload" type="button">再読込</button>
+        <button class="btn" id="btnGradeSettingsSave" type="button">保存</button>
+      </div>
+      <div class="cardBody">
+        <div class="small" id="gradeSettingsMsg">学生ページ右下の学年ボタンのラベルと表示/非表示を設定します。</div>
+        <div style="overflow:auto; margin-top:10px">
+          <table>
+            <thead>
+              <tr>
+                <th style="min-width:120px">学年ID</th>
+                <th class="left" style="min-width:220px">表示ラベル</th>
+                <th style="min-width:140px">学生ページに表示</th>
+              </tr>
+            </thead>
+            <tbody id="gradeSettingsTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    
     <div class="card">
       <div class="cardHead">
         <h2>学生管理</h2>
@@ -493,6 +517,7 @@
     wordsGrade: (g)=> `words/${g}`,
     wordsStage: (g, lesson, stage)=> `words/${g}/${lesson}/${stage}`,
     progressGrade: (sk,g)=> `progress/${sk}/${g}`,
+        gradeButtons: ()=> `settings/gradeButtons`,
   };
 
   const $ = (id)=> document.getElementById(id);
@@ -552,6 +577,10 @@
   const appRoot = $("app");
 
   // Students
+    const gradeSettingsMsg = $("gradeSettingsMsg");
+  const gradeSettingsTbody = $("gradeSettingsTbody");
+  const btnGradeSettingsSave = $("btnGradeSettingsSave");
+  const btnGradeSettingsReload = $("btnGradeSettingsReload");
   const gradeBtns = $("gradeBtns");
   const btnRefreshStudents = $("btnRefreshStudents");
   const btnMode = $("btnMode");
@@ -659,6 +688,7 @@
     setTab("students");
 
     // 初回ロード
+        await loadGradeSettings();
     await refreshStudents();
   });
 
@@ -666,14 +696,45 @@
   let currentGrade = 1;
   let viewMode = "pre"; // "pre" | "review"
   let _wordsCacheByGrade = new Map(); // grade -> wordsGradeObj
+  let gradeDisplay = defaultGradeSettings();
 
-  function initGradeButtons(){
-    gradeBtns.innerHTML = "";
+    function defaultGradeSettings(){
+    const obj = {};
     for (let g=1; g<=MAX_GRADE; g++){
+            obj[g] = { label: String(g), enabled: true };
+    }
+    return obj;
+  }
+  function normalizeGradeSettings(obj){
+    const out = defaultGradeSettings();
+    if (obj && typeof obj === "object"){
+      for (let g=1; g<=MAX_GRADE; g++){
+        const raw = obj[g];
+        const label = String((raw && typeof raw === "object") ? (raw.label ?? g) : (raw ?? g)).trim() || String(g);
+        const enabled = (raw && typeof raw === "object" && raw.enabled === false) ? false : true;
+        out[g] = { label, enabled };
+      }
+    }
+    return out;
+  }
+  function gradeLabelForDisplay(g){
+    const cfg = gradeDisplay?.[g];
+    const lbl = String(cfg?.label ?? g).trim();
+    return lbl || String(g);
+  }
+  function renderGradeSelectorButtons(){
+    gradeBtns.innerHTML = "";
+    const ids = Array.from({length: MAX_GRADE}, (_,i)=>i+1);
+    if (!ids.includes(currentGrade)) currentGrade = ids[0] ?? 1;
+
+    for (const g of ids){
+      const cfg = gradeDisplay?.[g] || {};
       const b = document.createElement("button");
       b.type = "button";
       b.className = "gbtn" + (g===currentGrade ? " active" : "");
-      b.textContent = `${g}年`;
+      const label = gradeLabelForDisplay(g);
+      const suffix = (cfg.enabled === false) ? "（非表示）" : "";
+      b.textContent = suffix ? `${label} ${suffix}` : `${label}`;
       b.onclick = async ()=>{
         currentGrade = g;
         [...gradeBtns.querySelectorAll(".gbtn")].forEach(x=> x.classList.remove("active"));
@@ -683,8 +744,68 @@
       gradeBtns.appendChild(b);
     }
   }
-  initGradeButtons();
+ renderGradeSelectorButtons();
 
+  function renderGradeSettingsRows(data){
+    gradeSettingsTbody.innerHTML = "";
+    for (let g=1; g<=MAX_GRADE; g++){
+      const cfg = data?.[g] || { label: String(g), enabled: true };
+      const tr = document.createElement("tr");
+      tr.dataset.grade = String(g);
+      tr.innerHTML = `
+        <td><span class="tag">ID: ${g}</span></td>
+        <td class="left">
+          <input data-k="label" data-grade="${g}" value="${esc(cfg.label ?? g)}" placeholder="${g}">
+        </td>
+        <td>
+          <label style="display:flex; align-items:center; gap:8px; justify-content:center">
+            <input type="checkbox" data-k="enabled" data-grade="${g}" ${cfg.enabled === false ? "" : "checked"}>
+            <span class="small">学生ページに表示</span>
+          </label>
+        </td>
+      `;
+      gradeSettingsTbody.appendChild(tr);
+    }
+  }
+
+  async function loadGradeSettings(){
+    gradeSettingsMsg.textContent = "読み込み中…";
+    try{
+      const raw = await dbGet(P.gradeButtons()) || {};
+      gradeDisplay = normalizeGradeSettings(raw);
+      renderGradeSettingsRows(gradeDisplay);
+      renderGradeSelectorButtons();
+      gradeSettingsMsg.textContent = "読み込みOK：保存後は学生画面を再読込してください";
+    }catch(e){
+      gradeDisplay = defaultGradeSettings();
+      renderGradeSettingsRows(gradeDisplay);
+      renderGradeSelectorButtons();
+      gradeSettingsMsg.textContent = "読み込み失敗（DBルール/ネット制限）";
+    }
+  }
+
+  btnGradeSettingsReload.onclick = loadGradeSettings;
+  btnGradeSettingsSave.onclick = async ()=>{
+    const payload = {};
+    [...gradeSettingsTbody.querySelectorAll("tr")].forEach(tr=>{
+      const g = Number(tr.dataset.grade || "0");
+      const labelInput = tr.querySelector('input[data-k="label"]');
+      const enabledInput = tr.querySelector('input[data-k="enabled"]');
+      const label = labelInput ? labelInput.value.trim() : "";
+      const enabled = enabledInput ? enabledInput.checked : true;
+      if (g >= 1) payload[g] = { label: label || String(g), enabled };
+    });
+
+    gradeSettingsMsg.textContent = "保存中…";
+    try{
+      await dbSet(P.gradeButtons(), payload);
+      gradeSettingsMsg.textContent = "保存OK：学生画面を再読込してください";
+      gradeDisplay = normalizeGradeSettings(payload);
+      renderGradeSelectorButtons();
+    }catch(e){
+      gradeSettingsMsg.textContent = "保存失敗（DBルール/ネット制限）";
+    }
+  };
   btnMode.onclick = async ()=>{
     viewMode = (viewMode === "pre") ? "review" : "pre";
     btnMode.textContent = (viewMode === "pre") ? "review表示" : "pre表示";
