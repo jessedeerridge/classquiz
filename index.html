@@ -1085,7 +1085,6 @@ const P = {
   lessonStageDone: (studentKey, grade, lesson, stage)=> `lessonProgress/${studentKey}/${grade}/${lesson}/${stage}`,
   wordsGrade: (grade)=> `words/${grade}`,
   bestStage: (studentKey, grade, lesson, stage)=> `bestProgress/${studentKey}/${grade}/${lesson}/${stage}`,
-  deviceName: (deviceId)=> `deviceNames/${deviceId}`,
 };
 
 /* ✅ 名前→同一進行（同じ名前なら同じDBパス） */
@@ -1125,7 +1124,6 @@ const BG_ANIM_FPS_QUIZ   = 24;
 /* ========= localStorage ========= */
 const NAME_KEY  = "yuko_wordlog_name";
 const GRADE_KEY = "yuko_wordlog_grade";
-const DEVICE_ID_KEY = "yuko_wordlog_device_id";
 
 /* ========= 波ゲージ色（ローカル） ========= */
 const GAUGE_COLOR_KEY = "yuko_wordlog_gauge_colors_v1";
@@ -1170,48 +1168,6 @@ function ensureGaugeColorIfNeeded(name, grade, lesson, rate01){
   saveGaugeColorMap(_gaugeColorMap);
 }
 
-function stableDeviceFingerprint(){
-  const platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "unknown";
-  const lang = navigator.language || "";
-  const scr = window.screen ? `${screen.width}x${screen.height}x${screen.colorDepth}` : "0x0x0";
-  const cores = navigator.hardwareConcurrency || 0;
-  const mem = navigator.deviceMemory || 0;
-  return `${platform}|${lang}|${scr}|${cores}|${mem}`;
-}
-function hashString36(str){
-  let h = 0;
-  for (let i = 0; i < str.length; i++){
-    h = ((h << 5) - h) + str.charCodeAt(i);
-    h |= 0;
-  }
-  return Math.abs(h >>> 0).toString(36);
-}
-function ensureDeviceId(){
-  try{
-    const existing = localStorage.getItem(DEVICE_ID_KEY);
-    if (existing) return existing;
-  }catch(e){}
-  const fp = stableDeviceFingerprint();
-  const id = `dev_${hashString36(fp)}`;
-  try{ localStorage.setItem(DEVICE_ID_KEY, id); }catch(e){}
-  return id;
-}
-const DEVICE_ID = ensureDeviceId();
-
-async function loadDeviceName(){
-  if (!DEVICE_ID) return null;
-  try{
-    const obj = await dbGet(P.deviceName(DEVICE_ID));
-    if (obj && typeof obj.name === "string") return normName(obj.name);
-  }catch(e){}
-  return null;
-}
-async function saveDeviceName(name){
-  if (!DEVICE_ID || !name) return;
-  try{
-    await dbSet(P.deviceName(DEVICE_ID), { name: normName(name), updatedAt: nowTs() });
-  }catch(e){}
-}
 
 
 /* ========= DOM ========= */
@@ -1279,14 +1235,7 @@ const flashModeFast = document.getElementById("flashModeFast");
 /* ========= 初期：名前復元 ========= */
 const savedName = localStorage.getItem(NAME_KEY);
 if (savedName) stuName.value = savedName;
-else {
-  loadDeviceName().then(name=>{
-    if (name && !stuName.value){
-      stuName.value = name;
-      try{ localStorage.setItem(NAME_KEY, name); }catch(e){}
-    }
-  });
-}
+
 
 /* =========================
    ★ 学年（増える版）
@@ -3328,7 +3277,6 @@ async function startFlow(){
     const name = normName(stuName.value);
     if (!name){ setStuStatus("名前を入力して。", false); return; }
     localStorage.setItem(NAME_KEY, name);
-    saveDeviceName(name);
 
 
     STUDENT.studentKey = studentKeyFromName(name);
