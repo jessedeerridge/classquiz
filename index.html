@@ -552,6 +552,9 @@ font-size: var(--reviewWordMaxPx);
       font-size:14px;
     }
 
+    .sessionWrongList .wrongParen{ color:#d9d9d9; font-weight:900; }
+    .sessionWrongList .wrongParenAnswer{ color:#d40000; font-weight:900; }
+
     .sessionBackBtn{
       position:absolute;
       right:12px;
@@ -795,6 +798,54 @@ font-size: var(--reviewWordMaxPx);
   user-select:none;
   text-shadow:0 6px 18px rgba(0,0,0,.35);
 }
+
+.flashModeWrap{
+  display:flex;
+  gap:10px;
+  width:100%;
+  margin-top:6px;
+}
+.flashModeBtn{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  justify-content:flex-start;
+  gap:8px;
+  border:1px solid #d5d5d5;
+  border-radius:14px;
+  background:linear-gradient(180deg, #f2f2f2 0%, #e7e7e7 100%);
+  color:#111;
+  padding:12px 14px;
+  font-weight:900;
+  text-align:left;
+  box-shadow:0 10px 26px rgba(0,0,0,.14);
+  transition: background .18s ease, color .18s ease, border-color .18s ease, transform .12s ease;
+  cursor:pointer;
+}
+.flashModeBtn:active{ transform:scale(.99); }
+.flashModeBtn .flashModeLabel{
+  width:100%;
+  text-align:center;
+  font-size:16px;
+  line-height:1.1;
+}
+.flashModeBtn .flashModeDesc{
+  font-size:13px;
+  line-height:1.45;
+  font-weight:850;
+  opacity:.86;
+  text-align:left;
+}
+.flashModeBtn.active{
+  background:#111;
+  border-color:#111;
+  color:#fff;
+  box-shadow:0 12px 30px rgba(0,0,0,.35);
+}
+.flashModeBtn.active .flashModeDesc{ opacity:.94; }
+.flashModeBtn.active .flashModeLabel{ opacity:1; }
+
 /* ✅ 追加：フラッシュカードの例文 */
 #flashBack .flashExample{
   font-weight:800;
@@ -968,6 +1019,18 @@ font-size: var(--reviewWordMaxPx);
 
       <div class="flashBottom" id="flashBottom">…</div>
     </div>
+
+    <div class="flashModeWrap" id="flashModeWrap">
+      <button class="flashModeBtn active" type="button" data-mode="slow" id="flashModeSlow">
+        <div class="flashModeLabel">ゆっくり</div>
+        <div class="flashModeDesc">例文を見て、使い方を確認しよう。</div>
+      </button>
+      <button class="flashModeBtn" type="button" data-mode="fast" id="flashModeFast">
+        <div class="flashModeLabel">はやく</div>
+        <div class="flashModeDesc">暗記で大事なのは反復です。1単語を2秒くらいで</div>
+      </button>
+    </div>
+
     <div class="flashPager" id="flashPager">1/1</div>
   </div>
 </div>
@@ -1157,6 +1220,9 @@ const flashTop    = document.getElementById("flashTop");
 const flashBottom = document.getElementById("flashBottom");
 const flashPager  = document.getElementById("flashPager");
 const flashExample = document.getElementById("flashExample"); 
+const flashModeWrap = document.getElementById("flashModeWrap");
+const flashModeSlow = document.getElementById("flashModeSlow");
+const flashModeFast = document.getElementById("flashModeFast");
 
 /* ========= 初期：名前復元 ========= */
 const savedName = localStorage.getItem(NAME_KEY);
@@ -1610,7 +1676,7 @@ const FLASH = {
   i: 0,
   timer: null,
   anim: false,
-
+  mode: "slow",
   dragging: false,
   startX: 0,
   lastDX: 0,
@@ -1640,6 +1706,26 @@ function clearFlashTimer(){
     FLASH.timer = null;
   }
 }
+
+function setFlashMode(mode){
+  if (mode !== "fast") mode = "slow";
+  FLASH.mode = mode;
+
+  if (flashModeWrap){
+    const btns = [flashModeSlow, flashModeFast].filter(Boolean);
+    for (const btn of btns){
+      const isActive = btn.dataset.mode === mode;
+      btn.classList.toggle("active", isActive);
+      btn.setAttribute("aria-pressed", isActive ? "true" : "false");
+    }
+  }
+
+  clearFlashTimer();
+  if (mode === "fast"){
+    scheduleFlashAuto();
+  }
+}
+
 
 function closeFlash(){
   if (!flashBack) return;
@@ -1701,6 +1787,7 @@ requestAnimationFrame(fitFlashModalWidth);
 function scheduleFlashAuto(){
   clearFlashTimer();
   if (!FLASH.list.length) return;
+  if (FLASH.mode !== "fast") return;
   FLASH.timer = setTimeout(()=>{
     flashGo(1, false); // 自動は「次へ」固定
   }, 2000);
@@ -1799,6 +1886,7 @@ list.push({ word, meaning, example });
 
   FLASH.i = 0;
   FLASH.anim = false;
+  setFlashMode("slow");
   renderFlashCard();
   scheduleFlashAuto();
 }
@@ -1808,6 +1896,10 @@ flashBack.addEventListener("pointerdown", (e)=>{
   if (e.target === flashBack) closeFlash();
 }, { passive:true });
 flashBack.querySelector(".flashModal")?.addEventListener("pointerdown", (e)=> e.stopPropagation(), { passive:true });
+
+flashModeSlow?.addEventListener("click", ()=> setFlashMode("slow"));
+flashModeFast?.addEventListener("click", ()=> setFlashMode("fast"));
+
 
 /* 左スワイプで次（カード上） */
 /* 左右スワイプ（左=次 / 右=戻る） */
@@ -2122,7 +2214,7 @@ function scheduleOpenSessionResultAfterReviewBalls(prevCount, nextCount){
     _reviewResultTimer = setTimeout(()=>{
       if (!stillValid()) return;
       openSessionResult();
-    }, 1000);
+    }, 200);
   };
 
   // 新規落下なし＝「全部落ちた」扱い → 2秒後に表示
@@ -2494,15 +2586,15 @@ function openSessionResult(){
     const li = document.createElement("li");
     // ✅ もし問題文に（）が含まれていたら、入力ボックスに置き換えて空所埋め形式で再表示
     const hasParens = x.word && x.word.includes("（") && x.word.includes("）");
-    const displayWord = (hasParens && x.meaning)
-      ? fillAnswerIntoParens(x.word, x.meaning)
-      : x.word;
+    const displayWordHtml = (hasParens && x.meaning)
+      ? fillAnswerIntoParensHtml(x.word, x.meaning)
+      : escapeHtml(x.word);
     const meaningHtml = (shouldShowMeaning && x.meaning)
       ? `<div class="m">${escapeHtml(x.meaning)}</div>`
       : "";
 
     li.innerHTML =
-      `<div class="w">${escapeHtml(displayWord)}</div>` +
+      `<div class="w">${displayWordHtml}</div>` +
       meaningHtml;
     wrongList.appendChild(li);
   });
@@ -2519,10 +2611,11 @@ btnSessionClose.onclick = async ()=>{
 };
 sessionBack.addEventListener("click", ()=>{ /* do nothing */ });
 sessionBack.querySelector(".modal")?.addEventListener("click", (e)=> e.stopPropagation());
-// ✅ （…）で囲まれた部分に正解を差し込み表示する
-function fillAnswerIntoParens(word, answer){
-  const ans = String(answer ?? "");
-  return String(word ?? "").replace(/（[^）]*）/g, `（${ans}）`);
+// ✅ （…）で囲まれた部分に正解を差し込み表示する（装飾付き）
+function fillAnswerIntoParensHtml(word, answer){
+  const ans = escapeHtml(String(answer ?? ""));
+  const base = escapeHtml(String(word ?? ""));
+  return base.replace(/（[^）]*）/g, `<span class="wrongParen">（</span><span class="wrongParenAnswer">${ans}</span><span class="wrongParen">）</span>`);
 }
 /* =========================
    ✅ review：問題を改行しない＆自動縮小
