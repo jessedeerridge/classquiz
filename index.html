@@ -3984,6 +3984,8 @@ function drawLessonTrapezoids(animateLevels=true){
     strokeW: 2
   };
   const strokeColor = "#000";
+  const lineColor = "#000";
+  const shapeStroke = "#B3B3B3";
   const padY = 160;
 
   const marginX = base.marginX;
@@ -4009,6 +4011,31 @@ function drawLessonTrapezoids(animateLevels=true){
 
   const defs = sEl("defs");
   lessonSvg.appendChild(defs);
+  const handFilter = sEl("filter");
+  handFilter.setAttribute("id", "handDrawnStroke");
+  handFilter.setAttribute("x", "-12%");
+  handFilter.setAttribute("y", "-12%");
+  handFilter.setAttribute("width", "124%");
+  handFilter.setAttribute("height", "124%");
+
+  const handTurb = sEl("feTurbulence");
+  handTurb.setAttribute("type", "fractalNoise");
+  handTurb.setAttribute("baseFrequency", "0.9");
+  handTurb.setAttribute("numOctaves", "1");
+  handTurb.setAttribute("seed", "2");
+  handTurb.setAttribute("result", "noise");
+  handFilter.appendChild(handTurb);
+
+  const handDisp = sEl("feDisplacementMap");
+  handDisp.setAttribute("in", "SourceGraphic");
+  handDisp.setAttribute("in2", "noise");
+  handDisp.setAttribute("scale", "0.7");
+  handDisp.setAttribute("xChannelSelector", "R");
+  handDisp.setAttribute("yChannelSelector", "G");
+  handFilter.appendChild(handDisp);
+
+  defs.appendChild(handFilter);
+
 
   const GAUGE_MAX = 0.90;
 
@@ -4020,7 +4047,7 @@ function drawLessonTrapezoids(animateLevels=true){
     line.setAttribute("y", lineY);
     line.setAttribute("width", lineW);
     line.setAttribute("height", base.lineH);
-    line.setAttribute("fill", strokeColor);
+    line.setAttribute("fill", lineColor);
     lessonSvg.appendChild(line);
 
     const startIdx = i * perLine;
@@ -4230,10 +4257,11 @@ function drawLessonTrapezoids(animateLevels=true){
       const dOutline = `M ${x1} ${y1} L ${x4} ${y4} L ${x3} ${y3} L ${x2} ${y2}`;
       outline.setAttribute("d", dOutline);
       outline.setAttribute("fill", "none");
-      outline.setAttribute("stroke", strokeColor);
+      outline.setAttribute("stroke", shapeStroke);
       outline.setAttribute("stroke-width", base.strokeW);
       outline.setAttribute("stroke-linecap", "round");
       outline.setAttribute("stroke-linejoin", "round");
+      outline.setAttribute("filter", "url(#handDrawnStroke)");
       outline.style.pointerEvents = "none";
       lessonSvg.appendChild(outline);
 
@@ -4262,7 +4290,6 @@ function drawLessonTrapezoids(animateLevels=true){
 
       const cxRing = cx;
       const cyRing = (topY) - ryRing + RING_SHIFT_Y;
-
       const RING_FILL = "#ff0000";
       const RING_STROKE = "#BC3825";
       const RING_STROKE_W = Math.max(1, Math.round(base.strokeW * 1));
@@ -4274,8 +4301,9 @@ function drawLessonTrapezoids(animateLevels=true){
       ring.setAttribute("rx", rxRing);
       ring.setAttribute("ry", ryRing);
       ring.setAttribute("fill", isFull ? RING_FILL : "none");
-      ring.setAttribute("stroke", isFull ? RING_STROKE : strokeColor);
+      ring.setAttribute("stroke", isFull ? RING_STROKE : shapeStroke);
       ring.setAttribute("stroke-width", isFull ? RING_STROKE_W : base.strokeW);
+      ring.setAttribute("filter", "url(#handDrawnStroke)");
       ring.style.pointerEvents = "none";
       lessonSvg.appendChild(ring);
 
