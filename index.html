@@ -1708,6 +1708,10 @@ const pG = (progGrade && typeof progGrade==="object") ? progGrade : {};
     });
 
 function calc(lesson, stage){
+  const stageObj = (wG[lesson] && wG[lesson][stage] && typeof wG[lesson][stage]==="object") ? wG[lesson][stage] : {};
+  const wordIds = Object.keys(stageObj);
+  const total = wordIds.length;
+
   // ✅ 1) ベスト％があればそれを採用（これが本命）
   const bStage = (bG[lesson] && bG[lesson][stage] && typeof bG[lesson][stage] === "object")
     ? bG[lesson][stage]
@@ -1717,18 +1721,16 @@ function calc(lesson, stage){
   const rateFromBest = (Number.isFinite(bestPct)) ? clamp(bestPct/100, 0, 1) : null;
 
   if (rateFromBest != null){
-    // stage_rates互換の形（mastered/totalは「％表現」として扱う）
+    const totalCount = total > 0 ? total : 100;
+
     return {
-      total: 100,
-      mastered: Math.round(rateFromBest * 100),
+      total: totalCount,
+      mastered: rateFromBest * totalCount,
       rate: rateFromBest
     };
   }
 
   // ✅ 2) bestProgressがまだ無い古いデータ用フォールバック（旧：単語mastered計算）
-  const stageObj = (wG[lesson] && wG[lesson][stage] && typeof wG[lesson][stage]==="object") ? wG[lesson][stage] : {};
-  const wordIds = Object.keys(stageObj);
-  const total = wordIds.length;
 
   const pStage = (pG[lesson] && pG[lesson][stage] && typeof pG[lesson][stage]==="object") ? pG[lesson][stage] : {};
   let mastered = 0;
@@ -1745,11 +1747,19 @@ function calc(lesson, stage){
       const pre2 = calc(lesson,"pre2");
       const review = calc(lesson,"review");
 
-// ✅ pre1/pre2 のベスト％（rate）を平均して課の達成度にする
-const r1 = (pre1.rate != null) ? pre1.rate : 0;
-const r2 = (pre2.rate != null) ? pre2.rate : 0;
-const achieveRate = clamp((r1 + r2) / 2, 0, 1);
-
+// ✅ pre1/pre2 の合算で課の達成度にする
+const m1 = Number.isFinite(pre1.mastered) ? pre1.mastered : null;
+const m2 = Number.isFinite(pre2.mastered) ? pre2.mastered : null;
+const t1 = Number.isFinite(pre1.total) ? pre1.total : null;
+const t2 = Number.isFinite(pre2.total) ? pre2.total : null;
+let achieveRate = null;
+if (Number.isFinite(m1) && Number.isFinite(m2) && Number.isFinite(t1) && Number.isFinite(t2) && (t1 + t2) > 0){
+  achieveRate = clamp((m1 + m2) / (t1 + t2), 0, 1);
+} else {
+  const r1 = (pre1.rate != null) ? pre1.rate : 0;
+  const r2 = (pre2.rate != null) ? pre2.rate : 0;
+  achieveRate = clamp((r1 + r2) / 2, 0, 1);
+}
       const done = dG[lesson] || {};
       const stage_status = {
         pre1: { completed_at: done.pre1?.completedAt || null },
@@ -2002,6 +2012,8 @@ lowRateBack.querySelector(".modal")?.addEventListener("pointerdown", (e)=> e.sto
 btnLowRateStart.onclick = ()=>{
   const p = _lowRatePending;
   closeLowRatePop();
+
+
   if (!p) return;
   // ✅ 通常の開始処理（閾値チェック無し）へ
   startStageCore(p.stage, p.meta, p.lesson);
@@ -4459,8 +4471,7 @@ function startQuizWaveLoop(){
   if (!_quizWave) buildQuizWaveSvg();
   if (!_quizWave) return;
 
-  _quizRateVis = clamp(_quizRateVis, 0, 1);
-
+  _quizRateVis = clamp(getCurrentLessonSumRate01(), 0, 1);
   const frameMs = 1000 / Math.max(8, BG_ANIM_FPS_QUIZ);
   let last = 0;
 
