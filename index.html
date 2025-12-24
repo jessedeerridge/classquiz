@@ -70,8 +70,8 @@
 
     .student-top{
       display:flex; flex-direction:column; gap:12px;
-      max-width:360px;
-      margin:28vh auto 0;
+      max-width:200px;
+      margin:60vh auto 0;
       padding:0;
       background:transparent;
       border:0;
@@ -80,7 +80,7 @@
     .student-top input{
       width:100%;
       font-size:18px;
-      padding:14px;
+      padding:20px;
       border-radius:14px;
       text-align:center;
     }
@@ -92,6 +92,27 @@
     }
     .student-top input,
     .student-top button{ box-sizing:border-box; }
+
+    .student-top .name-plate{
+      position:relative;
+      width:100%;
+    }
+    .student-top .name-plate::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      border-radius:14px;
+      background:#f0f0f0;
+      border:1px solid rgba(0,0,0,.12);
+      transform: translate(4px, -4px);
+      box-shadow:0 10px 18px rgba(0,0,0,.18);
+      z-index:0;
+    }
+    .student-top .name-plate input{
+      position:relative;
+      z-index:1;
+      background:#fff;
+    }
 
     #lessonListBox{ display:flex; flex-direction:column; align-items:center; }
 
@@ -980,7 +1001,9 @@ font-size: var(--reviewWordMaxPx);
 <main>
   <section id="studentSec">
     <div class="student-top" id="studentTop">
-      <input id="stuName" placeholder="Enter name" />
+      <div class="name-plate">
+        <input id="stuName" placeholder="Enter name" />
+      </div>
       <button id="btnStart">アルバイトをはじめる</button>
       <div id="stuStatus" class="muted" style="text-align:center"></div>
     </div>
