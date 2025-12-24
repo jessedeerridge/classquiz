@@ -68,6 +68,58 @@
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     @media(max-width:800px){.grid2{grid-template-columns:1fr}}
 
+    .chara-select{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%,-50%);
+      display:flex;
+      gap:18px;
+      align-items:center;
+      justify-content:center;
+      z-index:5;
+    }
+    .chara-select button{
+      background:none;
+      border:0;
+      padding:0;
+      cursor:pointer;
+      position:relative;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .chara-select img{
+       width:110px;
+      height:110px;
+      display:block;
+      object-fit:contain;
+      border-radius:16px;
+    }
+    .chara-select .chara-btn.is-selected::after{
+      content:"";
+      position:absolute;
+      inset:-6px;
+      background:
+        linear-gradient(#111,#111) left top / 16px 2px no-repeat,
+        linear-gradient(#111,#111) left top / 2px 16px no-repeat,
+        linear-gradient(#111,#111) right top / 16px 2px no-repeat,
+        linear-gradient(#111,#111) right top / 2px 16px no-repeat,
+        linear-gradient(#111,#111) left bottom / 16px 2px no-repeat,
+        linear-gradient(#111,#111) left bottom / 2px 16px no-repeat,
+        linear-gradient(#111,#111) right bottom / 16px 2px no-repeat,
+        linear-gradient(#111,#111) right bottom / 2px 16px no-repeat;
+      border-radius:16px;
+      pointer-events:none;
+    }
+    .chara-select.single .chara-btn{
+      display:none;
+    }
+    .chara-select.single .chara-btn.is-selected{
+      display:flex;
+    }
+
+
     .student-top{
       display:flex; flex-direction:column; gap:12px;
       max-width:200px;
@@ -1000,6 +1052,19 @@ font-size: var(--reviewWordMaxPx);
 <body>
 <main>
   <section id="studentSec">
+    <div class="chara-select" id="charaSelect" aria-label="chara chooser">
+      <button class="chara-btn" type="button" data-chara="c1" aria-label="chara 1">
+        <img src="c1.png" alt="chara 1" />
+      </button>
+      <button class="chara-btn" type="button" data-chara="c2" aria-label="chara 2">
+        <img src="c2.png" alt="chara 2" />
+      </button>
+      <button class="chara-btn" type="button" data-chara="c3" aria-label="chara 3">
+        <img src="c3.png" alt="chara 3" />
+      </button>
+    </div>
+
+
     <div class="student-top" id="studentTop">
       <div class="name-plate">
         <input id="stuName" placeholder="Enter name" />
@@ -1231,6 +1296,9 @@ const FLASH_VIEWS_FOR_ASA = 20;
 /* ========= localStorage ========= */
 const NAME_KEY  = "yuko_wordlog_name";
 const GRADE_KEY = "yuko_wordlog_grade";
+const CHARA_KEY = "yuko_wordlog_chara";
+const CHARA_LIST = ["c1", "c2", "c3"];
+
 
 /* ========= 波ゲージ色（ローカル） ========= */
 const GAUGE_COLOR_KEY = "yuko_wordlog_gauge_colors_v1";
@@ -1282,6 +1350,8 @@ const studentTop = document.getElementById("studentTop");
 const stuName = document.getElementById("stuName");
 const btnStart = document.getElementById("btnStart");
 const stuStatus = document.getElementById("stuStatus");
+const charaSelect = document.getElementById("charaSelect");
+const charaButtons = [...document.querySelectorAll(".chara-btn")];
 
 const lessonListBox = document.getElementById("lessonListBox");
 const lessonList = document.getElementById("lessonList");
@@ -1507,6 +1577,45 @@ async function awardAsaForSession(pct){
 /* ========= 初期：名前復元 ========= */
 const savedName = localStorage.getItem(NAME_KEY);
 if (savedName) stuName.value = savedName;
+
+/* ========= 初期：chara復元 ========= */
+function normalizeChara(value){
+  return CHARA_LIST.includes(value) ? value : "";
+}
+function getSavedChara(){
+  const saved = normalizeChara(localStorage.getItem(CHARA_KEY) || "");
+  if (!saved) localStorage.removeItem(CHARA_KEY);
+  return saved;
+}
+function applyCharaSelection(value, { save=false, collapse=false } = {}){
+  const normalized = normalizeChara(value);
+  charaButtons.forEach((btn)=>{
+    const match = btn.dataset.chara === normalized;
+    btn.classList.toggle("is-selected", match);
+  });
+  if (save && normalized) localStorage.setItem(CHARA_KEY, normalized);
+  charaSelect.classList.toggle("single", collapse);
+}
+function renderCharaSelect(){
+  const saved = getSavedChara();
+  if (saved){
+    applyCharaSelection(saved, { save:false, collapse:true });
+  } else {
+    charaButtons.forEach(btn=>btn.classList.remove("is-selected"));
+    charaSelect.classList.remove("single");
+  }
+}
+renderCharaSelect();
+charaButtons.forEach((btn)=>{
+  btn.addEventListener("click", ()=>{
+    if (charaSelect.classList.contains("single")){
+      charaSelect.classList.remove("single");
+      return;
+    }
+    const value = btn.dataset.chara;
+    applyCharaSelection(value, { save:true, collapse:true });
+  });
+});
 
 
 /* =========================
@@ -2638,6 +2747,8 @@ function showNameScreen(){
   IN_ROOM = false;
 
   studentTop.style.display = "";
+  charaSelect.style.display = "flex";
+  renderCharaSelect();
   lessonListBox.style.display = "none";
   quizBox.style.display = "none";
   renderAsaPop();
@@ -2668,6 +2779,7 @@ async function showLessonList(){
   IN_ROOM = true;
 
   studentTop.style.display = "none";
+  charaSelect.style.display = "none";
   lessonListBox.style.display = "";
   quizBox.style.display = "none";
   renderAsaPop();
@@ -2700,6 +2812,7 @@ function showQuiz(){
   IN_ROOM = true;
 
   studentTop.style.display = "none";
+  charaSelect.style.display = "none";
   lessonListBox.style.display = "none";
   quizBox.style.display = "";
   renderAsaPop();
