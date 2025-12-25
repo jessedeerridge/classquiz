@@ -893,8 +893,8 @@ font-size: var(--reviewWordMaxPx);
 /* ✅ lowRate/session と同じ：内容に合わせて縮む幅（JSで確定） */
 #flashBack .flashModal{
   width:auto;                          /* ←縮む */
-  max-width:min(92vw, 520px);          /* ←はみ出し防止 */
-  min-width:260px;                     /* ←小さすぎ防止 */
+  max-width:min(88vw, 380px);          /* ←はみ出し防止 */
+  min-width:220px;                      /* ←小さすぎ防止 */
   display:flex;
   flex-direction:column;
   align-items:center;
@@ -907,35 +907,49 @@ font-size: var(--reviewWordMaxPx);
   border-radius:18px;
   border:1px solid #eee;
   box-shadow:0 24px 70px rgba(0,0,0,.35);
-  padding:18px 16px;
+  padding:12px 16px;
   user-select:none;
   touch-action: none; /* ✅横ドラッグを最優先（スクロール/ジェスチャでカクつかない） */
   contain: layout paint; /* ✅周辺への影響を減らして安定 */
   will-change: transform, opacity;
 }
 
-#flashBack .flashTop{
+#flashBack .flashList{
+  display:flex;
+  flex-direction:column;
+}
+#flashBack .flashRow{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  padding:10px 4px;
+}
+#flashBack .flashRow:not(:last-child){
+  border-bottom:1px dotted rgba(0,0,0,.2);
+}
+#flashBack .flashRow.is-empty .flashMain,
+#flashBack .flashRow.is-empty .flashExampleLine{
+  opacity:0;
+}
+#flashBack .flashMain{
+  display:flex;
+  align-items:baseline;
+  gap:20px;
+  min-height:22px;
+}
+#flashBack .flashMeaning{
   font-weight:950;
-  font-size:34px;
-  line-height:1.15;
-  text-align:center;
+  font-size:18px;
+  line-height:1.2;
   color:#111;
-  padding:8px 6px 10px;
   word-break:break-word;
 }
-#flashBack .flashDivider{
-  height:1px;
-  background:#eee;
-  margin:6px 0 10px;
-}
-#flashBack .flashBottom{
+#flashBack .flashWord{
   font-weight:900;
-  font-size:22px;
-  line-height:1.25;
-  text-align:center;
+  font-size:16px;
+  line-height:1.2;
   color:#111;
-  opacity:.92;
-  padding:6px;
+  opacity:.9;
   word-break:break-word;
 }
 #flashBack .flashPager{
@@ -996,20 +1010,23 @@ font-size: var(--reviewWordMaxPx);
 .flashModeBtn.active .flashModeDesc{ opacity:.94; }
 .flashModeBtn.active .flashModeLabel{ opacity:1; }
 
-/* ✅ 追加：フラッシュカードの例文 */
-#flashBack .flashExample{
-  font-weight:800;
+/* ✅ 追加：フラッシュカードの例文（review quizと同じ仕様） */
+#flashBack .flashExampleLine{
+  font-weight:850;
   font-size:14px;
   line-height:1.45;
-  text-align:left;
   color:#111;
-  opacity:.78;
-  padding:8px 10px;
-  border-radius:12px;
-  background:rgba(0,0,0,.04);
-  margin:2px 2px 10px;
-  word-break:break-word;
-  white-space:pre-wrap;
+  opacity:.70;
+  padding:4px 8px;
+  border-radius:10px;
+  background: rgba(0,0,0,.05);
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height:16px;
+}
+#flashBack .flashExampleLine.is-empty{
+  background: transparent;
+  opacity: 0;
 }
 
 
@@ -1185,11 +1202,7 @@ font-size: var(--reviewWordMaxPx);
 <div class="modalBack" id="flashBack" aria-label="flash cards">
   <div class="flashModal" role="dialog" aria-modal="true">
     <div class="flashCard" id="flashCard">
-      <div class="flashTop" id="flashTop">…</div>
-      <div class="flashDivider"></div>
-  <div class="flashExample" id="flashExample" style="display:none">…</div>
-
-      <div class="flashBottom" id="flashBottom">…</div>
+      <div class="flashList" id="flashList"></div>
     </div>
 
     <div class="flashModeWrap" id="flashModeWrap">
@@ -1200,10 +1213,7 @@ font-size: var(--reviewWordMaxPx);
       <button class="flashModeBtn" type="button" data-mode="fast" id="flashModeFast">
         <div class="flashModeLabel">はやく🐇</div>
         <div class="flashModeDesc">语言学习中，最重要的是反复。
-每个单词只花 约 2 秒，用日语和中文快速念两遍，马上进入下一个。
-不要慢慢地一天背 30 个，而是 一天快速看 50～100 个单词，再从头快速重复。
-同一个单词 一天至少看 10 次，坚持一周很重要。
-不用拼命去记。只要 看・说・反复・坚持，就足够了。</div>
+</div>
       </button>
     </div>
 
@@ -1404,10 +1414,8 @@ const btnLowRateMem = document.getElementById("btnLowRateMem");
 /* ✅ フラッシュカードDOM（おぼえる👀） */
 const flashBack   = document.getElementById("flashBack");
 const flashCard   = document.getElementById("flashCard");
-const flashTop    = document.getElementById("flashTop");
-const flashBottom = document.getElementById("flashBottom");
+const flashList   = document.getElementById("flashList");
 const flashPager  = document.getElementById("flashPager");
-const flashExample = document.getElementById("flashExample"); 
 const flashModeWrap = document.getElementById("flashModeWrap");
 const flashModeSlow = document.getElementById("flashModeSlow");
 const flashModeFast = document.getElementById("flashModeFast");
@@ -2144,6 +2152,7 @@ const FLASH = {
   pendingDX: 0,    // ✅追加：次フレームに反映するdx
   lastCountedIndex: -1,
 };
+const FLASH_PAGE_SIZE = 6;
 
 function flashApplyDrag(){
   FLASH.raf = 0;
@@ -2208,46 +2217,69 @@ function closeFlash(){
 function renderFlashCard(){
   const n = FLASH.list.length;
   if (!n){
-    flashTop.textContent = "…";
-    if (flashExample){
-      flashExample.textContent = "";
-      flashExample.style.display = "none";
-    }
-    flashBottom.textContent = "…";
+    if (flashList) flashList.innerHTML = "";
     flashPager.textContent = "0/0";
     return;
   }
 
-const cur = FLASH.list[FLASH.i];
 
-// ✅ 入れ替え：上に正解（meaning）
-flashTop.textContent = cur.meaning || "";
+  const totalPages = Math.max(1, Math.ceil(n / FLASH_PAGE_SIZE));
+  const pageIndex = Math.max(0, Math.min(FLASH.i, totalPages - 1));
+  FLASH.i = pageIndex;
+  const startIndex = pageIndex * FLASH_PAGE_SIZE;
+  const endIndex = startIndex + FLASH_PAGE_SIZE;
+  const pageItems = FLASH.list.slice(startIndex, endIndex);
 
-// ✅ 例文はそのまま（中段）
-const ex = String(cur.example ?? "").trim();
-if (flashExample){
-  if (ex){
-    flashExample.textContent = ex;
-    flashExample.style.display = "";
-  } else {
-    flashExample.textContent = "";
-    flashExample.style.display = "none";
+  if (flashList){
+    flashList.innerHTML = "";
+    for (let idx = 0; idx < FLASH_PAGE_SIZE; idx += 1){
+      const entry = pageItems[idx];
+      const row = document.createElement("div");
+      row.className = "flashRow";
+      const main = document.createElement("div");
+      main.className = "flashMain";
+      const meaning = document.createElement("div");
+      meaning.className = "flashMeaning";
+      const word = document.createElement("div");
+      word.className = "flashWord";
+      const example = document.createElement("div");
+      example.className = "flashExampleLine";
+
+      if (entry){
+        meaning.textContent = entry.meaning || "";
+        word.textContent = entry.word || "";
+        const ex = String(entry.example ?? "").trim();
+        example.textContent = ex;
+        if (!ex){
+          example.classList.add("is-empty");
+        }
+      } else {
+        row.classList.add("is-empty");
+        meaning.textContent = "";
+        word.textContent = "";
+        example.textContent = "";
+        example.classList.add("is-empty");
+      }
+
+      main.appendChild(meaning);
+      main.appendChild(word);
+      row.appendChild(main);
+      row.appendChild(example);
+      flashList.appendChild(row);
+    }
   }
-}
 
-// ✅ 入れ替え：下に単語（word）
-flashBottom.textContent = cur.word || "";
-
-flashPager.textContent = `${FLASH.i + 1}/${FLASH.list.length}`;
-noteFlashCardViewed();
-requestAnimationFrame(fitFlashModalWidth);
+  flashPager.textContent = `${pageIndex + 1}/${totalPages}`;
+  noteFlashCardViewed(pageItems.length);
+  requestAnimationFrame(fitFlashModalWidth);
 
 }
-function noteFlashCardViewed(){
+function noteFlashCardViewed(count){
   if (!FLASH.list.length) return;
   if (FLASH.i === FLASH.lastCountedIndex) return;
   FLASH.lastCountedIndex = FLASH.i;
-  recordFlashViews(1);
+  const safeCount = Math.max(0, Math.trunc(count || 0));
+  if (safeCount) recordFlashViews(safeCount);
 }
 
 
@@ -2267,7 +2299,8 @@ function flashGo(dir, withAnim=true, fromX=0){
   clearFlashTimer();
 
   const n = FLASH.list.length;
-  const nextIndex = (FLASH.i + dir + n) % n;
+  const totalPages = Math.max(1, Math.ceil(n / FLASH_PAGE_SIZE));
+  const nextIndex = (FLASH.i + dir + totalPages) % totalPages;
 
   if (!withAnim){
     FLASH.i = nextIndex;
@@ -2321,8 +2354,6 @@ function flashPrev(withAnim=true){ flashGo(-1, withAnim); }
 async function openFlashCards(grade, lesson, stage){
   if (!flashBack) return;
 
-  flashTop.textContent = "読み込み中…";
-  flashBottom.textContent = "";
   flashPager.textContent = "--/--";
   flashBack.style.display = "flex";
 requestAnimationFrame(fitFlashModalWidth);
@@ -2631,8 +2662,8 @@ function fitFlashModalWidth(){
   const minW = 260;
 
   let maxContentW = 0;
-const targets = [flashTop, flashExample, flashBottom, flashPager].filter(Boolean);
-  for (const el of targets){
+const targets = [flashList, flashPager].filter(Boolean); 
+ for (const el of targets){
     maxContentW = Math.max(maxContentW, el.scrollWidth || 0);
   }
 
