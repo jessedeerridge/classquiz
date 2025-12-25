@@ -1205,19 +1205,15 @@ font-size: var(--reviewWordMaxPx);
       <div class="flashList" id="flashList"></div>
     </div>
 
+    <div class="flashPager" id="flashPager">1/1</div>
+
     <div class="flashModeWrap" id="flashModeWrap">
-      <button class="flashModeBtn active" type="button" data-mode="slow" id="flashModeSlow">
-        <div class="flashModeLabel">ゆっくり🐢</div>
-        <div class="flashModeDesc">例文を見て、使い方を確認しよう。</div>
-      </button>
-      <button class="flashModeBtn" type="button" data-mode="fast" id="flashModeFast">
-        <div class="flashModeLabel">はやく🐇</div>
-        <div class="flashModeDesc">语言学习中，最重要的是反复。
-</div>
+      <button class="flashModeBtn" type="button" id="flashModeUnified" disabled>
+        <div class="flashModeLabel">モード（準備中）</div>
+        <div class="flashModeDesc">機能は後で追加します。</div>
       </button>
     </div>
 
-    <div class="flashPager" id="flashPager">1/1</div>
   </div>
 </div>
 
@@ -1417,8 +1413,7 @@ const flashCard   = document.getElementById("flashCard");
 const flashList   = document.getElementById("flashList");
 const flashPager  = document.getElementById("flashPager");
 const flashModeWrap = document.getElementById("flashModeWrap");
-const flashModeSlow = document.getElementById("flashModeSlow");
-const flashModeFast = document.getElementById("flashModeFast");
+const flashModeUnified = document.getElementById("flashModeUnified");
 
 
 /* ========= ASA ========= */
@@ -2143,7 +2138,6 @@ const FLASH = {
   i: 0,
   timer: null,
   anim: false,
-  mode: "slow",
   dragging: false,
   startX: 0,
   lastDX: 0,
@@ -2175,24 +2169,6 @@ function clearFlashTimer(){
   }
 }
 
-function setFlashMode(mode){
-  if (mode !== "fast") mode = "slow";
-  FLASH.mode = mode;
-
-  if (flashModeWrap){
-    const btns = [flashModeSlow, flashModeFast].filter(Boolean);
-    for (const btn of btns){
-      const isActive = btn.dataset.mode === mode;
-      btn.classList.toggle("active", isActive);
-      btn.setAttribute("aria-pressed", isActive ? "true" : "false");
-    }
-  }
-
-  clearFlashTimer();
-  if (mode === "fast"){
-    scheduleFlashAuto();
-  }
-}
 
 
 function closeFlash(){
@@ -2283,14 +2259,7 @@ function noteFlashCardViewed(count){
 }
 
 
-function scheduleFlashAuto(){
-  clearFlashTimer();
-  if (!FLASH.list.length) return;
-  if (FLASH.mode !== "fast") return;
-  FLASH.timer = setTimeout(()=>{
-    flashGo(1, false); // 自動は「次へ」固定
-  }, 2000);
-}
+
 
 function flashGo(dir, withAnim=true, fromX=0){
   if (!FLASH.list.length) return;
@@ -2385,7 +2354,6 @@ list.push({ word, meaning, example });
 
   FLASH.i = 0;
   FLASH.anim = false;
-  setFlashMode("slow");
   renderFlashCard();
   scheduleFlashAuto();
 }
@@ -2396,8 +2364,6 @@ flashBack.addEventListener("pointerdown", (e)=>{
 }, { passive:true });
 flashBack.querySelector(".flashModal")?.addEventListener("pointerdown", (e)=> e.stopPropagation(), { passive:true });
 
-flashModeSlow?.addEventListener("click", ()=> setFlashMode("slow"));
-flashModeFast?.addEventListener("click", ()=> setFlashMode("fast"));
 
 
 /* 左スワイプで次（カード上） */
