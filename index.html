@@ -852,6 +852,11 @@ font-size: var(--reviewWordMaxPx);
       font-weight:850;
       word-break:break-word;
     }
+#flashBack .flashWord.flashMasked{
+  color: transparent;
+  background: #c7c7c7;
+  border-radius: 0;
+}
     .lrBtns{
       margin-top:12px;
       display:grid;
@@ -1208,9 +1213,9 @@ font-size: var(--reviewWordMaxPx);
     <div class="flashPager" id="flashPager">1/1</div>
 
     <div class="flashModeWrap" id="flashModeWrap">
-      <button class="flashModeBtn" type="button" id="flashModeUnified" disabled>
-        <div class="flashModeLabel">モード（準備中）</div>
-        <div class="flashModeDesc">機能は後で追加します。</div>
+      <button class="flashModeBtn" type="button" id="flashModeUnified">
+        <div class="flashModeLabel">モード：グレー隠し</div>
+        <div class="flashModeDesc">押すたびに上から1つずつ表示します。</div>
       </button>
     </div>
 
@@ -2145,6 +2150,7 @@ const FLASH = {
   raf: 0,          // ✅追加：ドラッグ描画をrAFで間引く
   pendingDX: 0,    // ✅追加：次フレームに反映するdx
   lastCountedIndex: -1,
+  maskStep: -1,
 };
 const FLASH_PAGE_SIZE = 6;
 
@@ -2169,6 +2175,60 @@ function clearFlashTimer(){
   }
 }
 
+function getFlashMaskRows(){
+  if (!flashList) return [];
+  return Array.from(flashList.querySelectorAll(".flashRow"))
+    .filter((row)=> !row.classList.contains("is-empty"));
+}
+
+function applyFlashMasking(){
+  const rows = getFlashMaskRows();
+  const total = rows.length;
+  rows.forEach((row, index)=>{
+    const word = row.querySelector(".flashWord");
+    if (!word) return;
+    const shouldMask = (FLASH.maskStep >= 0) && (index >= FLASH.maskStep) && (index < total);
+    word.classList.toggle("flashMasked", shouldMask);
+  });
+}
+
+function updateFlashModeButton(){
+  if (!flashModeUnified) return;
+  const label = flashModeUnified.querySelector(".flashModeLabel");
+  const desc = flashModeUnified.querySelector(".flashModeDesc");
+  const total = getFlashMaskRows().length;
+  const active = FLASH.maskStep >= 0;
+  flashModeUnified.classList.toggle("active", active);
+  if (!label || !desc) return;
+  if (!active){
+    label.textContent = "モード：グレー隠し";
+    desc.textContent = "押すと問題部分をグレーで隠し、1つずつ表示します。";
+    return;
+  }
+  label.textContent = "モード：グレー隠し";
+  if (FLASH.maskStep === 0){
+    desc.textContent = "全部を隠しています。もう一度で上から1つ表示。";
+  } else if (FLASH.maskStep >= total){
+    desc.textContent = "全部表示中。もう一度で全部隠します。";
+  } else {
+    desc.textContent = `上から${FLASH.maskStep}個表示中。もう一度で次を表示。`;
+  }
+}
+
+function cycleFlashMasking(){
+  const total = getFlashMaskRows().length;
+  if (!total) return;
+  if (FLASH.maskStep < 0){
+    FLASH.maskStep = 0;
+  } else {
+    FLASH.maskStep += 1;
+    if (FLASH.maskStep > total){
+      FLASH.maskStep = 0;
+    }
+  }
+  applyFlashMasking();
+  updateFlashModeButton();
+}
 
 
 function closeFlash(){
@@ -2180,6 +2240,7 @@ function closeFlash(){
   FLASH.dragging = false;
   FLASH.suppressClick = false;
   FLASH.lastCountedIndex = -1;
+  FLASH.maskStep = -1;
 
   // ✅ 途中状態を完全リセット（カクつき防止）
   flashCard.classList.remove("flashInRight","flashOutLeft","flashOutRight","flashInLeft");
@@ -2248,6 +2309,8 @@ function renderFlashCard(){
   flashPager.textContent = `${pageIndex + 1}/${totalPages}`;
   noteFlashCardViewed(pageItems.length);
   requestAnimationFrame(fitFlashModalWidth);
+  applyFlashMasking();
+  updateFlashModeButton();
 
 }
 function noteFlashCardViewed(count){
@@ -2326,6 +2389,7 @@ async function openFlashCards(grade, lesson, stage){
   flashPager.textContent = "--/--";
   flashBack.style.display = "flex";
 requestAnimationFrame(fitFlashModalWidth);
+  FLASH.maskStep = -1;
 
   let list = [];
   try{
@@ -2476,6 +2540,11 @@ flashCard.addEventListener("click", (e)=>{
     flashNext(true);
   }
 });
+
+flashModeUnified?.addEventListener("click", ()=>{
+  cycleFlashMasking();
+});
+
 
 /* ✅ lowRateの「おぼえる👀」：その lesson/stage の全単語フラッシュカードを開く */
 btnLowRateMem.onclick = async ()=>{
