@@ -971,24 +971,27 @@ font-size: var(--reviewWordMaxPx);
   gap:10px;
   width:100%;
   margin-top:6px;
+  justify-content:center;
 }
 .flashModeBtn{
   flex:1;
   display:flex;
   flex-direction:column;
-  align-items:stretch;
-  justify-content:flex-start;
+  align-items:center;
+  justify-content:center;
   gap:8px;
   border:1px solid #d5d5d5;
   border-radius:14px;
   background:linear-gradient(180deg, #f2f2f2 0%, #e7e7e7 100%);
   color:#111;
-  padding:12px 14px;
+  padding:10px 12px;
   font-weight:900;
   text-align:left;
   box-shadow:0 10px 26px rgba(0,0,0,.14);
   transition: background .18s ease, color .18s ease, border-color .18s ease, transform .12s ease;
   cursor:pointer;
+  max-width:180px;
+  min-height:50px;
 }
 .flashModeBtn:active{ transform:scale(.99); }
 .flashModeBtn .flashModeLabel{
@@ -999,20 +1002,13 @@ font-size: var(--reviewWordMaxPx);
 }
 
 
-.flashModeBtn .flashModeDesc{
-  font-size:13px;
-  line-height:1.45;
-  font-weight:850;
-  opacity:.86;
-  text-align:left;
-}
+
 .flashModeBtn.active{
   background:#111;
   border-color:#111;
   color:#fff;
   box-shadow:0 12px 30px rgba(0,0,0,.35);
 }
-.flashModeBtn.active .flashModeDesc{ opacity:.94; }
 .flashModeBtn.active .flashModeLabel{ opacity:1; }
 
 /* ✅ 追加：フラッシュカードの例文（review quizと同じ仕様） */
@@ -1214,8 +1210,7 @@ font-size: var(--reviewWordMaxPx);
 
     <div class="flashModeWrap" id="flashModeWrap">
       <button class="flashModeBtn" type="button" id="flashModeUnified">
-        <div class="flashModeLabel">モード：グレー隠し</div>
-        <div class="flashModeDesc">押すたびに上から1つずつ表示します。</div>
+        <div class="flashModeLabel">かくす</div>
       </button>
     </div>
 
@@ -2195,24 +2190,17 @@ function applyFlashMasking(){
 function updateFlashModeButton(){
   if (!flashModeUnified) return;
   const label = flashModeUnified.querySelector(".flashModeLabel");
-  const desc = flashModeUnified.querySelector(".flashModeDesc");
   const total = getFlashMaskRows().length;
+  const isAllOpen = total > 0 && FLASH.maskStep >= total;
   const active = FLASH.maskStep >= 0;
   flashModeUnified.classList.toggle("active", active);
-  if (!label || !desc) return;
-  if (!active){
-    label.textContent = "モード：グレー隠し";
-    desc.textContent = "押すと問題部分をグレーで隠し、1つずつ表示します。";
+  if (!label) return;
+  if (isAllOpen){
+    label.textContent = "かくす";
     return;
   }
-  label.textContent = "モード：グレー隠し";
-  if (FLASH.maskStep === 0){
-    desc.textContent = "全部を隠しています。もう一度で上から1つ表示。";
-  } else if (FLASH.maskStep >= total){
-    desc.textContent = "全部表示中。もう一度で全部隠します。";
-  } else {
-    desc.textContent = `上から${FLASH.maskStep}個表示中。もう一度で次を表示。`;
-  }
+  label.textContent = active ? "次のことばを見る" : "かくす";
+
 }
 
 function cycleFlashMasking(){
