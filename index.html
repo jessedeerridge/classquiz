@@ -182,6 +182,26 @@
       box-shadow:0 18px 42px rgba(0,0,0,.55);
     }
 
+
+    .lesson-chara{
+      position:absolute;
+      left:12px;
+      bottom:28px;
+      width:112px;
+      height:112px;
+      display:none;
+      align-items:flex-end;
+      justify-content:flex-start;
+      z-index:6;
+      pointer-events:none;
+    }
+    .lesson-chara img{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      filter: drop-shadow(0 8px 10px rgba(0,0,0,.35));
+    }
+
    .asaWrap{
       position:absolute;
       right:6px;
@@ -1089,6 +1109,11 @@ font-size: var(--reviewWordMaxPx);
     <div id="lessonListBox" style="display:none">
       <div class="lesson-stage" id="lessonList">
         <svg class="lesson-svg" id="lessonSvg" aria-label="lesson menu"></svg>
+
+        <div class="lesson-chara" id="lessonChara" aria-hidden="true">
+          <img id="lessonCharaImg" alt="" />
+        </div>
+
         <div class="asaWrap">
           <canvas class="asaCoinCanvas" id="asaCoinCanvas" aria-hidden="true"></canvas>
           <div class="asaCircle" id="asaCircle" aria-hidden="true"></div>
@@ -1357,6 +1382,8 @@ const charaButtons = [...document.querySelectorAll(".chara-btn")];
 const lessonListBox = document.getElementById("lessonListBox");
 const lessonList = document.getElementById("lessonList");
 const lessonSvg = document.getElementById("lessonSvg");
+const lessonChara = document.getElementById("lessonChara");
+const lessonCharaImg = document.getElementById("lessonCharaImg");
 const asaPop = document.getElementById("asaPop");
 const asaValue = document.getElementById("asaValue");
 const asaCircle = document.getElementById("asaCircle");
@@ -1585,6 +1612,20 @@ function getSavedChara(){
   if (!saved) localStorage.removeItem(CHARA_KEY);
   return saved;
 }
+function renderLessonChara(){
+  if (!lessonChara || !lessonCharaImg) return;
+  const saved = getSavedChara();
+  if (!saved){
+    lessonChara.style.display = "none";
+    lessonCharaImg.removeAttribute("src");
+    lessonCharaImg.alt = "";
+    return;
+  }
+  lessonCharaImg.src = `${saved}.png`;
+  lessonCharaImg.alt = `${saved} character`;
+  lessonChara.style.display = (lessonListBox && lessonListBox.style.display !== "none") ? "flex" : "none";
+}
+
 function applyCharaSelection(value, { save=false, collapse=false } = {}){
   const normalized = normalizeChara(value);
   charaButtons.forEach((btn)=>{
@@ -1593,6 +1634,7 @@ function applyCharaSelection(value, { save=false, collapse=false } = {}){
   });
   if (save && normalized) localStorage.setItem(CHARA_KEY, normalized);
   charaSelect.classList.toggle("single", collapse);
+  renderLessonChara();
 }
 function renderCharaSelect(){
   const saved = getSavedChara();
@@ -1601,6 +1643,7 @@ function renderCharaSelect(){
   } else {
     charaButtons.forEach(btn=>btn.classList.remove("is-selected"));
     charaSelect.classList.remove("single");
+    renderLessonChara();
   }
 }
 renderCharaSelect();
@@ -2799,6 +2842,7 @@ function showNameScreen(){
   renderCharaSelect();
   lessonListBox.style.display = "none";
   quizBox.style.display = "none";
+  renderLessonChara();
   renderAsaPop();
 
   backFab.style.display = "none";
@@ -2830,6 +2874,7 @@ async function showLessonList(){
   charaSelect.style.display = "none";
   lessonListBox.style.display = "";
   quizBox.style.display = "none";
+  renderLessonChara();
   renderAsaPop();
   backFab.style.display = "flex"; /* ✅ 右下↻ */
   gradeFab.style.display = "flex";
@@ -2863,6 +2908,7 @@ function showQuiz(){
   charaSelect.style.display = "none";
   lessonListBox.style.display = "none";
   quizBox.style.display = "";
+  renderLessonChara();
   renderAsaPop();
 
   backFab.style.display = "flex"; /* ✅ 右下↻ */
