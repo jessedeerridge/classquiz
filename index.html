@@ -2404,12 +2404,11 @@ list.push({ word, meaning, example });
   scheduleFlashAuto();
 }
 
-/* 外側クリックで閉じる */
+/* ✅カードポップのボタン以外は全て外扱い（タッチで閉じる） */
 flashBack.addEventListener("pointerdown", (e)=>{
-  if (e.target === flashBack) closeFlash();
+  if (e.target.closest(".flashCard, .flashModeWrap")) return;
+  closeFlash();
 }, { passive:true });
-flashBack.querySelector(".flashModal")?.addEventListener("pointerdown", (e)=> e.stopPropagation(), { passive:true });
-
 
 
 /* 左スワイプで次（カード上） */
