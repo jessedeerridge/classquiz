@@ -262,36 +262,60 @@
     .loginFoot{padding:16px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
 
     .itemGrid{
-      display:grid;
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      gap:12px;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
     }
 
-    }
     .itemGroupCard{
       border:1px solid var(--line);
       border-radius:16px;
-      padding:14px;
       background:#fff;
       box-shadow: var(--shadow);
-      display:flex;
-      flex-direction:column;
-      gap:12px;
+      overflow:hidden;
+    }
+    .itemGroupCard[open] .itemGroupHead::after{
+      transform: rotate(90deg);
     }
     .itemGroupHead{
+      list-style:none;
       display:flex;
       align-items:center;
       gap:10px;
+      padding:14px;
+      cursor:pointer;
+      background: #f1f2f5;
+    }
+    .itemGroupHead::-webkit-details-marker{display:none}
+    .itemGroupHead::after{
+      content:"›";
+      margin-left:auto;
+      font-weight:900;
+      color:var(--muted);
+      transform: rotate(0deg);
+      transition: transform .2s ease;
     }
     .itemGroupHead h4{
       margin:0;
       font-size:15px;
       font-weight:900;
     }
-    .itemGroupItems{
-      display:grid;
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    .itemGroupMeta{
+      font-size:12px;
+      font-weight:850;
+      color:var(--muted);
+    }
+    .itemGroupBody{
+      padding:12px 14px 14px;
+      display:flex;
+      flex-direction:column;
+
       gap:12px;
+    }
+  .itemGroupItems{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
     }
     .itemAddRow{
       display:grid;
@@ -309,19 +333,25 @@
       background:#fff;
       box-shadow: var(--shadow);
       display:flex;
-      flex-direction:column;
+      align-items:center;
       gap:8px;
     }
+    .itemCard.is-disabled{
+      opacity:.6;
+      background: rgba(17,24,39,.02);
+      text-decoration: line-through;
+    }
     .itemImg{
-      width:100%;
-      aspect-ratio: 1 / 1;
-      border-radius:12px;
+      width:16px;
+      height:16px;
+      border-radius:4px;
       border:1px solid var(--line);
-      background: rgba(17,24,39,.04);
+      background: rgba(17,24,39,.06);
       display:flex;
       align-items:center;
       justify-content:center;
       overflow:hidden;
+      flex:0 0 16px;
     }
     .itemImg img{
       width:100%;
@@ -332,8 +362,27 @@
     .itemName{
       font-size:13px;
       font-weight:900;
-      text-align:center;
+      text-align:left;
       word-break:break-word;
+    }
+    .itemActions{
+      margin-left:auto;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .itemToggle{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      font-size:12px;
+      font-weight:850;
+      color:var(--muted);
+      white-space:nowrap;
+    }
+    .itemToggle input{
+      width:auto;
+      margin:0;
     }
   </style>
 </head>
@@ -538,26 +587,8 @@
           <div style="display:flex; align-items:flex-end; gap:10px">
             <button class="btn secondary" id="btnDeleteItemGroup" type="button">グループ削除</button>
           </div>
-          <div>
-            <label>アイテム名（手入力）</label>
-            <input id="itemName" placeholder="例）金のカメ" />
-          </div>
         </div>
-        <div class="formRow" style="margin-top:10px">
-          <div>
-            <label>アイテム画像（ファイル）</label>
-            <input id="itemImageFile" type="file" accept="image/*" />
-          </div>
-          <div>
-            <label>アイテム画像（URL）</label>
-            <input id="itemImageUrl" placeholder="https://example.com/item.png" />
-          </div>
-        </div>
-        <div class="row" style="margin-top:10px">
-          <button class="btn" id="btnAddItem" type="button">アイテム追加</button>
-          <span class="muted" id="itemMsg">—</span>
-        </div>
-
+        <div class="muted" id="itemMsg" style="margin-top:10px">—</div>
         <div class="hr"></div>
 
         <div class="itemGrid" id="itemGrid"></div>
@@ -832,9 +863,7 @@
   const itemGroupMsg = $("itemGroupMsg");
   const itemGroupSelect = $("itemGroupSelect");
   const btnDeleteItemGroup = $("btnDeleteItemGroup");
-  const itemName = $("itemName");
-  const itemImageFile = $("itemImageFile");
-  const itemImageUrl = $("itemImageUrl");
+
   const btnAddItem = $("btnAddItem");
   const itemMsg = $("itemMsg");
   const itemGrid = $("itemGrid");
@@ -1100,26 +1129,38 @@
       return;
     }
     for (const group of groups){
-      const section = document.createElement("div");
+      const section = document.createElement("details");
       section.className = "itemGroupCard";
-      const head = document.createElement("div");
+     section.open = true;
+      const head = document.createElement("summary");
       head.className = "itemGroupHead";
       const title = document.createElement("h4");
       title.textContent = group.name;
+      const meta = document.createElement("div");
+      const itemCount = Object.keys(group.items || {}).length;
+      meta.className = "itemGroupMeta";
+      meta.textContent = `${itemCount}件`;
       const headActions = document.createElement("div");
       headActions.className = "row";
       const delGroupBtn = document.createElement("button");
       delGroupBtn.type = "button";
       delGroupBtn.className = "btn secondary";
       delGroupBtn.textContent = "グループ削除";
-      delGroupBtn.onclick = async ()=>{ await deleteItemGroup(group.key, group.name); };
+      delGroupBtn.onclick = async (e)=>{
+        e.preventDefault();
+        e.stopPropagation();
+        await deleteItemGroup(group.key, group.name);
+      };
       headActions.appendChild(delGroupBtn);
       const space = document.createElement("div");
       space.className = "space";
       head.appendChild(title);
+      head.appendChild(meta);
       head.appendChild(space);
       head.appendChild(headActions);
       section.appendChild(head);
+     const body = document.createElement("div");
+      body.className = "itemGroupBody";
 
       const itemsWrap = document.createElement("div");
       itemsWrap.className = "itemGroupItems";
@@ -1131,27 +1172,38 @@
         for (const [itemId, item] of entries){
           const card = document.createElement("div");
           card.className = "itemCard";
+          if (item?.disabled) card.classList.add("is-disabled");
           const imgHtml = item?.image
             ? `<img src="${esc(item.image)}" alt="${esc(item?.name ?? "")}">`
-            : `<span class="small">画像なし</span>`;
+            : `<span class="small">-</span>`;
           card.innerHTML = `
             <div class="itemImg">${imgHtml}</div>
             <div class="itemName">${esc(item?.name ?? itemId)}</div>
           `;
           const actions = document.createElement("div");
-          actions.className = "row";
-          actions.style.justifyContent = "center";
+         actions.className = "itemActions";
+          const toggleWrap = document.createElement("label");
+          toggleWrap.className = "itemToggle";
+          toggleWrap.innerHTML = `<input type="checkbox"> 仮削除`;
+          const toggleInput = toggleWrap.querySelector("input");
+          toggleInput.checked = !!item?.disabled;
+          toggleInput.onchange = async ()=>{
+            const next = toggleInput.checked;
+            card.classList.toggle("is-disabled", next);
+            await setItemDisabled(group.key, itemId, next);
+          };
           const delBtn = document.createElement("button");
           delBtn.type = "button";
           delBtn.className = "btn secondary";
           delBtn.textContent = "削除";
           delBtn.onclick = async ()=>{ await deleteItem(group.key, itemId); };
+          actions.appendChild(toggleWrap);
           actions.appendChild(delBtn);
           card.appendChild(actions);
           itemsWrap.appendChild(card);
         }
       }
-      section.appendChild(itemsWrap);
+      body.appendChild(itemsWrap);
 
       const addWrap = document.createElement("div");
       addWrap.className = "itemAddRow";
@@ -1184,7 +1236,8 @@
           fileInput
         });
       };
-      section.appendChild(addWrap);
+      body.appendChild(addWrap);
+      section.appendChild(body);
 
       itemGrid.appendChild(section);
     }
@@ -1277,6 +1330,21 @@
     }
   }
 
+  async function setItemDisabled(groupKey, itemId, disabled){
+    const key = String(groupKey || "").trim();
+    if (!key || !itemId) return;
+    setItemMsg("更新中…");
+    try{
+      await dbMultiUpdate({
+        [`${P.itemGroupItems(key)}/${itemId}/disabled`]: disabled ? true : null
+      });
+      await loadItemGroups();
+      setItemMsg("仮削除を更新しました");
+    }catch(e){
+      setItemMsg("更新失敗（DBルール/ネット制限）", false);
+    }
+  }
+
   btnDeleteItemGroup.onclick = ()=>{
     const groupKey = String(itemGroupSelect.value || "").trim();
     const groupName = itemGroupSelect.options[itemGroupSelect.selectedIndex]?.textContent || groupKey;
@@ -1285,9 +1353,9 @@
 
   async function addItemToGroup(groupKey, refs){
     const key = String(groupKey || "").trim();
-    const nameInput = refs?.nameInput || itemName;
-    const urlInput = refs?.urlInput || itemImageUrl;
-    const fileInput = refs?.fileInput || itemImageFile;
+    const nameInput = refs?.nameInput;
+    const urlInput = refs?.urlInput;
+    const fileInput = refs?.fileInput;
     const name = String(nameInput?.value || "").trim();
     if (!key){
       setItemMsg("グループを選択して", false);
@@ -1324,14 +1392,7 @@
     }
   }
 
-  btnAddItem.onclick = async ()=>{
-    const groupKey = String(itemGroupSelect.value || "").trim();
-    await addItemToGroup(groupKey, {
-      nameInput: itemName,
-      urlInput: itemImageUrl,
-      fileInput: itemImageFile
-    });
-  };
+
 
   async function loadRewardLessons(){
     const grade = String(rewardGradeSel.value || "").trim();
