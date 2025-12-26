@@ -260,6 +260,81 @@
     .loginHead .t1{font-weight:980}
     .loginBody{padding:16px}
     .loginFoot{padding:16px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+
+    .itemGrid{
+      display:grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap:12px;
+    }
+
+    }
+    .itemGroupCard{
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:14px;
+      background:#fff;
+      box-shadow: var(--shadow);
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .itemGroupHead{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .itemGroupHead h4{
+      margin:0;
+      font-size:15px;
+      font-weight:900;
+    }
+    .itemGroupItems{
+      display:grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap:12px;
+    }
+    .itemAddRow{
+      display:grid;
+      gap:8px;
+      grid-template-columns: minmax(140px, 1fr) minmax(180px, 1fr);
+    }
+    .itemAddRow .row{
+      align-items:center;
+    }
+
+    .itemCard{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:10px;
+      background:#fff;
+      box-shadow: var(--shadow);
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .itemImg{
+      width:100%;
+      aspect-ratio: 1 / 1;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background: rgba(17,24,39,.04);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+    }
+    .itemImg img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+    .itemName{
+      font-size:13px;
+      font-weight:900;
+      text-align:center;
+      word-break:break-word;
+    }
   </style>
 </head>
 
@@ -275,6 +350,7 @@
       <div class="tabs" id="tabs" style="display:none">
         <button class="tab active" data-tab="students" type="button">学生管理</button>
         <button class="tab" data-tab="words" type="button">単語管理</button>
+        <button class="tab" data-tab="items" type="button">アイテム管理</button>
       </div>
 
       <button class="btn secondary" id="btnReload" type="button" style="display:none">再読込</button>
@@ -432,6 +508,122 @@
       </div>
     </div>
   </section>
+<!-- Items Tab -->
+  <section id="tab_items" style="display:none; margin-top:14px;">
+    <div class="card">
+      <div class="cardHead">
+        <h2>アイテムストレージ</h2>
+        <div class="space"></div>
+        <button class="btn secondary" id="btnReloadItems" type="button">再読込</button>
+      </div>
+      <div class="cardBody">
+        <div class="formRow">
+          <div>
+            <label>グループ名（手入力）</label>
+            <input id="itemGroupName" placeholder="例）どうぶつ" />
+          </div>
+          <div style="display:flex; align-items:flex-end; gap:10px">
+            <button class="btn" id="btnAddItemGroup" type="button">グループ追加</button>
+          </div>
+        </div>
+        <div class="small" id="itemGroupMsg" style="margin-top:8px">—</div>
+
+        <div class="hr"></div>
+
+        <div class="formRow">
+          <div>
+            <label>グループ選択</label>
+            <select id="itemGroupSelect"></select>
+          </div>
+          <div style="display:flex; align-items:flex-end; gap:10px">
+            <button class="btn secondary" id="btnDeleteItemGroup" type="button">グループ削除</button>
+          </div>
+          <div>
+            <label>アイテム名（手入力）</label>
+            <input id="itemName" placeholder="例）金のカメ" />
+          </div>
+        </div>
+        <div class="formRow" style="margin-top:10px">
+          <div>
+            <label>アイテム画像（ファイル）</label>
+            <input id="itemImageFile" type="file" accept="image/*" />
+          </div>
+          <div>
+            <label>アイテム画像（URL）</label>
+            <input id="itemImageUrl" placeholder="https://example.com/item.png" />
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn" id="btnAddItem" type="button">アイテム追加</button>
+          <span class="muted" id="itemMsg">—</span>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="itemGrid" id="itemGrid"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <div class="cardHead">
+        <h2>クイズ景品設定</h2>
+        <div class="space"></div>
+        <button class="btn secondary" id="btnReloadRewards" type="button">再読込</button>
+      </div>
+      <div class="cardBody">
+        <div class="formRow">
+          <div>
+            <label>学年</label>
+            <select id="rewardGradeSel">
+              <option value="1">1年</option>
+              <option value="2">2年</option>
+              <option value="3">3年</option>
+              <option value="4">4年</option>
+            </select>
+          </div>
+          <div>
+            <label>課（lesson）</label>
+            <select id="rewardLessonSel"></select>
+          </div>
+        </div>
+        <div class="formRow" style="margin-top:10px">
+          <div>
+            <label>ステージ</label>
+            <select id="rewardStageSel">
+              <option value="pre1">pre1</option>
+              <option value="pre2">pre2</option>
+              <option value="review">review</option>
+            </select>
+          </div>
+          <div>
+            <label>景品グループ（複数選択）</label>
+            <select id="rewardGroupSelect" multiple size="4"></select>
+
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn" id="btnSaveReward" type="button">保存</button>
+          <span class="muted" id="rewardMsg">—</span>
+        </div>
+        <div class="hr"></div>
+        <div class="small">登録済み設定</div>
+        <div style="overflow:auto; margin-top:10px">
+          <table>
+            <thead>
+              <tr>
+                <th>学年</th>
+                <th>課</th>
+                <th>ステージ</th>
+                <th class="left">景品グループ</th>
+                <th>更新日</th>
+              </tr>
+            </thead>
+            <tbody id="rewardTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
 </main>
 
 <!-- Student Detail Modal -->
@@ -518,6 +710,11 @@
     wordsStage: (g, lesson, stage)=> `words/${g}/${lesson}/${stage}`,
     progressGrade: (sk,g)=> `progress/${sk}/${g}`,
         gradeButtons: ()=> `settings/gradeButtons`,
+    itemGroups: ()=> `itemGroups`,
+    itemGroup: (key)=> `itemGroups/${key}`,
+    itemGroupItems: (key)=> `itemGroups/${key}/items`,
+    quizRewards: ()=> `quizRewards`,
+    quizReward: (g, lesson, stage)=> `quizRewards/${g}/${lesson}/${stage}`,
   };
 
   const $ = (id)=> document.getElementById(id);
@@ -525,6 +722,18 @@
     .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
     .replaceAll('"',"&quot;").replaceAll("'","&#39;");
   const clamp = (v,a,b)=> Math.max(a, Math.min(b, v));
+  function safeKey(s){
+    return encodeURIComponent(String(s).trim())
+      .replaceAll(".", "%2E")
+      .replaceAll("#", "%23")
+      .replaceAll("$", "%24")
+      .replaceAll("[", "%5B")
+      .replaceAll("]", "%5D")
+      .replaceAll("/", "%2F");
+  }
+  function groupKeyFromName(name){
+    return `group_${safeKey(name)}`;
+  }
 
   function fmtTime(ts){
     if (!ts) return "-";
@@ -567,6 +776,7 @@
 
   const tab_students = $("tab_students");
   const tab_words = $("tab_words");
+  const tab_items = $("tab_items");
 
   const loginBack = $("loginBack");
   const loginEmail = $("loginEmail");
@@ -615,6 +825,29 @@
   const bulkPreview = $("bulkPreview");
   const addPath = $("addPath");
 
+ // Items
+  const btnReloadItems = $("btnReloadItems");
+  const itemGroupName = $("itemGroupName");
+  const btnAddItemGroup = $("btnAddItemGroup");
+  const itemGroupMsg = $("itemGroupMsg");
+  const itemGroupSelect = $("itemGroupSelect");
+  const btnDeleteItemGroup = $("btnDeleteItemGroup");
+  const itemName = $("itemName");
+  const itemImageFile = $("itemImageFile");
+  const itemImageUrl = $("itemImageUrl");
+  const btnAddItem = $("btnAddItem");
+  const itemMsg = $("itemMsg");
+  const itemGrid = $("itemGrid");
+  const btnReloadRewards = $("btnReloadRewards");
+  const rewardLessonSel = $("rewardLessonSel");
+  const rewardLesson = $("rewardLesson");
+  const rewardStageSel = $("rewardStageSel");
+  const rewardGroupSelect = $("rewardGroupSelect");
+  const btnSaveReward = $("btnSaveReward");
+  const rewardMsg = $("rewardMsg");
+  const rewardTbody = $("rewardTbody");
+
+
   // show db host
   try{
     const url = new URL(firebaseConfig.databaseURL);
@@ -629,6 +862,10 @@
     });
     tab_students.style.display = (name==="students") ? "" : "none";
     tab_words.style.display = (name==="words") ? "" : "none";
+    tab_items.style.display = (name==="items") ? "" : "none";
+    if (name === "items"){
+      ensureItemsLoaded().catch(()=>{});
+    }
   }
   tabs.addEventListener("click", (e)=>{
     const b = e.target.closest(".tab");
@@ -767,6 +1004,463 @@
       gradeSettingsTbody.appendChild(tr);
     }
   }
+
+// ---------- Items ----------
+  let _itemGroupsCache = null;
+  let _quizRewardsCache = null;
+  let _itemsLoadedOnce = false;
+
+  function setItemGroupMsg(msg, ok=true){
+    itemGroupMsg.textContent = msg;
+    itemGroupMsg.className = ok ? "okline" : "badline";
+  }
+  function setItemMsg(msg, ok=true){
+    itemMsg.textContent = msg;
+    itemMsg.className = ok ? "okline" : "badline";
+  }
+  function setRewardMsg(msg, ok=true){
+    rewardMsg.textContent = msg;
+    rewardMsg.className = ok ? "okline" : "badline";
+  }
+
+  function normalizeGroupList(obj){
+    if (!obj || typeof obj !== "object") return [];
+    return Object.entries(obj).map(([key, v])=>{
+      const name = String(v?.name ?? key);
+      return { key, name, items: v?.items || {} };
+    }).sort((a,b)=> a.name.localeCompare(b.name, "ja"));
+  }
+
+  function renderItemGroupSelect(groups){
+    const current = itemGroupSelect.value;
+    itemGroupSelect.innerHTML = "";
+    if (!groups.length){
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "（未登録）";
+      itemGroupSelect.appendChild(opt);
+      return;
+    }
+    for (const g of groups){
+      const opt = document.createElement("option");
+      opt.value = g.key;
+      opt.textContent = g.name;
+      itemGroupSelect.appendChild(opt);
+    }
+    if (current && groups.some(g=>g.key === current)){
+      itemGroupSelect.value = current;
+    }
+  }
+
+  function renderRewardGroupSelect(groups){
+    const selected = new Set(Array.from(rewardGroupSelect.selectedOptions || []).map(opt=>opt.value));
+    rewardGroupSelect.innerHTML = "";
+    if (!groups.length){
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "（未登録）";
+      rewardGroupSelect.appendChild(opt);
+      return;
+    }
+    for (const g of groups){
+      const opt = document.createElement("option");
+      opt.value = g.key;
+      opt.textContent = g.name;
+      if (selected.has(g.key)) opt.selected = true;
+      rewardGroupSelect.appendChild(opt);
+    }
+  }
+
+  function renderRewardLessonSelect(lessons){
+    const current = rewardLessonSel.value;
+    rewardLessonSel.innerHTML = "";
+    if (!lessons.length){
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "（未登録）";
+      rewardLessonSel.appendChild(opt);
+      return;
+    }
+    for (const lesson of lessons){
+      const opt = document.createElement("option");
+      opt.value = lesson;
+      opt.textContent = lesson;
+      rewardLessonSel.appendChild(opt);
+    }
+    if (current && lessons.includes(current)){
+      rewardLessonSel.value = current;
+    }
+  }
+
+
+  function renderItemGrid(groups){
+    itemGrid.innerHTML = "";
+    if (!groups.length){
+      itemGrid.innerHTML = `<div class="small">アイテムグループが未登録です。</div>`;
+      return;
+    }
+    for (const group of groups){
+      const section = document.createElement("div");
+      section.className = "itemGroupCard";
+      const head = document.createElement("div");
+      head.className = "itemGroupHead";
+      const title = document.createElement("h4");
+      title.textContent = group.name;
+      const headActions = document.createElement("div");
+      headActions.className = "row";
+      const delGroupBtn = document.createElement("button");
+      delGroupBtn.type = "button";
+      delGroupBtn.className = "btn secondary";
+      delGroupBtn.textContent = "グループ削除";
+      delGroupBtn.onclick = async ()=>{ await deleteItemGroup(group.key, group.name); };
+      headActions.appendChild(delGroupBtn);
+      const space = document.createElement("div");
+      space.className = "space";
+      head.appendChild(title);
+      head.appendChild(space);
+      head.appendChild(headActions);
+      section.appendChild(head);
+
+      const itemsWrap = document.createElement("div");
+      itemsWrap.className = "itemGroupItems";
+      const items = group.items || {};
+      const entries = Object.entries(items);
+      if (!entries.length){
+        itemsWrap.innerHTML = `<div class="small">このグループにはまだアイテムがありません。</div>`;
+      }else{
+        for (const [itemId, item] of entries){
+          const card = document.createElement("div");
+          card.className = "itemCard";
+          const imgHtml = item?.image
+            ? `<img src="${esc(item.image)}" alt="${esc(item?.name ?? "")}">`
+            : `<span class="small">画像なし</span>`;
+          card.innerHTML = `
+            <div class="itemImg">${imgHtml}</div>
+            <div class="itemName">${esc(item?.name ?? itemId)}</div>
+          `;
+          const actions = document.createElement("div");
+          actions.className = "row";
+          actions.style.justifyContent = "center";
+          const delBtn = document.createElement("button");
+          delBtn.type = "button";
+          delBtn.className = "btn secondary";
+          delBtn.textContent = "削除";
+          delBtn.onclick = async ()=>{ await deleteItem(group.key, itemId); };
+          actions.appendChild(delBtn);
+          card.appendChild(actions);
+          itemsWrap.appendChild(card);
+        }
+      }
+      section.appendChild(itemsWrap);
+
+      const addWrap = document.createElement("div");
+      addWrap.className = "itemAddRow";
+      addWrap.innerHTML = `
+        <div>
+          <label>アイテム名</label>
+          <input class="itemAddName" placeholder="例）金のカメ" />
+        </div>
+        <div>
+          <label>画像URL</label>
+          <input class="itemAddUrl" placeholder="https://example.com/item.png" />
+        </div>
+        <div>
+          <label>画像ファイル</label>
+          <input class="itemAddFile" type="file" accept="image/*" />
+        </div>
+        <div class="row" style="justify-content:flex-end; align-items:flex-end">
+          <button class="btn itemAddBtn" type="button">このグループに追加</button>
+        </div>
+
+      `;
+      const addBtn = addWrap.querySelector(".itemAddBtn");
+      addBtn.onclick = async ()=>{
+        const nameInput = addWrap.querySelector(".itemAddName");
+        const urlInput = addWrap.querySelector(".itemAddUrl");
+        const fileInput = addWrap.querySelector(".itemAddFile");
+        await addItemToGroup(group.key, {
+          nameInput,
+          urlInput,
+          fileInput
+        });
+      };
+      section.appendChild(addWrap);
+
+      itemGrid.appendChild(section);
+    }
+  }
+
+  async function loadItemGroups(){
+    _itemGroupsCache = await dbGet(P.itemGroups());
+    const groups = normalizeGroupList(_itemGroupsCache);
+    renderItemGroupSelect(groups);
+    renderRewardGroupSelect(groups);
+    renderItemGrid(groups);
+  }
+
+  function readFileAsDataUrl(file){
+    return new Promise((resolve, reject)=>{
+      const reader = new FileReader();
+      reader.onload = ()=> resolve(reader.result);
+      reader.onerror = ()=> reject(reader.error || new Error("file read error"));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  itemGroupSelect.addEventListener("change", ()=>{
+    const groups = normalizeGroupList(_itemGroupsCache);
+    renderItemGrid(groups);
+  });
+
+  btnReloadItems.onclick = async ()=>{
+    setItemMsg("読み込み中…");
+    try{
+      await loadItemGroups();
+      setItemMsg("再読込OK");
+    }catch(e){
+      setItemMsg("読み込み失敗（DBルール/ネット制限）", false);
+    }
+  };
+
+  btnAddItemGroup.onclick = async ()=>{
+    const name = String(itemGroupName.value || "").trim();
+    if (!name){
+      setItemGroupMsg("グループ名を入力して", false);
+      return;
+    }
+    const key = groupKeyFromName(name);
+    setItemGroupMsg("保存中…");
+    try{
+      await dbMultiUpdate({
+        [`${P.itemGroup(key)}/name`]: name,
+        [`${P.itemGroup(key)}/updatedAt`]: Date.now()
+      });
+      itemGroupName.value = "";
+      await loadItemGroups();
+      setItemGroupMsg("グループ追加OK");
+    }catch(e){
+      setItemGroupMsg("保存失敗（DBルール/ネット制限）", false);
+    }
+  };
+
+  async function deleteItemGroup(groupKey, groupName){
+    const key = String(groupKey || "").trim();
+    if (!key){
+
+      setItemGroupMsg("削除するグループを選択して", false);
+      return;
+    }
+    const name = groupName || key;
+    const ok = confirm(`グループ「${name}」を削除しますか？（中のアイテムも削除されます）`);
+
+    if (!ok) return;
+    setItemGroupMsg("削除中…");
+    try{
+      await dbRemove(P.itemGroup(key));
+      await loadItemGroups();
+      setItemGroupMsg("グループ削除OK");
+    }catch(e){
+      setItemGroupMsg("削除失敗（DBルール/ネット制限）", false);
+    }
+  }
+
+  async function deleteItem(groupKey, itemId){
+    const ok = confirm("このアイテムを削除しますか？");
+    if (!ok) return;
+    setItemMsg("削除中…");
+    try{
+      await dbRemove(`${P.itemGroupItems(groupKey)}/${itemId}`);
+      await loadItemGroups();
+      setItemMsg("アイテム削除OK");
+    }catch(e){
+      setItemMsg("削除失敗（DBルール/ネット制限）", false);
+    }
+  }
+
+  btnDeleteItemGroup.onclick = ()=>{
+    const groupKey = String(itemGroupSelect.value || "").trim();
+    const groupName = itemGroupSelect.options[itemGroupSelect.selectedIndex]?.textContent || groupKey;
+    deleteItemGroup(groupKey, groupName).catch(()=>{});
+  };
+
+  async function addItemToGroup(groupKey, refs){
+    const key = String(groupKey || "").trim();
+    const nameInput = refs?.nameInput || itemName;
+    const urlInput = refs?.urlInput || itemImageUrl;
+    const fileInput = refs?.fileInput || itemImageFile;
+    const name = String(nameInput?.value || "").trim();
+    if (!key){
+      setItemMsg("グループを選択して", false);
+      return;
+    }
+    if (!name){
+      setItemMsg("アイテム名を入力して", false);
+      return;
+    }
+    let image = String(urlInput?.value || "").trim();
+    if (fileInput?.files?.length){
+      try{
+        image = await readFileAsDataUrl(fileInput.files[0]);
+      }catch(e){
+        setItemMsg("画像読込失敗", false);
+        return;
+      }
+    }
+    if (!image){
+      setItemMsg("画像ファイルまたはURLを入力して", false);
+      return;
+    }
+    setItemMsg("保存中…");
+    try{
+      const itemRef = push(ref(db, P.itemGroupItems(key)));
+      await set(itemRef, { name, image, createdAt: Date.now() });
+      if (nameInput) nameInput.value = "";
+      if (urlInput) urlInput.value = "";
+      if (fileInput) fileInput.value = "";
+      await loadItemGroups();
+      setItemMsg("アイテム追加OK");
+    }catch(e){
+      setItemMsg("保存失敗（DBルール/ネット制限）", false);
+    }
+  }
+
+  btnAddItem.onclick = async ()=>{
+    const groupKey = String(itemGroupSelect.value || "").trim();
+    await addItemToGroup(groupKey, {
+      nameInput: itemName,
+      urlInput: itemImageUrl,
+      fileInput: itemImageFile
+    });
+  };
+
+  async function loadRewardLessons(){
+    const grade = String(rewardGradeSel.value || "").trim();
+    if (!grade){
+      renderRewardLessonSelect([]);
+      return;
+    }
+    try{
+      const wg = await getWordsGradeCached(grade);
+      const lessons = parseLessonKeys(wg);
+      renderRewardLessonSelect(lessons);
+    }catch(_){
+      renderRewardLessonSelect([]);
+    }
+  }
+
+  rewardGradeSel.addEventListener("change", ()=>{
+    loadRewardLessons().catch(()=>{});
+  });
+
+
+  function normalizeRewardList(obj){
+    const out = [];
+    if (!obj || typeof obj !== "object") return out;
+    for (const [grade, gObj] of Object.entries(obj)){
+      if (!gObj || typeof gObj !== "object") continue;
+      for (const [lesson, lObj] of Object.entries(gObj)){
+        if (!lObj || typeof lObj !== "object") continue;
+        for (const [stage, sObj] of Object.entries(lObj)){
+          const groupNames = Array.isArray(sObj?.groupNames)
+            ? sObj.groupNames
+            : (sObj?.groupName ? [sObj.groupName] : []);
+          const groupName = groupNames.length ? groupNames.join(" / ") : (sObj?.groupKey || "");
+          out.push({
+            grade,
+            lesson,
+            stage,
+            groupName,
+            updatedAt: sObj?.updatedAt || null
+          });
+        }
+      }
+    }
+    return out.sort((a,b)=>{
+      if (a.grade !== b.grade) return Number(a.grade) - Number(b.grade);
+      if (a.lesson !== b.lesson) return String(a.lesson).localeCompare(String(b.lesson), "ja");
+      return String(a.stage).localeCompare(String(b.stage), "ja");
+    });
+  }
+
+  function renderRewardsTable(list){
+    rewardTbody.innerHTML = "";
+    if (!list.length){
+      rewardTbody.innerHTML = `<tr><td colspan="5" class="small">設定がありません。</td></tr>`;
+      return;
+    }
+    for (const row of list){
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${esc(row.grade)}</td>
+        <td>${esc(row.lesson)}</td>
+        <td>${esc(row.stage)}</td>
+        <td class="left">${esc(row.groupName)}</td>
+        <td>${esc(fmtTime(row.updatedAt))}</td>
+      `;
+      rewardTbody.appendChild(tr);
+    }
+  }
+
+  async function loadQuizRewards(){
+    _quizRewardsCache = await dbGet(P.quizRewards());
+    const list = normalizeRewardList(_quizRewardsCache);
+    renderRewardsTable(list);
+  }
+
+  btnReloadRewards.onclick = async ()=>{
+    setRewardMsg("読み込み中…");
+    try{
+      await loadQuizRewards();
+      await loadRewardLessons();
+      setRewardMsg("再読込OK");
+    }catch(e){
+      setRewardMsg("読み込み失敗（DBルール/ネット制限）", false);
+    }
+  };
+
+  btnSaveReward.onclick = async ()=>{
+    const grade = String(rewardGradeSel.value || "").trim();
+    const lesson = String(rewardLessonSel.value || "").trim();
+    const stage = String(rewardStageSel.value || "").trim();
+    const selectedOptions = Array.from(rewardGroupSelect.selectedOptions || []);
+    const groupKeys = selectedOptions.map(opt=>String(opt.value || "").trim()).filter(Boolean);
+    const groupNames = selectedOptions.map(opt=>String(opt.textContent || "").trim()).filter(Boolean);
+    if (!grade || !lesson || !stage || !groupKeys.length){
+
+      setRewardMsg("学年・課・ステージ・グループを選択して", false);
+
+      return;
+    }
+    const exists = groupKeys.every(key => _itemGroupsCache && _itemGroupsCache[key]);
+    setRewardMsg(exists ? "保存中…" : "グループ未登録ですが保存します…");
+    try{
+      await dbSet(P.quizReward(grade, lesson, stage), {
+        groupKeys,
+        groupNames,
+        groupKey: groupKeys[0],
+        groupName: groupNames[0] || "",
+        updatedAt: Date.now()
+      });
+      await loadQuizRewards();
+      setRewardMsg(exists ? "保存OK" : "保存OK（グループ未登録）");
+    }catch(e){
+      setRewardMsg("保存失敗（DBルール/ネット制限）", false);
+    }
+  };
+
+  async function ensureItemsLoaded(){
+    if (_itemsLoadedOnce) return;
+    _itemsLoadedOnce = true;
+    try{
+      await loadItemGroups();
+      await loadQuizRewards();
+      await loadRewardLessons();
+      setItemMsg("読み込みOK");
+    }catch(e){
+      setItemMsg("読み込み失敗（DBルール/ネット制限）", false);
+    }
+  }
+
 
   async function loadGradeSettings(){
     gradeSettingsMsg.textContent = "読み込み中…";
