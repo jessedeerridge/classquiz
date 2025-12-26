@@ -193,13 +193,15 @@
       align-items:flex-end;
       justify-content:flex-start;
       z-index:6;
-      pointer-events:none;
+      pointer-events:auto;
+      cursor:pointer;
     }
     .lesson-chara img{
       width:100%;
       height:100%;
       object-fit:contain;
       filter: drop-shadow(0 8px 10px rgba(0,0,0,.35));
+
     }
 
    .asaWrap{
@@ -678,6 +680,94 @@ font-size: var(--reviewWordMaxPx);
     .sessionCenter .line1{ font-size:26px; }
     .sessionCenter .line2{ font-size:34px; margin-top:6px; }
     .sessionCenter .line3{ font-size:18px; margin-top:10px; opacity:.95; }
+
+    .sessionCenter .line4{
+      font-size:14px;
+      margin-top:8px;
+      color:#0a7a2f;
+      font-weight:900;
+    }
+
+    .inventoryBack{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      background: rgba(0,0,0,.72);
+      z-index:120;
+      padding:16px;
+      backdrop-filter: blur(4px);
+    }
+    .inventoryModal{
+      width:min(92vw, 520px);
+      max-height:80vh;
+      overflow:auto;
+      background: rgba(20,20,20,.92);
+      color:#fff;
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.2);
+      box-shadow:0 24px 70px rgba(0,0,0,.45);
+      padding:16px;
+    }
+    .inventoryHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:12px;
+    }
+    .inventoryHead h3{
+      margin:0;
+      font-size:16px;
+      font-weight:950;
+      letter-spacing:.2px;
+    }
+    .inventoryClose{
+      background: rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.2);
+      color:#fff;
+      border-radius:999px;
+      padding:6px 12px;
+      font-weight:900;
+      cursor:pointer;
+    }
+    .inventoryGroup{
+      margin-top:12px;
+      border:1px solid rgba(255,255,255,.15);
+      border-radius:14px;
+      padding:10px;
+      background: rgba(255,255,255,.06);
+    }
+    .inventoryGroup h4{
+      margin:0 0 8px;
+      font-size:13px;
+      font-weight:900;
+      opacity:.9;
+    }
+    .inventoryGrid{
+      display:grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap:10px;
+    }
+    .inventoryItem{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      align-items:center;
+      text-align:center;
+      font-size:12px;
+      font-weight:800;
+    }
+    .inventoryItem img{
+      width:100%;
+      aspect-ratio:1/1;
+      object-fit:cover;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.2);
+      background: rgba(0,0,0,.25);
+    }
+
 
     .sessionWrongList{
       margin:14px 0 0;
@@ -1188,11 +1278,24 @@ font-size: var(--reviewWordMaxPx);
       <div class="line1">結果！</div>
       <div class="line2" id="sessionPct">--%</div>
       <div class="line3">間違えたことば</div>
+      <div class="line4" id="sessionReward" style="display:none"></div>
     </div>
 
     <ul class="sessionWrongList" id="wrongList"></ul>
 
     <button id="btnSessionClose" class="sessionBackBtn" type="button">戻る</button>
+  </div>
+</div>
+
+<!-- ✅ 所持アイテム確認ポップ -->
+<div class="inventoryBack" id="inventoryBack" aria-label="inventory">
+  <div class="inventoryModal" role="dialog" aria-modal="true">
+    <div class="inventoryHead">
+      <h3>所持アイテム</h3>
+      <button class="inventoryClose" id="inventoryClose" type="button">閉じる</button>
+    </div>
+    <div class="small" id="inventoryMsg">読み込み中…</div>
+    <div id="inventoryBody"></div>
   </div>
 </div>
 
@@ -1282,6 +1385,12 @@ const P = {
   wordsGrade: (grade)=> `words/${grade}`,
   bestStage: (studentKey, grade, lesson, stage)=> `bestProgress/${studentKey}/${grade}/${lesson}/${stage}`,
   asa: (studentKey)=> `asa/${studentKey}`,
+
+  itemGroups: ()=> `itemGroups`,
+  itemGroupItems: (groupKey)=> `itemGroups/${groupKey}/items`,
+  quizReward: (grade, lesson, stage)=> `quizRewards/${grade}/${lesson}/${stage}`,
+  itemsOwnedRoot: (studentKey)=> `itemsOwned/${studentKey}`,
+  itemsOwned: (studentKey, groupKey)=> `itemsOwned/${studentKey}/${groupKey}`,
 };
 
 /* ✅ 名前→同一進行（同じ名前なら同じDBパス） */
@@ -1420,8 +1529,16 @@ const qTimerFg = document.getElementById("qTimerFg");
 /* ✅ セッション結果DOM */
 const sessionBack = document.getElementById("sessionBack");
 const sessionPct  = document.getElementById("sessionPct");
+const sessionReward = document.getElementById("sessionReward");
 const wrongList   = document.getElementById("wrongList");
 const btnSessionClose = document.getElementById("btnSessionClose");
+
+/* ✅ 所持アイテムDOM */
+const inventoryBack = document.getElementById("inventoryBack");
+const inventoryClose = document.getElementById("inventoryClose");
+const inventoryMsg = document.getElementById("inventoryMsg");
+const inventoryBody = document.getElementById("inventoryBody");
+
 
 /* ✅ lowRateポップDOM */
 const lowRateBack = document.getElementById("lowRateBack");
@@ -1597,6 +1714,104 @@ async function awardAsaForSession(pct){
   if (!pts) return;
   await addAsaPoints(pts);
 }
+
+async function awardItemForSession(pct){
+  if (!SESSION || SESSION.itemAwarded) return null;
+  SESSION.itemAwarded = true;
+  if (!(pct >= 100)) return null;
+  const grade = SELECTED_GRADE;
+  const lesson = normLesson(SESSION.lesson);
+  const stage = String(SESSION.stage || "");
+  if (!STUDENT.studentKey || !grade || !lesson || !stage) return null;
+  const reward = await dbGet(P.quizReward(grade, lesson, stage));
+  const groupKeys = Array.isArray(reward?.groupKeys)
+    ? reward.groupKeys
+    : (reward?.groupKey ? [reward.groupKey] : []);
+  const groupNames = Array.isArray(reward?.groupNames)
+    ? reward.groupNames
+    : (reward?.groupName ? [reward.groupName] : []);
+  if (!groupKeys.length) return null;
+  const groupNameMap = new Map();
+  groupKeys.forEach((key, idx)=>{
+    const name = groupNames[idx] || reward?.groupName || key;
+    groupNameMap.set(key, name);
+  });
+  const candidates = [];
+  for (const key of groupKeys){
+    if (!key) continue;
+    const items = await dbGet(P.itemGroupItems(key));
+    if (!items || typeof items !== "object") continue;
+    const owned = await dbGet(P.itemsOwned(STUDENT.studentKey, key));
+    const ownedSet = owned && typeof owned === "object" ? new Set(Object.keys(owned)) : new Set();
+    for (const [itemId, item] of Object.entries(items)){
+      if (ownedSet.has(itemId)) continue;
+      candidates.push({ itemId, item, groupKey: key, groupName: groupNameMap.get(key) || key });
+    }
+  }
+  if (!candidates.length) return null;
+  const pick = candidates[Math.floor(Math.random() * candidates.length)];
+  const { itemId, item, groupKey, groupName } = pick;
+  const payload = {
+    name: item?.name || itemId,
+    image: item?.image || "",
+    groupKey,
+    groupName,
+    acquiredAt: nowTs(),
+  };
+  await dbSet(`${P.itemsOwned(STUDENT.studentKey, groupKey)}/${itemId}`, payload);
+  return payload;
+}
+
+async function loadInventory(){
+  if (!inventoryMsg || !inventoryBody) return;
+  if (!STUDENT.studentKey){
+    inventoryMsg.textContent = "名前を入力してから確認できます。";
+    inventoryBody.innerHTML = "";
+    return;
+  }
+  inventoryMsg.textContent = "読み込み中…";
+  inventoryBody.innerHTML = "";
+  try{
+    const ownedRoot = await dbGet(P.itemsOwnedRoot(STUDENT.studentKey));
+    if (!ownedRoot || typeof ownedRoot !== "object"){
+      inventoryMsg.textContent = "所持アイテムはまだありません。";
+      return;
+    }
+    const groups = Object.entries(ownedRoot);
+    if (!groups.length){
+      inventoryMsg.textContent = "所持アイテムはまだありません。";
+      return;
+    }
+    inventoryMsg.textContent = "";
+    for (const [groupKey, items] of groups){
+      if (!items || typeof items !== "object") continue;
+      const itemEntries = Object.entries(items);
+      if (!itemEntries.length) continue;
+      const groupName = itemEntries[0]?.[1]?.groupName || groupKey;
+      const section = document.createElement("div");
+      section.className = "inventoryGroup";
+      const grid = document.createElement("div");
+      grid.className = "inventoryGrid";
+      for (const [, item] of itemEntries){
+        const name = item?.name || "アイテム";
+        const image = item?.image || "";
+        const card = document.createElement("div");
+        card.className = "inventoryItem";
+        card.innerHTML = `
+          <img src="${escapeHtml(image)}" alt="${escapeHtml(name)}">
+          <div>${escapeHtml(name)}</div>
+        `;
+        grid.appendChild(card);
+      }
+      section.innerHTML = `<h4>${escapeHtml(groupName)}</h4>`;
+      section.appendChild(grid);
+      inventoryBody.appendChild(section);
+    }
+  }catch(e){
+    inventoryMsg.textContent = "読み込み失敗";
+  }
+}
+
 
 
 /* ========= 初期：名前復元 ========= */
@@ -3130,6 +3345,7 @@ function startSession(lesson, stage, meta){
     seenWordIds: new Set(),
     perWordAsked: new Map(),
     asaAwarded: false,
+    itemAwarded: false,
 
   };
 }
@@ -3144,6 +3360,11 @@ function openSessionResult(){
 
   const totalAsked = Math.max(1, SESSION.asked);
   const pct = Math.round((SESSION.correct / totalAsked) * 100);
+  if (sessionReward){
+    sessionReward.textContent = "";
+    sessionReward.style.display = "none";
+  }
+
   // ✅ ベスト％をDBに保存（最大値だけ残す）
   // 表示の邪魔をしないように裏で実行
   (async ()=>{
@@ -3157,6 +3378,15 @@ function openSessionResult(){
 
   sessionPct.textContent = `${pct}%`;
   awardAsaForSession(pct).catch(()=>{});
+  (async ()=>{
+    try{
+      const reward = await awardItemForSession(pct);
+      if (reward && sessionReward){
+        sessionReward.textContent = `🎁 アイテム獲得：${reward.name}`;
+        sessionReward.style.display = "";
+      }
+    }catch(_){}
+  })();
 
   wrongList.innerHTML = "";
   const shouldShowMeaning = SESSION.stage !== "review";
@@ -3189,6 +3419,27 @@ btnSessionClose.onclick = async ()=>{
 };
 sessionBack.addEventListener("click", ()=>{ /* do nothing */ });
 sessionBack.querySelector(".modal")?.addEventListener("click", (e)=> e.stopPropagation());
+
+
+function openInventory(){
+  if (!inventoryBack) return;
+  inventoryBack.style.display = "flex";
+  loadInventory().catch(()=>{});
+}
+function closeInventory(){
+  if (!inventoryBack) return;
+  inventoryBack.style.display = "none";
+}
+inventoryClose?.addEventListener("click", closeInventory);
+inventoryBack?.addEventListener("click", (e)=>{
+  if (e.target === inventoryBack) closeInventory();
+});
+inventoryBack?.querySelector(".inventoryModal")?.addEventListener("click", (e)=> e.stopPropagation());
+
+lessonChara?.addEventListener("click", ()=>{
+  openInventory();
+});
+
 // ✅ （…）で囲まれた部分に正解を差し込み表示する（装飾付き）
 function fillAnswerIntoParensHtml(word, answer){
   const ans = escapeHtml(String(answer ?? ""));
