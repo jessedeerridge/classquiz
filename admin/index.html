@@ -445,6 +445,86 @@
       width:auto;
       margin:0;
     }
+   /* ✅ 所持アイテム管理 */
+
+    .ownedPlayers{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-top:10px;
+    }
+    .ownedPlayerRow{
+      display:grid;
+      grid-template-columns: minmax(120px, 180px) minmax(220px, 300px) 1fr;
+      gap:10px;
+      align-items:center;
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:8px 10px;
+      background:#fff;
+    }
+    @media (max-width: 900px){
+      .ownedPlayerRow{grid-template-columns: 1fr;}
+    }
+    .ownedPlayerName{
+      font-weight:950;
+      font-size:13px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .ownedAddControls{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .ownedAddControls select{
+      width: 120px;
+      padding:4px 6px;
+      font-size:12px;
+      border-radius:8px;
+    }
+    .ownedAddControls .btn{
+      padding:4px 8px;
+      font-size:12px;
+      border-radius:8px;
+    }
+    .ownedItemsGroup{
+      margin-top:12px;
+    }
+    .ownedItemsStrip{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      overflow-x:auto;
+      padding:4px 2px;
+    }
+    .ownedItemChip{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      padding:4px 8px;
+      text-align:center;
+      background:#fff;
+      font-weight:850;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+    .ownedItemChip:hover{
+      background: rgba(17,24,39,.04);
+    }
+    .ownedItemChip img{
+      width:16px;
+      height:16px;
+      object-fit:cover;
+      border-radius:4px;
+      border:1px solid var(--line);
+      background: rgba(17,24,39,.06);
+      flex:0 0 16px;
+    }
   </style>
 </head>
 
@@ -461,6 +541,7 @@
         <button class="tab active" data-tab="students" type="button">学生管理</button>
         <button class="tab" data-tab="words" type="button">単語管理</button>
         <button class="tab" data-tab="items" type="button">アイテム管理</button>
+        <button class="tab" data-tab="owned-items" type="button">アイテム所持</button>
       </div>
 
       <button class="btn secondary" id="btnReload" type="button" style="display:none">再読込</button>
@@ -644,6 +725,21 @@
       </div>
     </div>
   </section>
+
+  <!-- Owned Items Tab -->
+  <section id="tab_owned_items" style="display:none; margin-top:14px;">
+    <div class="card">
+      <div class="cardHead">
+        <h2>プレイヤーの所持アイテム</h2>
+        <div class="space"></div>
+        <button class="btn secondary" id="btnReloadOwnedItems" type="button">再読込</button>
+      </div>
+      <div class="cardBody">
+        <div class="muted" id="ownedPlayersMsg">読み込み待ち…</div>
+        <div class="ownedPlayers" id="ownedPlayers"></div>
+      </div>
+    </div>
+  </section>
 </main>
 
 <!-- Student Detail Modal -->
@@ -736,6 +832,9 @@
     itemGroupItems: (key)=> `itemGroups/${key}/items`,
     quizRewards: ()=> `quizRewards`,
     quizReward: (g, lesson, stage)=> `quizRewards/${g}/${lesson}/${stage}`,
+    itemsOwnedRoot: ()=> `itemsOwned`,
+    itemsOwnedGroup: (studentKey, groupKey)=> `itemsOwned/${studentKey}/${groupKey}`,
+    itemsOwnedItem: (studentKey, groupKey, itemId)=> `itemsOwned/${studentKey}/${groupKey}/${itemId}`,
   };
 
   const $ = (id)=> document.getElementById(id);
@@ -798,6 +897,7 @@
   const tab_students = $("tab_students");
   const tab_words = $("tab_words");
   const tab_items = $("tab_items");
+  const tab_owned_items = $("tab_owned_items");
 
   const loginBack = $("loginBack");
   const loginEmail = $("loginEmail");
@@ -857,6 +957,16 @@
   const btnAddItem = $("btnAddItem");
   const itemMsg = $("itemMsg");
   const itemGrid = $("itemGrid");
+
+  // Owned items
+  const btnReloadOwnedItems = $("btnReloadOwnedItems");
+  const ownedPlayersMsg = $("ownedPlayersMsg");
+  const ownedPlayers = $("ownedPlayers");
+  const ownedDetailName = $("ownedDetailName");
+  const ownedDetailMsg = $("ownedDetailMsg");
+  const ownedDetailBody = $("ownedDetailBody");
+  const ownedItemSelect = $("ownedItemSelect");
+  const btnOwnedAdd = $("btnOwnedAdd");
   let _loginPassword = sessionStorage.getItem("adminLoginPass") || "";
 
 
@@ -876,8 +986,12 @@
     tab_students.style.display = (name==="students") ? "" : "none";
     tab_words.style.display = (name==="words") ? "" : "none";
     tab_items.style.display = (name==="items") ? "" : "none";
+    tab_owned_items.style.display = (name==="owned-items") ? "" : "none";
     if (name === "items"){
       ensureItemsLoaded().catch(()=>{});
+    }
+    if (name === "owned-items"){
+      ensureOwnedItemsLoaded().catch(()=>{});
     }
   }
   tabs.addEventListener("click", (e)=>{
@@ -1004,7 +1118,7 @@
       const cfg = data?.[g] || { label: String(g), enabled: true };
       const tr = document.createElement("tr");
       tr.dataset.grade = String(g);
-      tr.innerHTML = `
+      tr.innerHTML = `f
         <td><span class="tag">ID: ${g}</span></td>
         <td class="left">
           <input data-k="label" data-grade="${g}" value="${esc(cfg.label ?? g)}" placeholder="${g}">
@@ -1025,7 +1139,10 @@
   let _quizRewardsCache = null;
   let _quizListCache = [];
   let _itemsLoadedOnce = false;
-
+  let _ownedItemsLoadedOnce = false;
+  let _ownedRootCache = null;
+  let _ownedPlayersCache = [];
+  let _ownedItemOptions = [];
   function setItemGroupMsg(msg, ok=true){
     itemGroupMsg.textContent = msg;
     itemGroupMsg.className = ok ? "okline" : "badline";
@@ -1066,6 +1183,41 @@
       itemGroupSelect.value = current;
     }
   }
+
+  function buildOwnedItemOptions(groups){
+    const options = [];
+    for (const group of groups){
+      const items = Object.entries(group.items || {})
+        .filter(([, item])=> !item?.disabled);
+      for (const [itemId, item] of items){
+        const label = `${group.name} / ${item?.name || itemId}`;
+        options.push({
+          value: JSON.stringify({ groupKey: group.key, itemId }),
+          label
+        });
+      }
+    }
+    return options;
+  }
+
+  function fillOwnedItemSelect(selectEl){
+    if (!selectEl) return;
+    selectEl.innerHTML = "";
+    if (!_ownedItemOptions.length){
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "（アイテム未登録）";
+      selectEl.appendChild(opt);
+      return;
+    }
+    for (const optData of _ownedItemOptions){
+      const opt = document.createElement("option");
+      opt.value = optData.value;
+      opt.textContent = optData.label;
+      selectEl.appendChild(opt);
+    }
+  }
+
 
   function getRewardEntry(grade, lesson, stage){
     return _quizRewardsCache?.[grade]?.[lesson]?.[stage] || null;
@@ -1355,6 +1507,7 @@
     const groups = normalizeGroupList(_itemGroupsCache);
     renderItemGroupSelect(groups);
     renderItemGrid(groups, openKeys);
+    _ownedItemOptions = buildOwnedItemOptions(groups);
   }
 
 
@@ -1385,6 +1538,19 @@
       setItemMsg("読み込み失敗（DBルール/ネット制限）", false);
     }
   };
+
+  if (btnReloadOwnedItems){
+    btnReloadOwnedItems.onclick = async ()=>{
+      if (ownedPlayersMsg) ownedPlayersMsg.textContent = "読み込み中…";
+      try{
+        await loadItemGroups();
+        await loadOwnedItems();
+      }catch(e){
+        if (ownedPlayersMsg) ownedPlayersMsg.textContent = "読み込み失敗（DBルール/ネット制限）";
+      }
+    };
+  }
+
 
   btnAddItemGroup.onclick = async ()=>{
     const name = String(itemGroupName.value || "").trim();
@@ -1444,8 +1610,26 @@
     if (!ok) return;
     setItemMsg("削除中…");
     try{
-      await dbRemove(`${P.itemGroupItems(groupKey)}/${itemId}`);
+     const updates = {
+        [`${P.itemGroupItems(groupKey)}/${itemId}`]: null
+      };
+      const ownedRoot = await dbGet(P.itemsOwnedRoot());
+      if (ownedRoot && typeof ownedRoot === "object"){
+        for (const [studentKey, groups] of Object.entries(ownedRoot)){
+          const groupItems = groups?.[groupKey];
+          if (!groupItems || typeof groupItems !== "object") continue;
+          if (!(itemId in groupItems)) continue;
+          const remaining = Object.keys(groupItems).filter((id)=> id !== itemId);
+          if (!remaining.length){
+            updates[P.itemsOwnedGroup(studentKey, groupKey)] = null;
+          }else{
+            updates[P.itemsOwnedItem(studentKey, groupKey, itemId)] = null;
+          }
+        }
+      }
+      await dbMultiUpdate(updates);
       await loadItemGroups();
+      await loadOwnedItems();
       setItemMsg("アイテム削除OK");
     }catch(e){
       setItemMsg("削除失敗（DBルール/ネット制限）", false);
@@ -1516,6 +1700,40 @@
     }
   }
 
+  async function addOwnedItemForPlayer(studentKey, selectEl){
+    if (!studentKey){
+      if (ownedPlayersMsg) ownedPlayersMsg.textContent = "プレイヤーが見つかりません。";
+      return;
+    }
+    const selected = parseOwnedSelect(selectEl?.value || "");
+    if (!selected?.groupKey || !selected?.itemId){
+      if (ownedPlayersMsg) ownedPlayersMsg.textContent = "追加するアイテムを選択してください。";
+      return;
+    }
+    const groupInfo = findGroupInfo(selected.groupKey);
+    const item = groupInfo?.items?.[selected.itemId];
+    if (!item){
+      if (ownedPlayersMsg) ownedPlayersMsg.textContent = "選択したアイテムが見つかりません。";
+      return;
+    }
+    if (ownedPlayersMsg) ownedPlayersMsg.textContent = "追加中…";
+    const payload = {
+      name: item?.name || selected.itemId,
+      image: item?.image || "",
+      groupKey: selected.groupKey,
+      groupName: groupInfo?.name || selected.groupKey,
+      acquiredAt: Date.now()
+    };
+    try{
+      await dbSet(P.itemsOwnedItem(studentKey, selected.groupKey, selected.itemId), payload);
+      await loadOwnedItems();
+      if (ownedPlayersMsg) ownedPlayersMsg.textContent = "追加OK";
+    }catch(e){
+      if (ownedPlayersMsg) ownedPlayersMsg.textContent = "追加失敗（DBルール/ネット制限）";
+    }
+  }
+
+
   async function loadQuizRewards(){
     _quizRewardsCache = await dbGet(P.quizRewards()) || {};
   }
@@ -1530,6 +1748,160 @@
       setItemMsg("読み込みOK");
     }catch(e){
       setItemMsg("読み込み失敗（DBルール/ネット制限）", false);
+    }
+  }
+
+ function buildOwnedPlayersList(ownedRoot, studentsRoot){
+    const list = [];
+    if (!ownedRoot || typeof ownedRoot !== "object") return list;
+    for (const [studentKey, groups] of Object.entries(ownedRoot)){
+      if (!groups || typeof groups !== "object") continue;
+      let count = 0;
+      for (const items of Object.values(groups)){
+        if (!items || typeof items !== "object") continue;
+        count += Object.keys(items).length;
+      }
+      if (count <= 0) continue;
+      const name = String(studentsRoot?.[studentKey]?.name || studentKey);
+      list.push({ studentKey, name, count });
+    }
+    list.sort((a,b)=> a.name.localeCompare(b.name, "ja"));
+    return list;
+  }
+
+  function renderOwnedPlayers(list){
+    if (!ownedPlayers || !ownedPlayersMsg) return;
+    ownedPlayers.innerHTML = "";
+    if (!list.length){
+      ownedPlayersMsg.textContent = "所持アイテムがあるプレイヤーはいません。";
+      return;
+    }
+    ownedPlayersMsg.textContent = "";
+    for (const player of list){
+      const row = document.createElement("div");
+      row.className = "ownedPlayerRow";
+      const name = document.createElement("div");
+      name.className = "ownedPlayerName";
+      name.textContent = player.name;
+
+      const controls = document.createElement("div");
+      controls.className = "ownedAddControls";
+      const select = document.createElement("select");
+      fillOwnedItemSelect(select);
+      const addBtn = document.createElement("button");
+      addBtn.type = "button";
+      addBtn.className = "btn";
+      addBtn.textContent = "追加";
+      addBtn.onclick = async ()=>{
+        await addOwnedItemForPlayer(player.studentKey, select);
+      };
+      controls.appendChild(select);
+      controls.appendChild(addBtn);
+
+      const strip = document.createElement("div");
+      strip.className = "ownedItemsStrip";
+      const owned = _ownedRootCache?.[player.studentKey];
+      if (owned && typeof owned === "object"){
+        for (const [groupKey, items] of Object.entries(owned)){
+          if (!items || typeof items !== "object") continue;
+          for (const [itemId, item] of Object.entries(items)){
+            const name = item?.name || "アイテム";
+            const image = item?.image || "";
+            const chip = document.createElement("div");
+            chip.className = "ownedItemChip";
+            chip.title = "クリックで削除";
+            chip.innerHTML = `
+              <img src="${esc(image)}" alt="${esc(name)}">
+              <span>${esc(name)}</span>
+            `;
+            chip.onclick = async ()=>{
+              await deleteOwnedItem(player.studentKey, groupKey, itemId, name);
+            };
+            strip.appendChild(chip);
+          }
+        }
+      }
+      if (!strip.childNodes.length){
+        const empty = document.createElement("div");
+        empty.className = "small";
+        empty.textContent = "所持アイテムなし";
+        strip.appendChild(empty);
+      }
+
+      row.appendChild(name);
+      row.appendChild(controls);
+      row.appendChild(strip);
+      ownedPlayers.appendChild(row);
+    }
+  }
+
+  function parseOwnedSelect(value){
+    try{
+      const parsed = JSON.parse(value);
+      if (!parsed || typeof parsed !== "object") return null;
+      return {
+        groupKey: String(parsed.groupKey || "").trim(),
+        itemId: String(parsed.itemId || "").trim(),
+      };
+    }catch(_){
+      return null;
+    }
+  }
+
+  async function deleteOwnedItem(studentKey, groupKey, itemId, itemName){
+    if (!studentKey || !groupKey) return;
+    const id = String(itemId || "").trim();
+    if (!id) return;
+    const ok = confirm(`「${itemName || id}」を削除しますか？`);
+    if (!ok) return;
+    try{
+      const updates = {
+        [P.itemsOwnedItem(studentKey, groupKey, id)]: null
+      };
+      const currentGroup = _ownedRootCache?.[studentKey]?.[groupKey];
+      if (currentGroup && typeof currentGroup === "object"){
+        const remaining = Object.keys(currentGroup).filter((key)=> key !== id);
+        if (!remaining.length){
+          updates[P.itemsOwnedGroup(studentKey, groupKey)] = null;
+        }
+      }
+      await dbMultiUpdate(updates);
+      await loadOwnedItems();
+    }catch(e){
+      if (ownedPlayersMsg) ownedPlayersMsg.textContent = "削除失敗（DBルール/ネット制限）";
+    }
+  }
+
+
+  function findGroupInfo(groupKey){
+    const groups = normalizeGroupList(_itemGroupsCache);
+    return groups.find(g=> g.key === groupKey) || null;
+  }
+
+  async function loadOwnedItems(){
+    if (!ownedPlayersMsg || !ownedPlayers) return;
+    ownedPlayersMsg.textContent = "読み込み中…";
+    try{
+      const [ownedRoot, studentsRoot] = await Promise.all([
+        dbGet(P.itemsOwnedRoot()) || {},
+        dbGet(P.studentsRoot()) || {}
+      ]);
+      _ownedRootCache = ownedRoot || {};
+      _ownedPlayersCache = buildOwnedPlayersList(_ownedRootCache, studentsRoot || {});
+      renderOwnedPlayers(_ownedPlayersCache);
+    }catch(e){
+      ownedPlayersMsg.textContent = "読み込み失敗（DBルール/ネット制限）";
+    }
+  }
+
+  async function ensureOwnedItemsLoaded(){
+    if (_ownedItemsLoadedOnce) return;
+    _ownedItemsLoadedOnce = true;
+    try{
+      await loadItemGroups();
+      await loadOwnedItems();
+    }catch(e){
+      ownedPlayersMsg.textContent = "読み込み失敗（DBルール/ネット制限）";
     }
   }
 
