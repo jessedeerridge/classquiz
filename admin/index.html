@@ -98,6 +98,7 @@
       color: var(--text);
       border: 1px solid var(--line);
     }
+
     .btn.danger{
       background: rgba(239,68,68,.10);
       color: #b91c1c;
@@ -284,16 +285,20 @@
       gap:10px;
       padding:14px;
       cursor:pointer;
-      background: #f1f2f5;
+      background: #3b82f6;
+      color:#fff;
     }
     .itemGroupHead::-webkit-details-marker{display:none}
     .itemGroupHead::after{
       content:"›";
       margin-left:auto;
       font-weight:900;
-      color:var(--muted);
+      color:rgba(255,255,255,.85);
       transform: rotate(0deg);
       transition: transform .2s ease;
+    }
+    .itemGroupHead .itemGroupMeta{
+      color:rgba(255,255,255,.78);
     }
     .itemGroupHead h4{
       margin:0;
@@ -317,13 +322,50 @@
       flex-direction:column;
       gap:8px;
     }
+    .rewardSetting{
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:#fff;
+      overflow:hidden;
+    }
+    .rewardSetting[open] .rewardSettingHead::after{
+      transform: rotate(90deg);
+    }
+    .rewardSettingHead{
+      list-style:none;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:12px 14px;
+      cursor:pointer;
+      background: #ec4899;
+      color:#fff;
+      font-weight:900;
+    }
+    .rewardSettingHead::-webkit-details-marker{display:none}
+    .rewardSettingHead::after{
+      content:"›";
+      margin-left:auto;
+      font-weight:900;
+      color:rgba(255,255,255,.85);
+      transform: rotate(0deg);
+      transition: transform .2s ease;
+    }
+    .rewardSettingBody{
+      padding:12px 14px 14px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
     .itemAddRow{
       display:grid;
       gap:8px;
-      grid-template-columns: minmax(140px, 1fr) minmax(180px, 1fr);
+      grid-template-columns: repeat(3, minmax(160px, 1fr));
     }
     .itemAddRow .row{
       align-items:center;
+      grid-column: 1 / -1;
     }
 
     .itemCard{
@@ -665,6 +707,7 @@
 
   const P = {
     studentsRoot: ()=> `students`,
+
     wordsGrade: (g)=> `words/${g}`,
     wordsStage: (g, lesson, stage)=> `words/${g}/${lesson}/${stage}`,
     progressGrade: (sk,g)=> `progress/${sk}/${g}`,
@@ -1071,7 +1114,7 @@
     for (const group of groups){
       const section = document.createElement("details");
       section.className = "itemGroupCard";
-     section.open = true;
+      section.open = false;
       const head = document.createElement("summary");
       head.className = "itemGroupHead";
       const title = document.createElement("h4");
@@ -1178,17 +1221,25 @@
       };
       body.appendChild(addWrap);
 
-      const rewardWrap = document.createElement("div");
+      const rewardWrap = document.createElement("details");
       rewardWrap.className = "rewardSetting";
+      rewardWrap.open = false;
       rewardWrap.innerHTML = `
-        <div class="row">
-          <strong>クイズ景品設定</strong>
-          <div class="space"></div>
-          <button class="btn secondary rewardAllBtn" type="button">全てチェック</button>
-          <button class="btn rewardSaveBtn" type="button">保存</button>
+        <summary class="rewardSettingHead">
+          <span>クイズ景品設定</span>
+        </summary>
+        <div class="rewardSettingBody">
+          <div class="row">
+            <div class="space"></div>
+            <button class="btn secondary rewardAllBtn" type="button">全てチェック</button>
+            <button class="btn secondary rewardClearBtn" type="button">全て解除</button>
+            <button class="btn rewardSaveBtn" type="button">保存</button>
+
+          </div>
+          <div class="rewardList"></div>
+          <div class="small rewardStatus">—</div>
         </div>
-        <div class="rewardList"></div>
-        <div class="small rewardStatus">—</div>
+
       `;
       const rewardList = rewardWrap.querySelector(".rewardList");
       const rewardStatus = rewardWrap.querySelector(".rewardStatus");
@@ -1213,6 +1264,12 @@
       rewardAllBtn.onclick = ()=>{
         rewardList.querySelectorAll('input[type="checkbox"]').forEach((input)=>{
           input.checked = true;
+        });
+      };
+      const rewardClearBtn = rewardWrap.querySelector(".rewardClearBtn");
+      rewardClearBtn.onclick = ()=>{
+        rewardList.querySelectorAll('input[type="checkbox"]').forEach((input)=>{
+          input.checked = false;
         });
       };
       const rewardSaveBtn = rewardWrap.querySelector(".rewardSaveBtn");
