@@ -357,6 +357,25 @@
       flex-direction:column;
       gap:10px;
     }
+    .rewardList{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      padding-left:0;
+    }
+    .rewardCheck{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      font-size:12px;
+      font-weight:850;
+      margin:0;
+      padding:2px 0;
+    }
+    .rewardCheck input{
+      width:auto;
+      margin:0;
+    }
 
     .itemAddRow{
       display:grid;
@@ -1105,7 +1124,7 @@
   }
 
 
-  function renderItemGrid(groups){
+  function renderItemGrid(groups, openKeys = new Set()){
     itemGrid.innerHTML = "";
     if (!groups.length){
       itemGrid.innerHTML = `<div class="small">アイテムグループが未登録です。</div>`;
@@ -1114,7 +1133,8 @@
     for (const group of groups){
       const section = document.createElement("details");
       section.className = "itemGroupCard";
-      section.open = false;
+      section.dataset.groupKey = group.key;
+      section.open = openKeys.has(group.key);
       const head = document.createElement("summary");
       head.className = "itemGroupHead";
       const title = document.createElement("h4");
@@ -1326,11 +1346,17 @@
   }
 
   async function loadItemGroups(){
+    const openKeys = new Set(
+      Array.from(itemGrid.querySelectorAll("details[open]"))
+        .map((el)=> el.dataset.groupKey)
+        .filter(Boolean)
+    );
     _itemGroupsCache = await dbGet(P.itemGroups());
     const groups = normalizeGroupList(_itemGroupsCache);
     renderItemGroupSelect(groups);
-    renderItemGrid(groups);
+    renderItemGrid(groups, openKeys);
   }
+
 
   function readFileAsDataUrl(file){
     return new Promise((resolve, reject)=>{
