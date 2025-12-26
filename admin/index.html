@@ -550,7 +550,7 @@
             <div class="space"></div>
             <span class="muted">追加先：<span id="addPath" class="mono">-</span></span>
           </div>
-          <div id="bulkMsg" class="muted" style="margin-top:10px">—</div>
+          <div id="bulkMsg" class="muted" style="margin-top:10px"></div>
           <div id="bulkPreview" style="margin-top:10px"></div>
         </div>
 
@@ -575,71 +575,11 @@
             <button class="btn" id="btnAddItemGroup" type="button">グループ追加</button>
           </div>
         </div>
-        <div class="small" id="itemGroupMsg" style="margin-top:8px">—</div>
+        <div class="small" id="itemGroupMsg" style="margin-top:8px"></div>
 
 
 
         <div class="itemGrid" id="itemGrid"></div>
-      </div>
-    </div>
-
-    <div class="card" style="margin-top:14px">
-      <div class="cardHead">
-        <h2>クイズ景品設定</h2>
-        <div class="space"></div>
-        <button class="btn secondary" id="btnReloadRewards" type="button">再読込</button>
-      </div>
-      <div class="cardBody">
-        <div class="formRow">
-          <div>
-            <label>学年</label>
-            <select id="rewardGradeSel">
-              <option value="1">1年</option>
-              <option value="2">2年</option>
-              <option value="3">3年</option>
-              <option value="4">4年</option>
-            </select>
-          </div>
-          <div>
-            <label>課（lesson）</label>
-            <select id="rewardLessonSel"></select>
-          </div>
-        </div>
-        <div class="formRow" style="margin-top:10px">
-          <div>
-            <label>ステージ</label>
-            <select id="rewardStageSel">
-              <option value="pre1">pre1</option>
-              <option value="pre2">pre2</option>
-              <option value="review">review</option>
-            </select>
-          </div>
-          <div>
-            <label>景品グループ（複数選択）</label>
-            <select id="rewardGroupSelect" multiple size="4"></select>
-
-          </div>
-        </div>
-        <div class="row" style="margin-top:10px">
-          <button class="btn" id="btnSaveReward" type="button">保存</button>
-          <span class="muted" id="rewardMsg">—</span>
-        </div>
-        <div class="hr"></div>
-        <div class="small">登録済み設定</div>
-        <div style="overflow:auto; margin-top:10px">
-          <table>
-            <thead>
-              <tr>
-                <th>学年</th>
-                <th>課</th>
-                <th>ステージ</th>
-                <th class="left">景品グループ</th>
-                <th>更新日</th>
-              </tr>
-            </thead>
-            <tbody id="rewardTbody"></tbody>
-          </table>
-        </div>
       </div>
     </div>
   </section>
@@ -681,7 +621,7 @@
           <input id="loginPass" type="password" placeholder="••••••••" />
         </div>
       </div>
-      <div id="loginMsg" class="muted" style="margin-top:10px">—</div>
+      <div id="loginMsg" class="muted" style="margin-top:10px"></div>
       <div class="hr"></div>
       <div class="small">
         ※ ログイン状態は保存しません（ブラウザを更新すると再ログインが必要）。<br>
@@ -855,14 +795,8 @@
   const btnAddItem = $("btnAddItem");
   const itemMsg = $("itemMsg");
   const itemGrid = $("itemGrid");
-  const btnReloadRewards = $("btnReloadRewards");
-  const rewardLessonSel = $("rewardLessonSel");
-  const rewardLesson = $("rewardLesson");
-  const rewardStageSel = $("rewardStageSel");
-  const rewardGroupSelect = $("rewardGroupSelect");
-  const btnSaveReward = $("btnSaveReward");
-  const rewardMsg = $("rewardMsg");
-  const rewardTbody = $("rewardTbody");
+  let _loginPassword = sessionStorage.getItem("adminLoginPass") || "";
+
 
 
   // show db host
@@ -916,6 +850,8 @@
     }
     try{
       setLoginMsg("ログイン中…");
+      _loginPassword = pass;
+      sessionStorage.setItem("adminLoginPass", pass);
       await signInWithEmailAndPassword(auth, email, pass);
     }catch(e){
       setLoginMsg("ログイン失敗：メール/パスワード、またはAuth未設定", false);
@@ -930,7 +866,7 @@
       btnLogout.style.display = "none";
       appRoot.style.display = "none";
       loginBack.style.display = "flex";
-      setLoginMsg("—", true);
+      setLoginMsg("", true);
       return;
     }
     who.textContent = user.email || "teacher";
@@ -1025,6 +961,7 @@
 // ---------- Items ----------
   let _itemGroupsCache = null;
   let _quizRewardsCache = null;
+  let _quizListCache = [];
   let _itemsLoadedOnce = false;
 
   function setItemGroupMsg(msg, ok=true){
@@ -1036,10 +973,7 @@
     itemMsg.textContent = msg;
     itemMsg.className = ok ? "okline" : "badline";
   }
-  function setRewardMsg(msg, ok=true){
-    rewardMsg.textContent = msg;
-    rewardMsg.className = ok ? "okline" : "badline";
-  }
+
 
   function normalizeGroupList(obj){
     if (!obj || typeof obj !== "object") return [];
@@ -1071,44 +1005,60 @@
     }
   }
 
-  function renderRewardGroupSelect(groups){
-    const selected = new Set(Array.from(rewardGroupSelect.selectedOptions || []).map(opt=>opt.value));
-    rewardGroupSelect.innerHTML = "";
-    if (!groups.length){
-      const opt = document.createElement("option");
-      opt.value = "";
-      opt.textContent = "（未登録）";
-      rewardGroupSelect.appendChild(opt);
-      return;
-    }
-    for (const g of groups){
-      const opt = document.createElement("option");
-      opt.value = g.key;
-      opt.textContent = g.name;
-      if (selected.has(g.key)) opt.selected = true;
-      rewardGroupSelect.appendChild(opt);
-    }
+  function getRewardEntry(grade, lesson, stage){
+    return _quizRewardsCache?.[grade]?.[lesson]?.[stage] || null;
   }
 
-  function renderRewardLessonSelect(lessons){
-    const current = rewardLessonSel.value;
-    rewardLessonSel.innerHTML = "";
-    if (!lessons.length){
-      const opt = document.createElement("option");
-      opt.value = "";
-      opt.textContent = "（未登録）";
-      rewardLessonSel.appendChild(opt);
-      return;
+  function entryGroupMap(entry){
+    const map = new Map();
+    if (!entry || typeof entry !== "object") return map;
+    const keys = Array.isArray(entry.groupKeys)
+      ? entry.groupKeys
+      : (entry.groupKey ? [entry.groupKey] : []);
+    const names = Array.isArray(entry.groupNames)
+      ? entry.groupNames
+      : (entry.groupName ? [entry.groupName] : []);
+    keys.forEach((k, idx)=>{
+      const key = String(k || "").trim();
+      if (!key) return;
+      const name = String(names[idx] || entry.groupName || key);
+      map.set(key, name || key);
+    });
+    return map;
+  }
+
+  async function loadAllQuizList(){
+    const list = [];
+    for (let g=1; g<=MAX_GRADE; g++){
+      const grade = String(g);
+      let wg = {};
+      try{
+        wg = await getWordsGradeCached(grade);
+      }catch(_){
+        wg = {};
+      }
+      const lessons = parseLessonKeys(wg);
+      for (const lesson of lessons){
+        const lObj = wg?.[lesson] || {};
+        for (const stage of ["pre1","pre2","review"]){
+          const sObj = lObj?.[stage] || {};
+          if (sObj && typeof sObj === "object" && Object.keys(sObj).length){
+            list.push({
+              grade,
+              lesson,
+              stage,
+              label: `${grade}/${lesson}/${stage}`
+            });
+          }
+        }
+      }
     }
-    for (const lesson of lessons){
-      const opt = document.createElement("option");
-      opt.value = lesson;
-      opt.textContent = lesson;
-      rewardLessonSel.appendChild(opt);
-    }
-    if (current && lessons.includes(current)){
-      rewardLessonSel.value = current;
-    }
+    list.sort((a,b)=>{
+      if (a.grade !== b.grade) return Number(a.grade) - Number(b.grade);
+      if (a.lesson !== b.lesson) return String(a.lesson).localeCompare(String(b.lesson), "ja");
+      return String(a.stage).localeCompare(String(b.stage), "ja");
+    });
+    _quizListCache = list;
   }
 
 
@@ -1227,6 +1177,91 @@
         });
       };
       body.appendChild(addWrap);
+
+      const rewardWrap = document.createElement("div");
+      rewardWrap.className = "rewardSetting";
+      rewardWrap.innerHTML = `
+        <div class="row">
+          <strong>クイズ景品設定</strong>
+          <div class="space"></div>
+          <button class="btn secondary rewardAllBtn" type="button">全てチェック</button>
+          <button class="btn rewardSaveBtn" type="button">保存</button>
+        </div>
+        <div class="rewardList"></div>
+        <div class="small rewardStatus">—</div>
+      `;
+      const rewardList = rewardWrap.querySelector(".rewardList");
+      const rewardStatus = rewardWrap.querySelector(".rewardStatus");
+      if (!_quizListCache.length){
+        rewardList.innerHTML = `<div class="small">クイズがありません（words を追加してください）。</div>`;
+      }else{
+        for (const quiz of _quizListCache){
+          const entry = getRewardEntry(quiz.grade, quiz.lesson, quiz.stage);
+          const map = entryGroupMap(entry);
+          const label = document.createElement("label");
+          label.className = "rewardCheck";
+          label.innerHTML = `
+            <input type="checkbox" data-grade="${esc(quiz.grade)}" data-lesson="${esc(quiz.lesson)}" data-stage="${esc(quiz.stage)}">
+            <span>${esc(quiz.label)}</span>
+          `;
+          const input = label.querySelector("input");
+          input.checked = map.has(group.key);
+          rewardList.appendChild(label);
+        }
+      }
+      const rewardAllBtn = rewardWrap.querySelector(".rewardAllBtn");
+      rewardAllBtn.onclick = ()=>{
+        rewardList.querySelectorAll('input[type="checkbox"]').forEach((input)=>{
+          input.checked = true;
+        });
+      };
+      const rewardSaveBtn = rewardWrap.querySelector(".rewardSaveBtn");
+      rewardSaveBtn.onclick = async ()=>{
+        const inputs = Array.from(rewardList.querySelectorAll('input[type="checkbox"]'));
+        if (!inputs.length){
+          rewardStatus.textContent = "保存できるクイズがありません";
+          return;
+        }
+        rewardStatus.textContent = "保存中…";
+        const updates = {};
+        const now = Date.now();
+        for (const input of inputs){
+          const grade = String(input.dataset.grade || "").trim();
+          const lesson = String(input.dataset.lesson || "").trim();
+          const stage = String(input.dataset.stage || "").trim();
+          if (!grade || !lesson || !stage) continue;
+          const path = P.quizReward(grade, lesson, stage);
+          const entry = getRewardEntry(grade, lesson, stage);
+          const map = entryGroupMap(entry);
+          if (input.checked){
+            map.set(group.key, group.name || group.key);
+          }else{
+            map.delete(group.key);
+          }
+          if (!map.size){
+            updates[path] = null;
+            continue;
+          }
+          const keys = Array.from(map.keys());
+          const names = keys.map(k=>map.get(k) || k);
+          updates[path] = {
+            groupKeys: keys,
+            groupNames: names,
+            groupKey: keys[0] || "",
+            groupName: names[0] || "",
+            updatedAt: now
+          };
+        }
+        try{
+          await dbMultiUpdate(updates);
+          await loadQuizRewards();
+          rewardStatus.textContent = "保存OK";
+        }catch(e){
+          rewardStatus.textContent = "保存失敗（DBルール/ネット制限）";
+        }
+      };
+      body.appendChild(rewardWrap);
+
       section.appendChild(body);
 
       itemGrid.appendChild(section);
@@ -1237,7 +1272,6 @@
     _itemGroupsCache = await dbGet(P.itemGroups());
     const groups = normalizeGroupList(_itemGroupsCache);
     renderItemGroupSelect(groups);
-    renderRewardGroupSelect(groups);
     renderItemGrid(groups);
   }
 
@@ -1260,6 +1294,8 @@
   btnReloadItems.onclick = async ()=>{
     setItemMsg("読み込み中…");
     try{
+      await loadQuizRewards();
+      await loadAllQuizList();
       await loadItemGroups();
       setItemMsg("再読込OK");
     }catch(e){
@@ -1296,6 +1332,17 @@
       return;
     }
     const name = groupName || key;
+    if (!_loginPassword){
+      setItemGroupMsg("パスワードが未設定です。再ログインしてください。", false);
+      return;
+    }
+    const pass = prompt("グループ削除にはログインパスワードが必要です");
+    if (pass === null) return;
+    if (String(pass) !== String(_loginPassword)){
+      setItemGroupMsg("パスワードが違います（削除中止）", false);
+      return;
+    }
+
     const ok = confirm(`グループ「${name}」を削除しますか？（中のアイテムも削除されます）`);
 
     if (!ok) return;
@@ -1386,130 +1433,17 @@
     }
   }
 
-
-
-  async function loadRewardLessons(){
-    const grade = String(rewardGradeSel.value || "").trim();
-    if (!grade){
-      renderRewardLessonSelect([]);
-      return;
-    }
-    try{
-      const wg = await getWordsGradeCached(grade);
-      const lessons = parseLessonKeys(wg);
-      renderRewardLessonSelect(lessons);
-    }catch(_){
-      renderRewardLessonSelect([]);
-    }
-  }
-
-  rewardGradeSel.addEventListener("change", ()=>{
-    loadRewardLessons().catch(()=>{});
-  });
-
-
-  function normalizeRewardList(obj){
-    const out = [];
-    if (!obj || typeof obj !== "object") return out;
-    for (const [grade, gObj] of Object.entries(obj)){
-      if (!gObj || typeof gObj !== "object") continue;
-      for (const [lesson, lObj] of Object.entries(gObj)){
-        if (!lObj || typeof lObj !== "object") continue;
-        for (const [stage, sObj] of Object.entries(lObj)){
-          const groupNames = Array.isArray(sObj?.groupNames)
-            ? sObj.groupNames
-            : (sObj?.groupName ? [sObj.groupName] : []);
-          const groupName = groupNames.length ? groupNames.join(" / ") : (sObj?.groupKey || "");
-          out.push({
-            grade,
-            lesson,
-            stage,
-            groupName,
-            updatedAt: sObj?.updatedAt || null
-          });
-        }
-      }
-    }
-    return out.sort((a,b)=>{
-      if (a.grade !== b.grade) return Number(a.grade) - Number(b.grade);
-      if (a.lesson !== b.lesson) return String(a.lesson).localeCompare(String(b.lesson), "ja");
-      return String(a.stage).localeCompare(String(b.stage), "ja");
-    });
-  }
-
-  function renderRewardsTable(list){
-    rewardTbody.innerHTML = "";
-    if (!list.length){
-      rewardTbody.innerHTML = `<tr><td colspan="5" class="small">設定がありません。</td></tr>`;
-      return;
-    }
-    for (const row of list){
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${esc(row.grade)}</td>
-        <td>${esc(row.lesson)}</td>
-        <td>${esc(row.stage)}</td>
-        <td class="left">${esc(row.groupName)}</td>
-        <td>${esc(fmtTime(row.updatedAt))}</td>
-      `;
-      rewardTbody.appendChild(tr);
-    }
-  }
-
   async function loadQuizRewards(){
-    _quizRewardsCache = await dbGet(P.quizRewards());
-    const list = normalizeRewardList(_quizRewardsCache);
-    renderRewardsTable(list);
+    _quizRewardsCache = await dbGet(P.quizRewards()) || {};
   }
 
-  btnReloadRewards.onclick = async ()=>{
-    setRewardMsg("読み込み中…");
-    try{
-      await loadQuizRewards();
-      await loadRewardLessons();
-      setRewardMsg("再読込OK");
-    }catch(e){
-      setRewardMsg("読み込み失敗（DBルール/ネット制限）", false);
-    }
-  };
-
-  btnSaveReward.onclick = async ()=>{
-    const grade = String(rewardGradeSel.value || "").trim();
-    const lesson = String(rewardLessonSel.value || "").trim();
-    const stage = String(rewardStageSel.value || "").trim();
-    const selectedOptions = Array.from(rewardGroupSelect.selectedOptions || []);
-    const groupKeys = selectedOptions.map(opt=>String(opt.value || "").trim()).filter(Boolean);
-    const groupNames = selectedOptions.map(opt=>String(opt.textContent || "").trim()).filter(Boolean);
-    if (!grade || !lesson || !stage || !groupKeys.length){
-
-      setRewardMsg("学年・課・ステージ・グループを選択して", false);
-
-      return;
-    }
-    const exists = groupKeys.every(key => _itemGroupsCache && _itemGroupsCache[key]);
-    setRewardMsg(exists ? "保存中…" : "グループ未登録ですが保存します…");
-    try{
-      await dbSet(P.quizReward(grade, lesson, stage), {
-        groupKeys,
-        groupNames,
-        groupKey: groupKeys[0],
-        groupName: groupNames[0] || "",
-        updatedAt: Date.now()
-      });
-      await loadQuizRewards();
-      setRewardMsg(exists ? "保存OK" : "保存OK（グループ未登録）");
-    }catch(e){
-      setRewardMsg("保存失敗（DBルール/ネット制限）", false);
-    }
-  };
-
-  async function ensureItemsLoaded(){
+    async function ensureItemsLoaded(){
     if (_itemsLoadedOnce) return;
     _itemsLoadedOnce = true;
     try{
-      await loadItemGroups();
       await loadQuizRewards();
-      await loadRewardLessons();
+      await loadAllQuizList();
+      await loadItemGroups();
       setItemMsg("読み込みOK");
     }catch(e){
       setItemMsg("読み込み失敗（DBルール/ネット制限）", false);
@@ -2193,7 +2127,7 @@
                   <td class="left">${esc(x.word)}</td>
                   <td class="left">${esc(x.meaning)}</td>
                   <td class="left">${esc(x.wrongs.join(" / "))}</td>
-                  <td class="left">${x.example ? esc(x.example) : '<span class="muted">—</span>'}</td>
+                  <td class="left">${x.example ? esc(x.example) : '<span class="muted"></span>'}</td>
                 </tr>
               `).join("")}
             </tbody>
@@ -2293,7 +2227,7 @@
   btnBulkClear.onclick = ()=>{
     bulkAddText.value = "";
     bulkPreview.innerHTML = "";
-    bulkMsg.textContent = "—";
+    bulkMsg.textContent = "";
     bulkMsg.className = "muted";
   };
 
