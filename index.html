@@ -710,6 +710,50 @@ font-size: var(--reviewWordMaxPx);
       box-shadow:0 24px 70px rgba(0,0,0,.45);
       padding:16px;
     }
+    .inventoryShowcase{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:10px;
+      margin:6px 0 12px;
+    }
+    .inventoryCharaStage{
+      position:relative;
+      width:min(360px, 90vw);
+      aspect-ratio:1/1;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.2);
+      background: rgba(255,255,255,.08);
+      overflow:hidden;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .inventoryCharaStage img{
+
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      display:block;
+      pointer-events:none;
+    }
+    .inventoryCharaItems{
+      position:absolute;
+      inset:0;
+    }
+    .charaItem{
+      position:absolute;
+      user-select:none;
+      touch-action:none;
+      cursor:grab;
+      filter: drop-shadow(0 6px 10px rgba(0,0,0,.45));
+    }
+    .charaItem:active{ cursor:grabbing; }
+    .charaItem.is-fixed{
+      cursor:default;
+      pointer-events:none;
+    }
+
     .inventoryHead{
       display:flex;
       align-items:center;
@@ -747,17 +791,31 @@ font-size: var(--reviewWordMaxPx);
     }
     .inventoryGrid{
       display:grid;
-      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
       gap:10px;
     }
     .inventoryItem{
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.04);
+      border-radius:12px;
+      padding:6px;
       display:flex;
       flex-direction:column;
       gap:6px;
       align-items:center;
       text-align:center;
-      font-size:12px;
+      font-size:11px;
       font-weight:800;
+      color:#fff;
+      cursor:pointer;
+    }
+    .inventoryItem:hover{
+      border-color: rgba(255,255,255,.4);
+      background: rgba(255,255,255,.12);
+    }
+    .inventoryItem.is-placed{
+      border-color: rgba(125,235,36,.9);
+      box-shadow:0 0 0 2px rgba(125,235,36,.25);
     }
     .inventoryItem img{
       width:100%;
@@ -767,7 +825,15 @@ font-size: var(--reviewWordMaxPx);
       border:1px solid rgba(255,255,255,.2);
       background: rgba(0,0,0,.25);
     }
-
+    .lesson-chara-items{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+    }
+    .lesson-chara-items img{
+      position:absolute;
+      pointer-events:none;
+    }
 
     .sessionWrongList{
       margin:14px 0 0;
@@ -1202,6 +1268,7 @@ font-size: var(--reviewWordMaxPx);
 
         <div class="lesson-chara" id="lessonChara" aria-hidden="true">
           <img id="lessonCharaImg" alt="" />
+          <div class="lesson-chara-items" id="lessonCharaItems" aria-hidden="true"></div>
         </div>
 
         <div class="asaWrap">
@@ -1293,6 +1360,13 @@ font-size: var(--reviewWordMaxPx);
     <div class="inventoryHead">
       <h3>所持アイテム</h3>
       <button class="inventoryClose" id="inventoryClose" type="button">閉じる</button>
+    </div>
+    <div class="inventoryShowcase">
+      <div class="inventoryCharaStage" id="inventoryCharaStage">
+        <img id="inventoryCharaImg" alt="" />
+        <div class="inventoryCharaItems" id="inventoryCharaItems" aria-hidden="true"></div>
+      </div>
+      <div class="small" id="inventoryHint">アイテムをタップして配置、ドラッグで移動。</div>
     </div>
     <div class="small" id="inventoryMsg">読み込み中…</div>
     <div id="inventoryBody"></div>
@@ -1391,6 +1465,7 @@ const P = {
   quizReward: (grade, lesson, stage)=> `quizRewards/${grade}/${lesson}/${stage}`,
   itemsOwnedRoot: (studentKey)=> `itemsOwned/${studentKey}`,
   itemsOwned: (studentKey, groupKey)=> `itemsOwned/${studentKey}/${groupKey}`,
+  charaItems: (studentKey, chara)=> `charaItems/${studentKey}/${chara}`,
 };
 
 /* ✅ 名前→同一進行（同じ名前なら同じDBパス） */
@@ -1538,7 +1613,11 @@ const inventoryBack = document.getElementById("inventoryBack");
 const inventoryClose = document.getElementById("inventoryClose");
 const inventoryMsg = document.getElementById("inventoryMsg");
 const inventoryBody = document.getElementById("inventoryBody");
-
+const inventoryCharaStage = document.getElementById("inventoryCharaStage");
+const inventoryCharaImg = document.getElementById("inventoryCharaImg");
+const inventoryCharaItems = document.getElementById("inventoryCharaItems");
+const inventoryHint = document.getElementById("inventoryHint");
+const lessonCharaItems = document.getElementById("lessonCharaItems");
 
 /* ✅ lowRateポップDOM */
 const lowRateBack = document.getElementById("lowRateBack");
@@ -1762,6 +1841,184 @@ async function awardItemForSession(pct){
   return payload;
 }
 
+const CHARA_ITEM_SIZE_RATIO = 0.26;
+let charaItemPlacements = {};
+let _charaItemCacheKey = "";
+let _charaItemRenderTick = null;
+
+function getCharaItemCacheKey(){
+  const chara = getSavedChara();
+  if (!STUDENT.studentKey || !chara) return "";
+  return `${STUDENT.studentKey}__${chara}`;
+}
+function getCharaItemPath(){
+  const chara = getSavedChara();
+  if (!STUDENT.studentKey || !chara) return null;
+  return P.charaItems(STUDENT.studentKey, chara);
+}
+function renderInventoryChara(){
+  if (!inventoryCharaImg) return;
+  const saved = getSavedChara();
+  if (!saved){
+    inventoryCharaImg.removeAttribute("src");
+    inventoryCharaImg.alt = "";
+    return;
+  }
+  inventoryCharaImg.src = `${saved}.png`;
+  inventoryCharaImg.alt = `${saved} character`;
+}
+function normalizeCharaItemPlacement(raw){
+  const x = clamp(Number(raw?.x ?? 0.5), 0, 1);
+  const y = clamp(Number(raw?.y ?? 0.5), 0, 1);
+  return {
+    itemId: raw?.itemId || "",
+    groupKey: raw?.groupKey || "",
+    name: raw?.name || "",
+    image: raw?.image || "",
+    x,
+    y,
+  };
+}
+function scheduleCharaItemsRender(){
+  if (_charaItemRenderTick) cancelAnimationFrame(_charaItemRenderTick);
+  _charaItemRenderTick = requestAnimationFrame(()=>{
+    _charaItemRenderTick = null;
+    renderCharaItems();
+  });
+}
+function getItemSize(stageRect){
+  return clamp(stageRect.width * CHARA_ITEM_SIZE_RATIO, 18, stageRect.width * 0.48);
+}
+function positionCharaItem(el, stageRect, placement){
+  const size = getItemSize(stageRect);
+  const left = clamp(placement.x * stageRect.width - size / 2, 0, stageRect.width - size);
+  const top = clamp(placement.y * stageRect.height - size / 2, 0, stageRect.height - size);
+  el.style.width = `${size}px`;
+  el.style.height = `${size}px`;
+  el.style.left = `${left}px`;
+  el.style.top = `${top}px`;
+}
+function updateInventoryPlacedState(){
+  if (!inventoryBody) return;
+  inventoryBody.querySelectorAll(".inventoryItem").forEach((card)=>{
+    const key = card.dataset.itemKey;
+    card.classList.toggle("is-placed", Boolean(key && charaItemPlacements?.[key]));
+  });
+}
+async function loadCharaItemPlacements(){
+  const key = getCharaItemCacheKey();
+  if (!key){
+    charaItemPlacements = {};
+    _charaItemCacheKey = "";
+    scheduleCharaItemsRender();
+    updateInventoryPlacedState();
+    return;
+  }
+  if (key === _charaItemCacheKey && Object.keys(charaItemPlacements).length){
+    scheduleCharaItemsRender();
+    updateInventoryPlacedState();
+    return;
+  }
+  _charaItemCacheKey = key;
+  try{
+    const path = getCharaItemPath();
+    const data = path ? await dbGet(path) : null;
+    if (data && typeof data === "object"){
+      const next = {};
+      for (const [itemKey, raw] of Object.entries(data)){
+        next[itemKey] = normalizeCharaItemPlacement(raw);
+      }
+      charaItemPlacements = next;
+    } else {
+      charaItemPlacements = {};
+    }
+  }catch(e){
+    charaItemPlacements = {};
+  }
+  scheduleCharaItemsRender();
+  updateInventoryPlacedState();
+}
+async function saveCharaItemPlacement(itemKey, payload){
+  const path = getCharaItemPath();
+  if (!path || !itemKey) return;
+  const placement = normalizeCharaItemPlacement(payload);
+  charaItemPlacements[itemKey] = placement;
+  scheduleCharaItemsRender();
+  updateInventoryPlacedState();
+  try{
+    await dbSet(`${path}/${itemKey}`, placement);
+  }catch(e){}
+}
+function renderCharaItems(){
+  renderCharaItemsToStage(inventoryCharaStage, inventoryCharaItems, true);
+  renderCharaItemsToStage(lessonChara, lessonCharaItems, false);
+}
+function renderCharaItemsToStage(stageEl, itemsEl, draggable){
+  if (!stageEl || !itemsEl){
+    return;
+  }
+  const entries = Object.entries(charaItemPlacements || {});
+  if (!entries.length){
+    itemsEl.innerHTML = "";
+    return;
+  }
+  const rect = stageEl.getBoundingClientRect();
+  if (!(rect.width > 0 && rect.height > 0)){
+    itemsEl.innerHTML = "";
+    return;
+  }
+  itemsEl.innerHTML = "";
+  for (const [itemKey, raw] of entries){
+    const placement = normalizeCharaItemPlacement(raw);
+    if (!placement.image) continue;
+    const img = document.createElement("img");
+    img.className = draggable ? "charaItem" : "charaItem is-fixed";
+    img.src = placement.image;
+    img.alt = placement.name || "item";
+    img.dataset.itemKey = itemKey;
+    img.draggable = false;
+    positionCharaItem(img, rect, placement);
+    if (draggable){
+      img.addEventListener("pointerdown", (e)=>{
+        if (e.button !== 0) return;
+        e.preventDefault();
+        const stageRect = stageEl.getBoundingClientRect();
+        const size = getItemSize(stageRect);
+        const currentLeft = parseFloat(img.style.left || "0");
+        const currentTop = parseFloat(img.style.top || "0");
+        const offsetX = e.clientX - (stageRect.left + currentLeft);
+        const offsetY = e.clientY - (stageRect.top + currentTop);
+        img.setPointerCapture(e.pointerId);
+
+        const onMove = (ev)=>{
+          const nextLeft = clamp(ev.clientX - stageRect.left - offsetX, 0, stageRect.width - size);
+          const nextTop = clamp(ev.clientY - stageRect.top - offsetY, 0, stageRect.height - size);
+          img.style.left = `${nextLeft}px`;
+          img.style.top = `${nextTop}px`;
+        };
+        const onUp = (ev)=>{
+          img.releasePointerCapture(ev.pointerId);
+          img.removeEventListener("pointermove", onMove);
+          img.removeEventListener("pointerup", onUp);
+          img.removeEventListener("pointercancel", onUp);
+
+          const finalLeft = parseFloat(img.style.left || "0");
+          const finalTop = parseFloat(img.style.top || "0");
+          const x = (finalLeft + size / 2) / stageRect.width;
+          const y = (finalTop + size / 2) / stageRect.height;
+          const updated = { ...placement, x, y };
+          saveCharaItemPlacement(itemKey, updated);
+        };
+        img.addEventListener("pointermove", onMove);
+        img.addEventListener("pointerup", onUp);
+        img.addEventListener("pointercancel", onUp);
+      });
+    }
+    itemsEl.appendChild(img);
+  }
+}
+
+
 async function loadInventory(){
   if (!inventoryMsg || !inventoryBody) return;
   if (!STUDENT.studentKey){
@@ -1792,15 +2049,30 @@ async function loadInventory(){
       section.className = "inventoryGroup";
       const grid = document.createElement("div");
       grid.className = "inventoryGrid";
-      for (const [, item] of itemEntries){
+      for (const [itemId, item] of itemEntries){
         const name = item?.name || "アイテム";
         const image = item?.image || "";
+        const itemKey = `${groupKey}::${itemId}`;
         const card = document.createElement("div");
         card.className = "inventoryItem";
+        card.dataset.itemKey = itemKey;
         card.innerHTML = `
           <img src="${escapeHtml(image)}" alt="${escapeHtml(name)}">
           <div>${escapeHtml(name)}</div>
         `;
+        card.addEventListener("click", ()=>{
+          if (!image) return;
+          const payload = {
+            itemId,
+            groupKey,
+            name,
+            image,
+            x: charaItemPlacements?.[itemKey]?.x ?? 0.5,
+            y: charaItemPlacements?.[itemKey]?.y ?? 0.5,
+          };
+          saveCharaItemPlacement(itemKey, payload);
+          scheduleCharaItemsRender();
+        });
         grid.appendChild(card);
       }
       section.innerHTML = `<h4>${escapeHtml(groupName)}</h4>`;
@@ -1834,11 +2106,13 @@ function renderLessonChara(){
     lessonChara.style.display = "none";
     lessonCharaImg.removeAttribute("src");
     lessonCharaImg.alt = "";
+    if (lessonCharaItems) lessonCharaItems.innerHTML = "";
     return;
   }
   lessonCharaImg.src = `${saved}.png`;
   lessonCharaImg.alt = `${saved} character`;
   lessonChara.style.display = (lessonListBox && lessonListBox.style.display !== "none") ? "flex" : "none";
+  scheduleCharaItemsRender();
 }
 
 function applyCharaSelection(value, { save=false, collapse=false } = {}){
@@ -1850,6 +2124,8 @@ function applyCharaSelection(value, { save=false, collapse=false } = {}){
   if (save && normalized) localStorage.setItem(CHARA_KEY, normalized);
   charaSelect.classList.toggle("single", collapse);
   renderLessonChara();
+  renderInventoryChara();
+  loadCharaItemPlacements().catch(()=>{});
 }
 function renderCharaSelect(){
   const saved = getSavedChara();
@@ -3421,9 +3697,11 @@ sessionBack.addEventListener("click", ()=>{ /* do nothing */ });
 sessionBack.querySelector(".modal")?.addEventListener("click", (e)=> e.stopPropagation());
 
 
-function openInventory(){
+async function openInventory(){
   if (!inventoryBack) return;
   inventoryBack.style.display = "flex";
+  renderInventoryChara();
+  loadCharaItemPlacements().catch(()=>{});
   loadInventory().catch(()=>{});
 }
 function closeInventory(){
@@ -4050,6 +4328,7 @@ async function startFlow(){
     CURRENT.name = normName(j.name || name);
     await applyLastGradeFromMenu();
     await loadAsa();
+    await loadCharaItemPlacements();
 
     setStuStatus("入室OK（課を押してね）", true);
     await showLessonList();
@@ -4883,6 +5162,7 @@ function scheduleLessonRedraw(){
   _resizeTick = requestAnimationFrame(()=>drawLessonTrapezoids(false));
 }
 window.addEventListener("resize", scheduleLessonRedraw);
+window.addEventListener("resize", scheduleCharaItemsRender);
 
 /* ========= ★ クイズ全体：pre1+pre2 波ゲージ ========= */
 function getCurrentLessonSumRate01(){
