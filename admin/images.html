@@ -1,0 +1,788 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Yuko Wordlog（画像管理）</title>
+  <style>
+    :root{
+      --bg:#f6f7fb;
+      --card:#ffffff;
+      --text:#111827;
+      --muted:rgba(17,24,39,.62);
+      --line:rgba(17,24,39,.14);
+      --accent:#2563eb;
+      --danger:#ef4444;
+      --shadow: 0 18px 50px rgba(0,0,0,.08);
+      --r:16px;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+      background: var(--bg);
+      color:var(--text);
+    }
+    a{color:inherit; text-decoration:none}
+    header{
+      position:sticky; top:0; z-index:50;
+      backdrop-filter: blur(10px);
+      background: rgba(246,247,251,.86);
+      border-bottom:1px solid var(--line);
+    }
+    .wrap{max-width:1200px;margin:0 auto;padding:14px 16px}
+    .row{display:flex; gap:12px; align-items:center; flex-wrap:wrap}
+    .space{flex:1}
+    h1{font-size:16px;margin:0;font-weight:950;letter-spacing:.2px}
+
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 12px; border:1px solid var(--line);
+      border-radius:999px; background: rgba(255,255,255,.8);
+      color:var(--muted); font-weight:850; font-size:12px;
+    }
+    .pill b{color:var(--text)}
+
+    main{max-width:1200px;margin:0 auto;padding:16px}
+
+    .card{
+      background: var(--card);
+      border:1px solid var(--line);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .cardHead{
+      padding:14px 14px;
+      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+      border-bottom:1px solid var(--line);
+      background: rgba(17,24,39,.02);
+    }
+    .cardHead h2{margin:0;font-size:14px;font-weight:950}
+    .cardBody{padding:14px}
+
+    .muted{color:var(--muted);font-size:12px;font-weight:800}
+
+    .btn{
+      border:0; cursor:pointer;
+      background: #111827;
+      color: #ffffff;
+      font-weight:950;
+      padding:10px 12px;
+      border-radius: 12px;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+    }
+    .btn.secondary{
+      background: #fff;
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
+    .btn.danger{
+      background: rgba(239,68,68,.10);
+      color: #b91c1c;
+      border: 1px solid rgba(239,68,68,.30);
+    }
+    .btn:active{transform:scale(.99)}
+
+    input,textarea{
+      width:100%;
+      padding:10px 12px;
+      border-radius: 12px;
+      border:1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      outline:none;
+      font-weight:850;
+    }
+    label{display:block; font-size:12px; font-weight:950; color:var(--muted); margin:0 0 6px}
+
+    .grid{
+      display:grid;
+      gap:12px;
+    }
+    .grid.char{grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));}
+
+    .slotCard{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:12px;
+      background:#fff;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      box-shadow: var(--shadow);
+    }
+    .slotHead{display:flex; align-items:center; gap:8px}
+    .slotNum{font-weight:950}
+    .imgPreview{
+      width:96px;
+      height:96px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background: rgba(17,24,39,.06);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+    }
+    .imgPreview img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px}
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      border:1px solid var(--line);
+      background:#fff;
+    }
+    th,td{
+      padding:10px 10px;
+      border:1px solid var(--line);
+      vertical-align:top;
+    }
+    th{
+      font-size:12px;
+      color:var(--muted);
+      font-weight:950;
+      text-align:center;
+      background: rgba(17,24,39,.03);
+      white-space:nowrap;
+    }
+    td{
+      font-size:13px;
+      font-weight:850;
+      text-align:center;
+    }
+    td.left, th.left{text-align:left}
+
+    .itemImageCell{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      align-items:stretch;
+    }
+    .itemImageCell .imgPreview{width:72px;height:72px}
+
+    .loginBack{
+      position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+      background: rgba(0,0,0,.45); z-index:100;
+      padding:16px;
+    }
+    .loginCard{
+      width:min(520px, 100%);
+      border-radius: 18px;
+      border:1px solid var(--line);
+      background: #fff;
+      box-shadow: 0 24px 80px rgba(0,0,0,.22);
+      overflow:hidden;
+    }
+    .loginHead{
+      padding:16px;
+      border-bottom:1px solid var(--line);
+      background: rgba(17,24,39,.02);
+    }
+    .loginHead .t1{font-weight:980}
+    .loginBody{padding:16px; display:flex; flex-direction:column; gap:10px}
+    .loginFoot{padding:16px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+
+    .notice{
+      padding:10px 12px;
+      border-radius: 14px;
+      border:1px solid rgba(34,197,94,.26);
+      background: rgba(34,197,94,.10);
+      color: #14532d;
+      font-weight:900;
+      font-size:12px;
+    }
+    .badline{
+      padding:10px 12px;
+      border-radius: 14px;
+      border:1px solid rgba(239,68,68,.26);
+      background: rgba(239,68,68,.10);
+      color: #7f1d1d;
+      font-weight:900;
+      font-size:12px;
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="row">
+      <h1>Yuko Wordlog（画像管理）</h1>
+      <span class="pill">DB: <b id="dbHost">-</b></span>
+      <span class="pill">ログイン: <b id="who">未</b></span>
+      <div class="space"></div>
+      <a class="btn secondary" href="./index.html">教師管理へ戻る</a>
+      <button class="btn secondary" id="btnReload" type="button" style="display:none">再読込</button>
+      <button class="btn danger" id="btnLogout" type="button" style="display:none">ログアウト</button>
+    </div>
+  </div>
+</header>
+
+<main id="app" style="display:none">
+  <section class="card" style="margin-bottom:14px">
+    <div class="cardHead">
+      <h2>キャラ画像</h2>
+      <span class="muted">キャラ1〜3を初期表示（追加で4以降も作れます）</span>
+      <div class="space"></div>
+      <button class="btn secondary" id="btnAddCharacterSlot" type="button">キャラ枠を追加</button>
+    </div>
+    <div class="cardBody">
+      <div id="charMsg" class="muted" style="margin-bottom:10px">読み込み待ち…</div>
+      <div class="grid char" id="charList"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="cardHead">
+      <h2>アイテム画像</h2>
+      <span class="muted">一覧用 / キャラ画面用の2種類を登録</span>
+      <div class="space"></div>
+    </div>
+    <div class="cardBody">
+      <div id="itemMsg" class="muted" style="margin-bottom:10px">読み込み待ち…</div>
+
+      <div class="grid" style="margin-bottom:14px">
+        <div class="slotCard">
+          <div class="slotHead">
+            <div class="slotNum">新規アイテム</div>
+            <div class="space"></div>
+          </div>
+          <div>
+            <label>アイテムID（英数推奨）</label>
+            <input id="newItemId" placeholder="例）gold_turtle" />
+          </div>
+          <div>
+            <label>アイテム名</label>
+            <input id="newItemName" placeholder="例）金のカメ" />
+          </div>
+          <div class="row" style="align-items:flex-start">
+            <div style="flex:1">
+              <label>一覧用画像URL</label>
+              <input id="newItemListUrl" placeholder="https://example.com/list.png" />
+            </div>
+            <div style="flex:1">
+              <label>一覧用画像ファイル</label>
+              <input id="newItemListFile" type="file" accept="image/*" />
+            </div>
+          </div>
+          <div class="row" style="align-items:flex-start">
+            <div style="flex:1">
+              <label>キャラ画面用画像URL</label>
+              <input id="newItemScreenUrl" placeholder="https://example.com/screen.png" />
+            </div>
+            <div style="flex:1">
+              <label>キャラ画面用画像ファイル</label>
+              <input id="newItemScreenFile" type="file" accept="image/*" />
+            </div>
+          </div>
+          <div class="row" style="justify-content:flex-end">
+            <button class="btn" id="btnAddItem" type="button">追加</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="overflow:auto">
+        <table>
+          <thead>
+            <tr>
+              <th style="min-width:160px" class="left">アイテムID</th>
+              <th style="min-width:200px" class="left">アイテム名</th>
+              <th style="min-width:260px">一覧用画像</th>
+              <th style="min-width:260px">キャラ画面用画像</th>
+              <th style="min-width:140px">操作</th>
+            </tr>
+          </thead>
+          <tbody id="itemTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="loginBack" id="loginBack">
+  <div class="loginCard">
+    <div class="loginHead">
+      <div class="t1">ログイン</div>
+      <div class="muted" style="margin-top:4px">画像管理はログインが必要です。</div>
+    </div>
+    <div class="loginBody">
+      <div>
+        <label>メールアドレス</label>
+        <input id="loginEmail" placeholder="email" />
+      </div>
+      <div>
+        <label>パスワード</label>
+        <input id="loginPass" type="password" placeholder="password" />
+      </div>
+      <div id="loginMsg" class="muted"></div>
+    </div>
+    <div class="loginFoot">
+      <button class="btn" id="btnLogin" type="button">ログイン</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+  import { getDatabase, ref, get, set, update, remove } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAz2XSByzXeb2XKbK_EFEs2V0Y1vFW8bvk",
+    authDomain: "kakapo-8d297.firebaseapp.com",
+    databaseURL: "https://kakapo-8d297-default-rtdb.firebaseio.com",
+    projectId: "kakapo-8d297",
+    storageBucket: "kakapo-8d297.firebasestorage.app",
+    messagingSenderId: "33623099183",
+    appId: "1:33623099183:web:c64db52ce7b84c74e90b47"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getDatabase(app);
+
+  const P = {
+    characterImages: ()=> "images/characters",
+    characterImage: (id)=> `images/characters/${id}`,
+    itemImages: ()=> "images/items",
+    itemImage: (id)=> `images/items/${id}`,
+  };
+
+  const $ = (id)=> document.getElementById(id);
+  const esc = (s)=> String(s ?? "")
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;").replaceAll("'","&#39;");
+
+  async function dbGet(path){
+    const snap = await get(ref(db, path));
+    return snap.exists() ? snap.val() : null;
+  }
+  async function dbSet(path, v){ await set(ref(db, path), v); }
+  async function dbRemove(path){ await remove(ref(db, path)); }
+  async function dbUpdate(path, v){ await update(ref(db, path), v); }
+
+  function readFileAsDataUrl(file){
+    return new Promise((resolve, reject)=>{
+      const reader = new FileReader();
+      reader.onload = ()=> resolve(reader.result);
+      reader.onerror = ()=> reject(reader.error || new Error("file read error"));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  const dbHost = $("dbHost");
+  const who = $("who");
+  const btnReload = $("btnReload");
+  const btnLogout = $("btnLogout");
+  const appRoot = $("app");
+
+  const loginBack = $("loginBack");
+  const loginEmail = $("loginEmail");
+  const loginPass = $("loginPass");
+  const loginMsg = $("loginMsg");
+  const btnLogin = $("btnLogin");
+
+  const charList = $("charList");
+  const charMsg = $("charMsg");
+  const btnAddCharacterSlot = $("btnAddCharacterSlot");
+
+  const itemMsg = $("itemMsg");
+  const itemTbody = $("itemTbody");
+  const newItemId = $("newItemId");
+  const newItemName = $("newItemName");
+  const newItemListUrl = $("newItemListUrl");
+  const newItemListFile = $("newItemListFile");
+  const newItemScreenUrl = $("newItemScreenUrl");
+  const newItemScreenFile = $("newItemScreenFile");
+  const btnAddItem = $("btnAddItem");
+
+  let _charCache = {};
+  let _itemCache = {};
+  let _charSlots = [];
+
+  function updateDbHost(){
+    try{
+      const url = new URL(firebaseConfig.databaseURL);
+      dbHost.textContent = url.host;
+    }catch(e){
+      dbHost.textContent = "-";
+    }
+  }
+
+  function ensureCharSlots(charObj){
+    const keys = Object.keys(charObj || {});
+    const nums = keys.map((k)=> Number(k)).filter((n)=> Number.isFinite(n) && n > 0);
+    const maxNum = nums.length ? Math.max(...nums) : 0;
+    const slots = new Set(nums.map((n)=> String(n)));
+    for (let i=1; i<=3; i++) slots.add(String(i));
+    _charSlots = Array.from(slots);
+    _charSlots.sort((a,b)=> Number(a) - Number(b));
+    if (!nums.length){
+      _charSlots = ["1","2","3"];
+    }
+  }
+
+  function renderCharList(){
+    charList.innerHTML = "";
+    const slots = _charSlots.length ? _charSlots : ["1","2","3"];
+    slots.forEach((slot)=>{
+      const data = _charCache?.[slot] || {};
+      const image = String(data?.image || "");
+      const card = document.createElement("div");
+      card.className = "slotCard";
+      card.innerHTML = `
+        <div class="slotHead">
+          <div class="slotNum">キャラ${esc(slot)}</div>
+          <div class="space"></div>
+        </div>
+        <div class="row" style="align-items:center">
+          <div class="imgPreview">${image ? `<img src="${esc(image)}" alt="char-${esc(slot)}">` : "<span class=\"muted\">No Image</span>"}</div>
+          <div style="flex:1">
+            <label>画像URL</label>
+            <input class="charUrl" value="${esc(image)}" placeholder="https://example.com/char.png" />
+          </div>
+        </div>
+        <div>
+          <label>画像ファイル</label>
+          <input class="charFile" type="file" accept="image/*" />
+        </div>
+        <div class="row" style="justify-content:flex-end">
+          <button class="btn charSave" type="button">保存</button>
+          <button class="btn secondary charClear" type="button">削除</button>
+        </div>
+      `;
+
+      const urlInput = card.querySelector(".charUrl");
+      const fileInput = card.querySelector(".charFile");
+      const preview = card.querySelector(".imgPreview");
+      const saveBtn = card.querySelector(".charSave");
+      const clearBtn = card.querySelector(".charClear");
+
+      saveBtn.onclick = async ()=>{
+        let url = String(urlInput?.value || "").trim();
+        if (fileInput?.files?.length){
+          try{
+            url = await readFileAsDataUrl(fileInput.files[0]);
+          }catch(e){
+            charMsg.textContent = "画像読込に失敗しました";
+            charMsg.className = "badline";
+            return;
+          }
+        }
+        if (!url){
+          charMsg.textContent = "画像URLまたは画像ファイルを指定してください";
+          charMsg.className = "badline";
+          return;
+        }
+        charMsg.textContent = "保存中…";
+        charMsg.className = "muted";
+        try{
+          await dbSet(P.characterImage(slot), { image: url, updatedAt: Date.now() });
+          urlInput.value = url;
+          if (fileInput) fileInput.value = "";
+          preview.innerHTML = `<img src="${esc(url)}" alt="char-${esc(slot)}">`;
+          _charCache[slot] = { image: url, updatedAt: Date.now() };
+          charMsg.textContent = `キャラ${slot}を保存しました`;
+          charMsg.className = "notice";
+        }catch(e){
+          charMsg.textContent = "保存に失敗しました（DBルール/ネット制限）";
+          charMsg.className = "badline";
+        }
+      };
+
+      clearBtn.onclick = async ()=>{
+        const ok = confirm(`キャラ${slot}の画像を削除しますか？`);
+        if (!ok) return;
+        charMsg.textContent = "削除中…";
+        charMsg.className = "muted";
+        try{
+          await dbRemove(P.characterImage(slot));
+          urlInput.value = "";
+          if (fileInput) fileInput.value = "";
+          preview.innerHTML = "<span class=\"muted\">No Image</span>";
+          delete _charCache[slot];
+          charMsg.textContent = `キャラ${slot}を削除しました`;
+          charMsg.className = "notice";
+        }catch(e){
+          charMsg.textContent = "削除に失敗しました（DBルール/ネット制限）";
+          charMsg.className = "badline";
+        }
+      };
+
+      charList.appendChild(card);
+    });
+  }
+
+  function renderItemTable(){
+    itemTbody.innerHTML = "";
+    const entries = Object.entries(_itemCache || {});
+    if (!entries.length){
+      itemTbody.innerHTML = `<tr><td colspan="5" class="muted">アイテムがまだ登録されていません。</td></tr>`;
+      return;
+    }
+    entries.sort((a,b)=> a[0].localeCompare(b[0], "ja"));
+    for (const [itemId, item] of entries){
+      const tr = document.createElement("tr");
+      const listImage = String(item?.listImage || "");
+      const screenImage = String(item?.screenImage || "");
+      tr.innerHTML = `
+        <td class="left mono">${esc(itemId)}</td>
+        <td class="left"><input class="itemName" value="${esc(item?.name || "")}" /></td>
+        <td>
+          <div class="itemImageCell">
+            <div class="imgPreview">${listImage ? `<img src="${esc(listImage)}" alt="list-${esc(itemId)}">` : "<span class=\"muted\">No Image</span>"}</div>
+            <input class="itemListUrl" value="${esc(listImage)}" placeholder="https://example.com/list.png" />
+            <input class="itemListFile" type="file" accept="image/*" />
+          </div>
+        </td>
+        <td>
+          <div class="itemImageCell">
+            <div class="imgPreview">${screenImage ? `<img src="${esc(screenImage)}" alt="screen-${esc(itemId)}">` : "<span class=\"muted\">No Image</span>"}</div>
+            <input class="itemScreenUrl" value="${esc(screenImage)}" placeholder="https://example.com/screen.png" />
+            <input class="itemScreenFile" type="file" accept="image/*" />
+          </div>
+        </td>
+        <td>
+          <button class="btn secondary itemSave" type="button">保存</button>
+          <button class="btn danger itemDelete" type="button" style="margin-top:6px">削除</button>
+        </td>
+      `;
+
+      const nameInput = tr.querySelector(".itemName");
+      const listUrlInput = tr.querySelector(".itemListUrl");
+      const listFileInput = tr.querySelector(".itemListFile");
+      const screenUrlInput = tr.querySelector(".itemScreenUrl");
+      const screenFileInput = tr.querySelector(".itemScreenFile");
+      const listPreview = tr.querySelectorAll(".imgPreview")[0];
+      const screenPreview = tr.querySelectorAll(".imgPreview")[1];
+      const saveBtn = tr.querySelector(".itemSave");
+      const deleteBtn = tr.querySelector(".itemDelete");
+
+      saveBtn.onclick = async ()=>{
+        const name = String(nameInput?.value || "").trim();
+        let listUrl = String(listUrlInput?.value || "").trim();
+        let screenUrl = String(screenUrlInput?.value || "").trim();
+        if (listFileInput?.files?.length){
+          try{
+            listUrl = await readFileAsDataUrl(listFileInput.files[0]);
+          }catch(e){
+            itemMsg.textContent = "一覧用画像の読込に失敗しました";
+            itemMsg.className = "badline";
+            return;
+          }
+        }
+        if (screenFileInput?.files?.length){
+          try{
+            screenUrl = await readFileAsDataUrl(screenFileInput.files[0]);
+          }catch(e){
+            itemMsg.textContent = "キャラ画面用画像の読込に失敗しました";
+            itemMsg.className = "badline";
+            return;
+          }
+        }
+        if (!listUrl || !screenUrl){
+          itemMsg.textContent = "一覧用/キャラ画面用の画像URLまたはファイルを指定してください";
+          itemMsg.className = "badline";
+          return;
+        }
+        itemMsg.textContent = "保存中…";
+        itemMsg.className = "muted";
+        try{
+          const payload = {
+            name: name || itemId,
+            listImage: listUrl,
+            screenImage: screenUrl,
+            updatedAt: Date.now()
+          };
+          await dbUpdate(P.itemImage(itemId), payload);
+          _itemCache[itemId] = payload;
+          listUrlInput.value = listUrl;
+          screenUrlInput.value = screenUrl;
+          if (listFileInput) listFileInput.value = "";
+          if (screenFileInput) screenFileInput.value = "";
+          listPreview.innerHTML = `<img src="${esc(listUrl)}" alt="list-${esc(itemId)}">`;
+          screenPreview.innerHTML = `<img src="${esc(screenUrl)}" alt="screen-${esc(itemId)}">`;
+          itemMsg.textContent = `アイテム「${itemId}」を保存しました`;
+          itemMsg.className = "notice";
+        }catch(e){
+          itemMsg.textContent = "保存に失敗しました（DBルール/ネット制限）";
+          itemMsg.className = "badline";
+        }
+      };
+
+      deleteBtn.onclick = async ()=>{
+        const ok = confirm(`アイテム「${itemId}」を削除しますか？`);
+        if (!ok) return;
+        itemMsg.textContent = "削除中…";
+        itemMsg.className = "muted";
+        try{
+          await dbRemove(P.itemImage(itemId));
+          delete _itemCache[itemId];
+          renderItemTable();
+          itemMsg.textContent = `アイテム「${itemId}」を削除しました`;
+          itemMsg.className = "notice";
+        }catch(e){
+          itemMsg.textContent = "削除に失敗しました（DBルール/ネット制限）";
+          itemMsg.className = "badline";
+        }
+      };
+
+      itemTbody.appendChild(tr);
+    }
+  }
+
+  async function loadCharacterImages(){
+    charMsg.textContent = "読み込み中…";
+    charMsg.className = "muted";
+    try{
+      _charCache = await dbGet(P.characterImages()) || {};
+      ensureCharSlots(_charCache);
+      renderCharList();
+      charMsg.textContent = "読み込み完了";
+      charMsg.className = "notice";
+    }catch(e){
+      charMsg.textContent = "読み込みに失敗しました（DBルール/ネット制限）";
+      charMsg.className = "badline";
+    }
+  }
+
+  async function loadItemImages(){
+    itemMsg.textContent = "読み込み中…";
+    itemMsg.className = "muted";
+    try{
+      _itemCache = await dbGet(P.itemImages()) || {};
+      renderItemTable();
+      itemMsg.textContent = "読み込み完了";
+      itemMsg.className = "notice";
+    }catch(e){
+      itemMsg.textContent = "読み込みに失敗しました（DBルール/ネット制限）";
+      itemMsg.className = "badline";
+    }
+  }
+
+  btnAddCharacterSlot.onclick = ()=>{
+    const nums = _charSlots.map((n)=> Number(n)).filter((n)=> Number.isFinite(n));
+    const next = nums.length ? Math.max(...nums) + 1 : 4;
+    _charSlots.push(String(next));
+    _charSlots.sort((a,b)=> Number(a) - Number(b));
+    renderCharList();
+  };
+
+  btnAddItem.onclick = async ()=>{
+    const id = String(newItemId?.value || "").trim();
+    const name = String(newItemName?.value || "").trim();
+    if (!id){
+      itemMsg.textContent = "アイテムIDを入力してください";
+      itemMsg.className = "badline";
+      return;
+    }
+    let listUrl = String(newItemListUrl?.value || "").trim();
+    let screenUrl = String(newItemScreenUrl?.value || "").trim();
+    if (newItemListFile?.files?.length){
+      try{
+        listUrl = await readFileAsDataUrl(newItemListFile.files[0]);
+      }catch(e){
+        itemMsg.textContent = "一覧用画像の読込に失敗しました";
+        itemMsg.className = "badline";
+        return;
+      }
+    }
+    if (newItemScreenFile?.files?.length){
+      try{
+        screenUrl = await readFileAsDataUrl(newItemScreenFile.files[0]);
+      }catch(e){
+        itemMsg.textContent = "キャラ画面用画像の読込に失敗しました";
+        itemMsg.className = "badline";
+        return;
+      }
+    }
+    if (!listUrl || !screenUrl){
+      itemMsg.textContent = "一覧用/キャラ画面用の画像URLまたはファイルを指定してください";
+      itemMsg.className = "badline";
+      return;
+    }
+    itemMsg.textContent = "保存中…";
+    itemMsg.className = "muted";
+    try{
+      const payload = {
+        name: name || id,
+        listImage: listUrl,
+        screenImage: screenUrl,
+        updatedAt: Date.now()
+      };
+      await dbSet(P.itemImage(id), payload);
+      _itemCache[id] = payload;
+      newItemId.value = "";
+      newItemName.value = "";
+      newItemListUrl.value = "";
+      newItemScreenUrl.value = "";
+      if (newItemListFile) newItemListFile.value = "";
+      if (newItemScreenFile) newItemScreenFile.value = "";
+      renderItemTable();
+      itemMsg.textContent = "新規アイテムを追加しました";
+      itemMsg.className = "notice";
+    }catch(e){
+      itemMsg.textContent = "保存に失敗しました（DBルール/ネット制限）";
+      itemMsg.className = "badline";
+    }
+  };
+
+  btnReload.onclick = async ()=>{
+    await loadCharacterImages();
+    await loadItemImages();
+  };
+
+  btnLogout.onclick = async ()=>{
+    await signOut(auth);
+  };
+
+  btnLogin.onclick = async ()=>{
+    const email = String(loginEmail?.value || "").trim();
+    const pass = String(loginPass?.value || "").trim();
+    if (!email || !pass){
+      loginMsg.textContent = "メールアドレスとパスワードを入力してください";
+      loginMsg.className = "badline";
+      return;
+    }
+    loginMsg.textContent = "ログイン中…";
+    loginMsg.className = "muted";
+    try{
+      await signInWithEmailAndPassword(auth, email, pass);
+      loginMsg.textContent = "";
+    }catch(e){
+      loginMsg.textContent = "ログインに失敗しました";
+      loginMsg.className = "badline";
+    }
+  };
+
+  onAuthStateChanged(auth, async (user)=>{
+    if (user){
+      who.textContent = user.email || "OK";
+      loginBack.style.display = "none";
+      appRoot.style.display = "block";
+      btnReload.style.display = "inline-flex";
+      btnLogout.style.display = "inline-flex";
+      await loadCharacterImages();
+      await loadItemImages();
+    }else{
+      who.textContent = "未";
+      loginBack.style.display = "flex";
+      appRoot.style.display = "none";
+      btnReload.style.display = "none";
+      btnLogout.style.display = "none";
+    }
+  });
+
+  updateDbHost();
+</script>
+</body>
+</html>
