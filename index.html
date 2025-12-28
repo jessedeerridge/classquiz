@@ -726,7 +726,7 @@ font-size: var(--reviewWordMaxPx);
       flex-direction:column;
       gap:10px;
       --inventory-row: 84px;
-      --inventory-gap: 8px;
+      --inventory-gap: 4px;
     }
     .inventoryShowcase{
       display:flex;
@@ -773,10 +773,10 @@ font-size: var(--reviewWordMaxPx);
       display:none;
     }
     .inventoryGroup{
-      margin-top:12px;
+      margin-top:6px;
       border:1px solid rgba(255,255,255,.15);
       border-radius:14px;
-      padding:10px;
+      padding:6px;
       background: rgba(255,255,255,.06);
     }
     #inventoryBody{
@@ -787,15 +787,14 @@ font-size: var(--reviewWordMaxPx);
       min-height: calc(var(--inventory-row) * 2.5 + var(--inventory-gap) * 2);
     }
     .inventoryGroup h4{
-      margin:0 0 8px;
+      margin:0 0 4px;
       font-size:13px;
       font-weight:900;
       opacity:.9;
     }
     .inventoryGrid{
       display:grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap:10px;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
       gap:var(--inventory-gap);
       grid-auto-rows: 1fr;
     }
@@ -803,10 +802,10 @@ font-size: var(--reviewWordMaxPx);
       border:1px solid rgba(255,255,255,.12);
       background: rgba(255,255,255,.04);
       border-radius:12px;
-      padding:6px;
+      padding:4px;
       display:flex;
       flex-direction:column;
-      gap:6px;
+      gap:4px;
       align-items:center;
       text-align:center;
       font-size:0;
@@ -1634,6 +1633,16 @@ function getInitialPreviewItems(){
   return Object.values(initialItemMap || {}).filter(item=> item?.image);
 }
 
+function getInitialItemKeySet(){
+  const keys = new Set();
+  for (const item of Object.values(initialItemMap || {})){
+    if (!item?.groupKey || !item?.itemId) continue;
+    keys.add(`${item.groupKey}::${item.itemId}`);
+  }
+  return keys;
+}
+
+
 function buildInitialItemMap(groupKey, group){
   const items = group?.items || {};
   const next = {};
@@ -2387,10 +2396,13 @@ async function loadInventory(){
 
     const itemsByClass = new Map();
     let totalItems = 0;
+    const initialItemKeys = getInitialItemKeySet();
 
     for (const [groupKey, items] of groups){
       if (!items || typeof items !== "object") continue;
       for (const [itemId, item] of Object.entries(items)){
+        const itemKey = `${groupKey}::${itemId}`;
+        if (initialItemKeys.has(itemKey)) continue;
         const itemClass = normalizeItemClass(item?.class);
         if (!itemsByClass.has(itemClass)) itemsByClass.set(itemClass, []);
         itemsByClass.get(itemClass).push({ groupKey, itemId, item });
