@@ -1619,6 +1619,17 @@ const INITIAL_ITEM_CLASS_BY_NAME = Object.fromEntries(
   })
 );
 
+const ITEM_CLASS_LABELS = {
+  hat: "ぼうし",
+  cloth: "ふく",
+  right: "みぎて",
+  left: "ひだりて",
+  pants: "ズボン",
+  shoes: "くつ",
+  accesary: "アクセサリー",
+  unknown: "そのほか"
+};
+
 function getInitialPreviewItems(){
   return Object.values(initialItemMap || {}).filter(item=> item?.image);
 }
@@ -2373,33 +2384,52 @@ async function loadInventory(){
     }
     await removeUnownedCharaItemPlacements(ownedRoot);
     inventoryMsg.textContent = "";
+
+    const itemsByClass = new Map();
+    let totalItems = 0;
+
     for (const [groupKey, items] of groups){
       if (!items || typeof items !== "object") continue;
-      const itemEntries = Object.entries(items);
-      if (!itemEntries.length) continue;
-      const groupName = itemEntries[0]?.[1]?.groupName || groupKey;
+      for (const [itemId, item] of Object.entries(items)){
+        const itemClass = normalizeItemClass(item?.class);
+        if (!itemsByClass.has(itemClass)) itemsByClass.set(itemClass, []);
+        itemsByClass.get(itemClass).push({ groupKey, itemId, item });
+        totalItems += 1;
+      }
+    }
+    if (!totalItems){
+      inventoryMsg.textContent = "所持アイテムはまだありません。";
+      await removeAllCharaItemPlacements();
+      return;
+    }
+    const classOrder = [...ITEM_CLASSES, "unknown"];
+    for (const itemClass of classOrder){
+      const entries = itemsByClass.get(itemClass);
+      if (!entries || !entries.length) continue;
       const section = document.createElement("div");
       section.className = "inventoryGroup";
       const grid = document.createElement("div");
       grid.className = "inventoryGrid";
-      const sortedEntries = [...itemEntries].sort((a, b)=>{
-        const aKey = `${groupKey}::${a[0]}`;
-        const bKey = `${groupKey}::${b[0]}`;
+     const sortedEntries = [...entries].sort((a, b)=>{
+        const aKey = `${a.groupKey}::${a.itemId}`;
+        const bKey = `${b.groupKey}::${b.itemId}`;
         const aPlaced = Boolean(charaItemPlacements?.[aKey]);
         const bPlaced = Boolean(charaItemPlacements?.[bKey]);
-        if (aPlaced === bPlaced) return 0;
-        return aPlaced ? -1 : 1;
+        if (aPlaced !== bPlaced) return aPlaced ? -1 : 1;
+        const aName = a.item?.name || "";
+        const bName = b.item?.name || "";
+        return String(aName).localeCompare(String(bName), "ja");
       });
-      for (const [itemId, item] of sortedEntries){
+      for (const entry of sortedEntries){
+        const { groupKey, itemId, item } = entry;
         const name = item?.name || "アイテム";
         const image = item?.image || "";
-        const itemClass = normalizeItemClass(item?.class);
         const listImage = item?.listImage || "";
         const itemKey = `${groupKey}::${itemId}`;
         const card = document.createElement("div");
         card.className = "inventoryItem";
         card.dataset.itemKey = itemKey;
-       card.dataset.itemClass = itemClass;
+        card.dataset.itemClass = itemClass;
         if (itemClass === "accesary"){
           card.dataset.thumb = "full";
         }
@@ -2440,7 +2470,8 @@ async function loadInventory(){
         });
         grid.appendChild(card);
       }
-      section.innerHTML = `<h4>${escapeHtml(groupName)}</h4>`;
+      const label = ITEM_CLASS_LABELS[itemClass] || itemClass;
+      section.innerHTML = `<h4>${escapeHtml(label)}</h4>`;
       section.appendChild(grid);
       inventoryBody.appendChild(section);
     }
