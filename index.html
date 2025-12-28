@@ -2690,13 +2690,11 @@ async function loadInventory(){
 
     const itemsByClass = new Map();
     let totalItems = 0;
-    const initialItemKeys = getInitialItemKeySet();
 
     for (const [groupKey, items] of groups){
       if (!items || typeof items !== "object") continue;
       for (const [itemId, item] of Object.entries(items)){
         const itemKey = `${groupKey}::${itemId}`;
-        if (initialItemKeys.has(itemKey)) continue;
         const itemClass = normalizeItemClass(item?.class);
         if (!itemsByClass.has(itemClass)) itemsByClass.set(itemClass, []);
         itemsByClass.get(itemClass).push({ groupKey, itemId, item });
