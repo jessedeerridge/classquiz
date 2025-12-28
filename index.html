@@ -1634,7 +1634,9 @@ function getInitialPreviewItems(){
 }
 
 function getCharaSelectPreviewItems(){
-  return getPlacedCharaItems();
+  const placed = getPlacedCharaItems();
+  if (placed.length) return placed;
+  return getInitialPreviewItems();
 }
 
 const preloadedImageCache = new Set();
