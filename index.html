@@ -1848,6 +1848,8 @@ function preloadCharaImages(){
   return preloadImages(collectCharaImageSources());
 }
 
+
+
 function updateCharaSelectPreview(){
   if (!charaSelect || !charaButtons?.length) return;
   for (const btn of charaButtons){
@@ -2270,6 +2272,8 @@ async function awardItemForSession(pct){
   const prepared = SESSION.preparedReward;
   if (prepared && prepared.payload){
     await dbSet(`${P.itemsOwned(STUDENT.studentKey, prepared.groupKey)}/${prepared.itemId}`, prepared.payload);
+    markInventoryNeedsLoad();
+    await loadInventoryIfNeeded({ force: true });
     return prepared.payload;
   }
   const candidates = await getRewardCandidates();
@@ -2288,6 +2292,8 @@ async function awardItemForSession(pct){
     acquiredAt: nowTs(),
   };
   await dbSet(`${P.itemsOwned(STUDENT.studentKey, groupKey)}/${itemId}`, payload);
+  markInventoryNeedsLoad();
+  await loadInventoryIfNeeded({ force: true });
   return payload;
 }
 
@@ -2305,6 +2311,21 @@ const CHARA_LAYER_Z = {
 let charaItemPlacements = {};
 let _charaItemCacheKey = "";
 let _charaItemRenderTick = null;
+let inventoryNeedsLoad = true;
+let inventoryLoadedStudentKey = "";
+
+function markInventoryNeedsLoad(){
+  inventoryNeedsLoad = true;
+}
+async function loadInventoryIfNeeded({ force = false } = {}){
+  const studentKey = STUDENT.studentKey || "";
+  if (!force && !inventoryNeedsLoad && inventoryLoadedStudentKey === studentKey) return;
+  const loaded = await loadInventory().catch(()=> false);
+  if (loaded){
+    inventoryNeedsLoad = false;
+    inventoryLoadedStudentKey = studentKey;
+  }
+}
 
 function getCharaItemCacheKey(){
   if (!STUDENT.studentKey) return "";
@@ -2639,10 +2660,11 @@ function renderCharaItemsToStage(stageEl, itemsEl, imageEl){
 
 async function loadInventory(){
   if (!inventoryMsg || !inventoryBody) return;
+  if (!inventoryMsg || !inventoryBody) return false;
   if (!STUDENT.studentKey){
     inventoryMsg.textContent = "名前を入力してから確認できます。";
     inventoryBody.innerHTML = "";
-    return;
+    return true;
   }
   inventoryMsg.textContent = "読み込み中…";
   inventoryBody.innerHTML = "";
@@ -2651,13 +2673,13 @@ async function loadInventory(){
     if (!ownedRoot || typeof ownedRoot !== "object"){
       inventoryMsg.textContent = "所持アイテムはまだありません。";
       await removeAllCharaItemPlacements();
-      return;
+      return true;
     }
     const groups = Object.entries(ownedRoot);
     if (!groups.length){
       inventoryMsg.textContent = "所持アイテムはまだありません。";
       await removeAllCharaItemPlacements();
-      return;
+      return true;
     }
     await removeUnownedCharaItemPlacements(ownedRoot);
     inventoryMsg.textContent = "";
@@ -2680,7 +2702,7 @@ async function loadInventory(){
     if (!totalItems){
       inventoryMsg.textContent = "所持アイテムはまだありません。";
       await removeAllCharaItemPlacements();
-      return;
+      return true;
     }
     const classOrder = [...ITEM_CLASSES, "unknown"];
     for (const itemClass of classOrder){
@@ -2756,8 +2778,10 @@ async function loadInventory(){
       inventoryBody.appendChild(section);
     }
     updateInventoryPlacedState();
+    return true;
   }catch(e){
     inventoryMsg.textContent = "読み込み失敗";
+    return true;
   }
 }
 
@@ -4587,7 +4611,7 @@ async function openInventory(){
   renderInventoryChara();
   await loadInitialItems().catch(()=>{});
   await loadCharaItemPlacements().catch(()=>{});
-  await loadInventory().catch(()=>{});
+  await loadInventoryIfNeeded().catch(()=>{});
 }
 function closeInventory(){
   if (!inventoryBack) return;
