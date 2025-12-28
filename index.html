@@ -714,6 +714,12 @@ font-size: var(--reviewWordMaxPx);
       justify-content:center;
       gap:8px;
       flex-wrap:wrap;
+      width:100%;
+      text-align:center;
+    }
+    #sessionTitle.is-wrong{
+      justify-content:flex-start;
+      text-align:left;
     }
     #sessionTitle .sessionAsaGain{
       display:inline-flex;
@@ -4527,6 +4533,9 @@ function openSessionResult(){
   }else if (sessionTitle){
 
     sessionTitle.textContent = (pct >= 100) ? "おめでとう🎉" : "間違えたことば";
+  }
+  if (sessionTitle){
+    sessionTitle.classList.toggle("is-wrong", pct < 100);
   }
   if (sessionAsaValue){
     const gained = calcAsaFromPct(pct);
