@@ -4540,9 +4540,9 @@ function openSessionResult(){
   if (sessionAsaValue){
     const gained = calcAsaFromPct(pct);
     sessionAsaValue.textContent = String(gained);
-  }
-  if (sessionAsaGain){
-    sessionAsaGain.style.display = "inline-flex";
+    if (sessionAsaGain){
+      sessionAsaGain.style.display = gained > 0 ? "inline-flex" : "none";
+    }
   }
   drawAsaCoinOn(sessionAsaCoin);
 
