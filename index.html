@@ -1478,8 +1478,8 @@ font-size: var(--reviewWordMaxPx);
           <svg class="reviewBallSvg" id="reviewBallSvg" aria-hidden="true"></svg>
 
           <div class="dropletLayer" id="dropletLayer" aria-hidden="true"></div>
-          <div class="quizCenterWord" id="quizWord">…</div>
-<div class="quizExample" id="quizExample" style="display:none">…</div>
+          <div class="quizCenterWord" id="quizWord"></div>
+<div class="quizExample" id="quizExample" style="display:none"></div>
           <div class="quizOptions" id="optGrid"></div>
         </div>
       </div>
@@ -1528,7 +1528,7 @@ font-size: var(--reviewWordMaxPx);
 <!-- ✅ 追加：lowRateポップ（外側クリックで閉じる / 閉じるボタンなし） -->
 <div class="modalBack" id="lowRateBack" aria-label="low rate hint">
   <div class="modal" role="dialog" aria-modal="true">
-    <div class="lrHead" id="lowRateTitle">…</div>
+    <div class="lrHead" id="lowRateTitle"></div>
 
     <div class="lrExampleLabel">たとえば...</div>
     <ul class="lrList" id="lowRateList"></ul>
@@ -4915,7 +4915,7 @@ async function nextQuestionFast(forceFresh=false){
 
 function renderQuestionJson(j){
   clearOptions();
-  quizWord.textContent = "…";
+  quizWord.textContent = "";
   stopQuestionTimer();
   syncDropletColorToGauge();
   setReviewVisualMode();
@@ -4996,7 +4996,7 @@ requestAnimationFrame(applyReviewPromptLayout);
 
 async function loadQuestion(){
   clearOptions();
-  quizWord.textContent = "…";
+  quizWord.textContent = "";
   stopQuestionTimer();
 
   resetPrefetch();
