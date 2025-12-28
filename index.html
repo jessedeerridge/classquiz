@@ -1608,7 +1608,7 @@ async function loadCharaSlots({ render = true } = {}){
     charaSlotList = DEFAULT_CHARA_LIST.map((key)=> ({ key, image: `${key}.png` }));
     charaSlotMap = new Map(charaSlotList.map(slot=> [slot.key, slot]));
   }
-  renderCharaSelectButtons();
+  if (render) renderCharaSelectButtons();
 }
 
 const INITIAL_ITEM_CLASS_BY_NAME = Object.fromEntries(
@@ -1635,6 +1635,51 @@ function getInitialPreviewItems(){
 
 function getCharaSelectPreviewItems(){
   return getPlacedCharaItems();
+}
+
+const preloadedImageCache = new Set();
+
+function collectCharaImageSources(){
+  const sources = new Set();
+  for (const slot of charaSlotList){
+    if (!slot?.key) continue;
+    sources.add(slot.image || getCharaImage(slot.key));
+  }
+  for (const item of Object.values(initialItemMap || {})){
+    if (item?.image) sources.add(item.image);
+    if (item?.listImage) sources.add(item.listImage);
+  }
+  for (const item of getPlacedCharaItems()){
+    if (item?.image) sources.add(item.image);
+    if (item?.listImage) sources.add(item.listImage);
+  }
+  return [...sources].filter(Boolean);
+}
+
+function preloadImages(sources){
+  const tasks = [];
+  for (const src of sources){
+    if (preloadedImageCache.has(src)) continue;
+    preloadedImageCache.add(src);
+    tasks.push(new Promise((resolve)=>{
+      const img = new Image();
+      let done = false;
+      const finish = ()=>{ if (done) return; done = true; resolve(); };
+      img.loading = "eager";
+      img.decoding = "async";
+      img.onload = finish;
+      img.onerror = finish;
+      img.src = src;
+      if (img.decode){
+        img.decode().then(finish).catch(finish);
+      }
+    }));
+  }
+  return Promise.all(tasks);
+}
+
+function preloadCharaImages(){
+  return preloadImages(collectCharaImageSources());
 }
 
 function updateCharaSelectPreview(){
@@ -2179,6 +2224,8 @@ function renderCharaStack(container, baseImage, items){
     img.className = "chara-layer";
     img.src = layer.src;
     img.alt = layer.alt;
+    img.loading = "eager";
+    img.decoding = "async";
     img.style.zIndex = String(layer.z);
     img.draggable = false;
     container.appendChild(img);
@@ -5892,15 +5939,17 @@ function renderQuizReviewBalls(lesson, animateFromPrev=false, prevCount=0){
 
 /* ========= 初期化 ========= */
 await loadGradeSettings();
-await Promise.all([
+const initialLoads = [
   loadCharaSlots({ render:false }),
   loadInitialItems({ render:false })
-]);
+];
+if (savedName){
+  initialLoads.push(loadCharaItemPlacements());
+}
+await Promise.all(initialLoads);
+preloadCharaImages();
 renderCharaSelectButtons();
 renderCharaItems();
-if (savedName){
-  await loadCharaItemPlacements();
-}
 updateCharaSelectPreview();
 showNameScreen();
 syncDropletColorToGauge();
