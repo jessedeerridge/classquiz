@@ -144,7 +144,22 @@
       background:transparent;
       border:0;
       box-shadow:none;
+
+      /* ★ここから追加：ロード完了までは見せない＆押せない */
+      opacity:0;
+      pointer-events:none;
+      transform: translateY(4px);
+      transition: opacity .25s ease, transform .25s ease;
     }
+
+    /* ★画像ロード完了後に付けるクラス */
+    .student-top.is-ready{
+      opacity:1;
+      pointer-events:auto;
+      transform: translateY(0);
+    }
+
+
     .student-top input{
       width:100%;
       font-size:18px;
@@ -1255,12 +1270,94 @@ font-size: var(--reviewWordMaxPx);
 .flashOutRight { animation: flashOutRight .18s cubic-bezier(.22,.84,.44,1) both; }
 .flashInLeft   { animation: flashInLeft   .18s cubic-bezier(.22,.84,.44,1) both; }
 
+
+/* ===== TOP ローディング（6つの茶色い点ぐるぐる） ===== */
+.top-loading{
+  position:fixed;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#fff;
+  z-index:1200;
+  transition:opacity .25s ease;
+}
+
+.top-loading.is-hidden{
+  opacity:0;
+  pointer-events:none;
+}
+
+.top-loading-circle{
+  position:relative;
+  width:72px;
+  height:72px;
+  animation: topLoadingSpin 1s linear infinite;
+  /* 念のため：回転軸を中心固定 */
+  transform-origin: 50% 50%;
+}
+
+.top-loading-circle span{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  background:#8b5a2b;
+  opacity:.25;
+
+  /* ✅ ここがポイント：
+     1) まず中心へ（-50%,-50%）
+     2) 角度ぶん回転
+     3) 半径ぶん上へ移動（円周へ） */
+  transform: translate(-50%, -50%)
+             rotate(calc(60deg * var(--i)))
+             translateY(-26px);
+}
+
+.top-loading-circle span::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  background:inherit;
+  animation: topLoadingDot 1s ease-in-out infinite;
+  animation-delay: calc(0.08s * var(--i));
+}
+
+@keyframes topLoadingSpin{
+  0%{   transform: rotate(0deg); }
+  100%{ transform: rotate(360deg); }
+}
+
+@keyframes topLoadingDot{
+  0%,100%{ transform: scale(.8);   opacity:.3; }
+  40%{     transform: scale(1.15); opacity:1; }
+}
+
+
+
   </style>
 </head>
 
 <body>
 <main>
   <section id="studentSec">
+
+    <!-- ★ TOP ローディング（6つの茶色い点） -->
+    <div class="top-loading" id="topLoading">
+      <div class="top-loading-circle">
+        <span style="--i:0"></span>
+        <span style="--i:1"></span>
+        <span style="--i:2"></span>
+        <span style="--i:3"></span>
+        <span style="--i:4"></span>
+        <span style="--i:5"></span>
+      </div>
+    </div>
+
+
     <div class="chara-select" id="charaSelect" aria-label="chara chooser"></div>
 
 
@@ -1879,7 +1976,7 @@ const flashList   = document.getElementById("flashList");
 const flashPager  = document.getElementById("flashPager");
 const flashModeWrap = document.getElementById("flashModeWrap");
 const flashModeUnified = document.getElementById("flashModeUnified");
-
+const topLoading = document.getElementById("topLoading");
 
 /* ========= ASA ========= */
 let ASA_STATE = {
@@ -2612,6 +2709,56 @@ function renderCharaSelect(){
     renderLessonChara();
   }
 }
+
+
+function hideTopLoading(){
+  if (!topLoading) return;
+  topLoading.classList.add("is-hidden");
+  // 完全に消しておく（フォーカスなどの邪魔防止）
+  setTimeout(()=>{ topLoading.style.display = "none"; }, 260);
+}
+
+
+
+// ★TOP画面のキャラ画像がすべて読み終わったら、名前入力＆ボタンを出す
+function waitTopImagesThenShowUI(){
+  if (!studentTop || !charaSelect){
+    hideTopLoading();
+    return;
+  }
+
+  const imgs = charaSelect.querySelectorAll("img");
+  if (!imgs.length){
+    // 画像がない場合はすぐに表示
+    studentTop.classList.add("is-ready");
+    hideTopLoading();
+    return;
+  }
+
+  let remaining = imgs.length;
+
+  const done = ()=>{
+    remaining--;
+    if (remaining <= 0){
+      // すべてのキャラ画像の load / error が終わった
+      studentTop.classList.add("is-ready");
+      hideTopLoading();
+    }
+  };
+
+  imgs.forEach(img=>{
+    // すでに読み込み済みのものは即カウント
+    if (img.complete){
+      done();
+    }else{
+      img.addEventListener("load",  done, { once:true });
+      img.addEventListener("error", done, { once:true });
+    }
+  });
+}
+
+
+
 function renderCharaSelectButtons(){
   if (!charaSelect) return;
   charaSelect.innerHTML = "";
@@ -2639,6 +2786,8 @@ function renderCharaSelectButtons(){
     charaButtons.push(btn);
   }
   renderCharaSelect();
+  waitTopImagesThenShowUI();
+
 }
 
 
