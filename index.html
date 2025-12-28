@@ -2187,14 +2187,12 @@ async function awardAsaForSession(pct){
   await addAsaPoints(pts);
 }
 
-async function awardItemForSession(pct){
-  if (!SESSION || SESSION.itemAwarded) return null;
-  SESSION.itemAwarded = true;
-  if (!(pct >= 100)) return null;
+async function getRewardCandidates(){
+  if (!SESSION) return [];
   const grade = SELECTED_GRADE;
   const lesson = normLesson(SESSION.lesson);
   const stage = String(SESSION.stage || "");
-  if (!STUDENT.studentKey || !grade || !lesson || !stage) return null;
+  if (!STUDENT.studentKey || !grade || !lesson || !stage) return [];
   const reward = await dbGet(P.quizReward(grade, lesson, stage));
   const groupKeys = Array.isArray(reward?.groupKeys)
     ? reward.groupKeys
@@ -2202,7 +2200,7 @@ async function awardItemForSession(pct){
   const groupNames = Array.isArray(reward?.groupNames)
     ? reward.groupNames
     : (reward?.groupName ? [reward.groupName] : []);
-  if (!groupKeys.length) return null;
+  if (!groupKeys.length) return [];
   const groupNameMap = new Map();
   groupKeys.forEach((key, idx)=>{
     const name = groupNames[idx] || reward?.groupName || key;
@@ -2220,6 +2218,42 @@ async function awardItemForSession(pct){
       candidates.push({ itemId, item, groupKey: key, groupName: groupNameMap.get(key) || key });
     }
   }
+  return candidates;
+}
+
+async function prepareSessionReward(){
+  if (!SESSION || SESSION.rewardPrepared) return;
+  SESSION.rewardPrepared = true;
+  const candidates = await getRewardCandidates();
+  if (!candidates.length) return;
+  const pick = candidates[Math.floor(Math.random() * candidates.length)];
+  const { itemId, item, groupKey, groupName } = pick;
+  const payload = {
+    name: item?.name || itemId,
+    image: item?.image || "",
+    class: item?.class || "",
+    listImage: item?.listImage || "",
+    groupKey,
+    groupName,
+    acquiredAt: nowTs(),
+  };
+  SESSION.preparedReward = { itemId, groupKey, payload };
+  const sources = [payload.image, payload.listImage].filter(Boolean);
+  if (sources.length) await preloadImages(sources);
+}
+
+async function awardItemForSession(pct){
+  if (!SESSION || SESSION.itemAwarded) return null;
+  SESSION.itemAwarded = true;
+  if (!(pct >= 100)) return null;
+  const prepared = SESSION.preparedReward;
+  if (prepared && prepared.payload){
+    await dbSet(`${P.itemsOwned(STUDENT.studentKey, prepared.groupKey)}/${prepared.itemId}`, prepared.payload);
+    return prepared.payload;
+  }
+  const candidates = await getRewardCandidates();
+
+
   if (!candidates.length) return null;
   const pick = candidates[Math.floor(Math.random() * candidates.length)];
   const { itemId, item, groupKey, groupName } = pick;
@@ -4328,8 +4362,10 @@ function startSession(lesson, stage, meta){
     perWordAsked: new Map(),
     asaAwarded: false,
     itemAwarded: false,
-
+    rewardPrepared: false,
+    preparedReward: null,
   };
+  defer(()=>{ prepareSessionReward().catch(()=>{}); });
 }
 function endSessionIfNeeded(){
   if (!SESSION) return false;
@@ -4343,6 +4379,7 @@ function openSessionResult(){
 
   const totalAsked = Math.max(1, SESSION.asked || 0);
   const pct = Math.round((SESSION.correct || 0) / totalAsked * 100);
+  const delayModalForReward = pct >= 100;
 
   // ✅ まず表示をリセット
   if (sessionReward){
@@ -4377,6 +4414,9 @@ function openSessionResult(){
 
   // ✅ アイテム報酬 + 間違い一覧の描画
   (async ()=>{
+    if (delayModalForReward){
+      await prepareSessionReward().catch(()=>{});
+    }
     let reward = null;
     try{
       reward = await awardItemForSession(pct);
@@ -4425,11 +4465,20 @@ function openSessionResult(){
     }
 
     requestAnimationFrame(fitSessionModalWidth);
+
+
+    if (delayModalForReward){
+      sessionBack.style.display = "flex";
+      requestAnimationFrame(fitSessionModalWidth);
+    }
+
   })();
 
   // モーダル表示
-  sessionBack.style.display = "flex";
-  requestAnimationFrame(fitSessionModalWidth);
+  if (!delayModalForReward){
+    sessionBack.style.display = "flex";
+    requestAnimationFrame(fitSessionModalWidth);
+  }
 }
 
 /* ✅ 100%以外のときの「間違えたことば」リスト描画 */
