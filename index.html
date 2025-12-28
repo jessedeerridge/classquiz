@@ -4632,6 +4632,25 @@ function openSessionResult(){
 }
 
 /* ✅ 100%以外のときの「間違えたことば」リスト描画 */
+function fillBlankWithAnswer(question, answer){
+  const q = String(question || "");
+  const a = String(answer || "").trim();
+  if (!q || !a) return { text: q, filled: false };
+
+  const fullWidth = /（\s*）/;
+  if (fullWidth.test(q)){
+    return { text: q.replace(fullWidth, `（ ${a} ）`), filled: true };
+  }
+
+  const halfWidth = /\(\s*\)/;
+  if (halfWidth.test(q)){
+    return { text: q.replace(halfWidth, `( ${a} )`), filled: true };
+  }
+
+  return { text: q, filled: false };
+}
+
+
 function renderSessionWrongList(){
   if (!wrongList || !SESSION) return;
 
@@ -4646,17 +4665,21 @@ function renderSessionWrongList(){
 
   wrongs.forEach((w)=>{
     const li = document.createElement("li");
+    const answer = w.correct || w.meaning || "";
+    const filled = fillBlankWithAnswer(w.word || "", answer);
+
 
     const wordEl = document.createElement("div");
     wordEl.className = "w";
-    wordEl.textContent = w.word || "";
+    wordEl.textContent = filled.text;
 
     const meanEl = document.createElement("div");
     meanEl.className = "m";
 
     const parts = [];
-    if (w.meaning) parts.push(w.meaning);
-    if (w.correct && w.correct !== w.meaning) parts.push(`（正：${w.correct}）`);
+    if (!filled.filled && w.meaning) parts.push(w.meaning);
+    if (!filled.filled && w.correct && w.correct !== w.meaning) parts.push(`（正：${w.correct}）`);
+
     if (w.chosen && w.chosen !== w.correct) parts.push(`／あなたの答え：${w.chosen}`);
 
     meanEl.textContent = parts.join(" ");
