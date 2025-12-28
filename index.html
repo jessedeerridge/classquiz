@@ -2487,6 +2487,7 @@ async function loadInventory(){
       section.appendChild(grid);
       inventoryBody.appendChild(section);
     }
+    updateInventoryPlacedState();
   }catch(e){
     inventoryMsg.textContent = "読み込み失敗";
   }
