@@ -2195,6 +2195,38 @@ async function ensureUniqueClassPlacements(){
   if (removals.length) await Promise.all(removals);
 }
 
+async function ensureInitialClassPlacements({ render = true } = {}){
+  if (!Object.keys(initialItemMap || {}).length){
+    await loadInitialItems({ render: false });
+  }
+  const additions = [];
+  for (const item of Object.values(initialItemMap || {})){
+    const cls = normalizeItemClass(item?.class);
+    if (!cls || cls === "unknown") continue;
+    const existingKey = findPlacedItemKeyByClass(cls);
+    if (existingKey) continue;
+    if (!item?.groupKey || !item?.itemId) continue;
+    const itemKey = `${item.groupKey}::${item.itemId}`;
+    const placement = normalizeCharaItemPlacement({
+      itemId: item.itemId,
+      groupKey: item.groupKey,
+      name: item.name || item.itemId,
+      image: item.image || "",
+      class: cls,
+      listImage: item.listImage || ""
+    });
+    charaItemPlacements[itemKey] = placement;
+    additions.push({ itemKey, placement });
+  }
+  if (!additions.length) return;
+  if (render){
+    renderCharaPreviewImmediate();
+    updateInventoryPlacedState();
+  }
+  await Promise.all(additions.map(({ itemKey, placement })=> persistCharaItemPlacement(itemKey, placement)));
+}
+
+
 async function loadCharaItemPlacements(){
   const key = getCharaItemCacheKey();
   if (!key){
@@ -2226,6 +2258,7 @@ async function loadCharaItemPlacements(){
     charaItemPlacements = {};
   }
   await ensureUniqueClassPlacements();
+  await ensureInitialClassPlacements({ render: false });
   scheduleCharaItemsRender();
   updateInventoryPlacedState();
 }
@@ -2376,7 +2409,7 @@ async function loadInventory(){
             <img src="${escapeHtml(thumbSrc)}" alt="${escapeHtml(name)}">
           </div>
         `;
-        card.addEventListener("click", ()=>{
+        card.addEventListener("click", async ()=>{
           if (!image) return;
           const payload = {
             itemId,
@@ -2391,6 +2424,7 @@ async function loadInventory(){
             renderCharaPreviewImmediate();
             updateInventoryPlacedState();
             persistCharaItemRemoval(itemKey);
+            await ensureInitialClassPlacements();
             return;
           }
           const existingKey = findPlacedItemKeyByClass(itemClass);
