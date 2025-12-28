@@ -268,6 +268,44 @@
       gap:14px;
     }
 
+    .charaSlotGrid{
+      display:grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap:12px;
+      margin-top:12px;
+    }
+    .charaSlotCard{
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:#fff;
+      padding:10px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      align-items:center;
+      text-align:center;
+    }
+    .charaSlotCard img{
+      width:96px;
+      height:96px;
+      object-fit:contain;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background: rgba(17,24,39,.04);
+    }
+    .itemClassBadge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:#fff;
+      font-size:11px;
+      font-weight:900;
+      color:var(--muted);
+    }
+
     .itemGroupCard{
       border:1px solid var(--line);
       border-radius:16px;
@@ -701,6 +739,34 @@
   </section>
 <!-- Items Tab -->
   <section id="tab_items" style="display:none; margin-top:14px;">
+   <div class="card" style="margin-bottom:14px">
+      <div class="cardHead">
+        <h2>キャラ欄</h2>
+        <div class="space"></div>
+        <button class="btn secondary" id="btnReloadCharaSlots" type="button">再読込</button>
+      </div>
+      <div class="cardBody">
+        <div class="formRow">
+          <div>
+            <label>キャラID（例: c1）</label>
+            <input id="charaSlotId" placeholder="c1" />
+          </div>
+          <div>
+            <label>画像URL</label>
+            <input id="charaSlotUrl" placeholder="https://example.com/chara.png" />
+          </div>
+          <div>
+            <label>画像ファイル</label>
+            <input id="charaSlotFile" type="file" accept="image/*" />
+          </div>
+          <div style="display:flex; align-items:flex-end; gap:10px">
+            <button class="btn" id="btnAddCharaSlot" type="button">追加/更新</button>
+          </div>
+        </div>
+        <div class="small" id="charaSlotMsg" style="margin-top:8px"></div>
+        <div class="charaSlotGrid" id="charaSlotGrid"></div>
+      </div>
+    </div>
     <div class="card">
       <div class="cardHead">
         <h2>アイテムストレージ</h2>
@@ -826,10 +892,12 @@
     wordsGrade: (g)=> `words/${g}`,
     wordsStage: (g, lesson, stage)=> `words/${g}/${lesson}/${stage}`,
     progressGrade: (sk,g)=> `progress/${sk}/${g}`,
-        gradeButtons: ()=> `settings/gradeButtons`,
+    gradeButtons: ()=> `settings/gradeButtons`,
     itemGroups: ()=> `itemGroups`,
     itemGroup: (key)=> `itemGroups/${key}`,
     itemGroupItems: (key)=> `itemGroups/${key}/items`,
+    charaSlots: ()=> `charaSlots`,
+    charaSlot: (key)=> `charaSlots/${key}`,
     quizRewards: ()=> `quizRewards`,
     quizReward: (g, lesson, stage)=> `quizRewards/${g}/${lesson}/${stage}`,
     itemsOwnedRoot: ()=> `itemsOwned`,
@@ -957,6 +1025,13 @@
   const btnAddItem = $("btnAddItem");
   const itemMsg = $("itemMsg");
   const itemGrid = $("itemGrid");
+  const charaSlotId = $("charaSlotId");
+  const charaSlotUrl = $("charaSlotUrl");
+  const charaSlotFile = $("charaSlotFile");
+  const charaSlotMsg = $("charaSlotMsg");
+  const charaSlotGrid = $("charaSlotGrid");
+  const btnAddCharaSlot = $("btnAddCharaSlot");
+  const btnReloadCharaSlots = $("btnReloadCharaSlots");
 
   // Owned items
   const btnReloadOwnedItems = $("btnReloadOwnedItems");
@@ -1328,12 +1403,14 @@
           const card = document.createElement("div");
           card.className = "itemCard";
           if (item?.disabled) card.classList.add("is-disabled");
+          const itemClass = String(item?.class || "").trim() || "未設定";
           const imgHtml = item?.image
             ? `<img src="${esc(item.image)}" alt="${esc(item?.name ?? "")}">`
             : `<span class="small">-</span>`;
           card.innerHTML = `
             <div class="itemImg">${imgHtml}</div>
             <div class="itemName">${esc(item?.name ?? itemId)}</div>
+            <div class="itemClassBadge">${esc(itemClass)}</div>
           `;
           const actions = document.createElement("div");
          actions.className = "itemActions";
@@ -1368,6 +1445,19 @@
           <input class="itemAddName" placeholder="例）金のカメ" />
         </div>
         <div>
+          <label>アイテムクラス</label>
+          <select class="itemAddClass">
+            <option value="">選択してください</option>
+            <option value="hat">hat</option>
+            <option value="cloth">cloth</option>
+            <option value="right">right</option>
+            <option value="left">left</option>
+            <option value="pants">pants</option>
+            <option value="shoes">shoes</option>
+            <option value="accesary">accesary</option>
+          </select>
+        </div>
+        <div>
           <label>画像URL</label>
           <input class="itemAddUrl" placeholder="https://example.com/item.png" />
         </div>
@@ -1375,20 +1465,42 @@
           <label>画像ファイル</label>
           <input class="itemAddFile" type="file" accept="image/*" />
         </div>
+        <div class="itemAddAccessory" style="display:none">
+          <label>アクセサリー用 画像URL</label>
+          <input class="itemAddListUrl" placeholder="アイテム欄の表示用" />
+        </div>
+        <div class="itemAddAccessory" style="display:none">
+          <label>アクセサリー用 画像ファイル</label>
+          <input class="itemAddListFile" type="file" accept="image/*" />
+        </div>
         <div class="row" style="justify-content:flex-end; align-items:flex-end">
           <button class="btn itemAddBtn" type="button">このグループに追加</button>
         </div>
 
       `;
       const addBtn = addWrap.querySelector(".itemAddBtn");
+      const classSelect = addWrap.querySelector(".itemAddClass");
+      const accessoryRows = Array.from(addWrap.querySelectorAll(".itemAddAccessory"));
+      if (classSelect){
+        classSelect.addEventListener("change", ()=>{
+          const isAccessory = classSelect.value === "accesary";
+          accessoryRows.forEach(row=>{ row.style.display = isAccessory ? "" : "none"; });
+        });
+      }
       addBtn.onclick = async ()=>{
         const nameInput = addWrap.querySelector(".itemAddName");
         const urlInput = addWrap.querySelector(".itemAddUrl");
         const fileInput = addWrap.querySelector(".itemAddFile");
+        const classInput = addWrap.querySelector(".itemAddClass");
+        const listUrlInput = addWrap.querySelector(".itemAddListUrl");
+        const listFileInput = addWrap.querySelector(".itemAddListFile");
         await addItemToGroup(group.key, {
           nameInput,
           urlInput,
-          fileInput
+          fileInput,
+          classInput,
+          listUrlInput,
+          listFileInput
         });
       };
       body.appendChild(addWrap);
@@ -1520,6 +1632,70 @@
     });
   }
 
+  function setCharaSlotMsg(msg, ok=true){
+    if (!charaSlotMsg) return;
+    charaSlotMsg.textContent = msg;
+    charaSlotMsg.className = ok ? "okline" : "badline";
+  }
+  function normalizeCharaSlotList(raw){
+    if (!raw || typeof raw !== "object") return [];
+    const list = [];
+    for (const [key, value] of Object.entries(raw)){
+      const image = String(value?.image || "").trim();
+      if (!key) continue;
+      list.push({
+        key,
+        image,
+        updatedAt: value?.updatedAt || value?.createdAt || 0
+      });
+    }
+    list.sort((a,b)=> String(a.key).localeCompare(String(b.key), "ja"));
+    return list;
+  }
+  function renderCharaSlotGrid(list){
+    if (!charaSlotGrid) return;
+    charaSlotGrid.innerHTML = "";
+    if (!list.length){
+      charaSlotGrid.innerHTML = `<div class="small">キャラ欄が未登録です。</div>`;
+      return;
+    }
+    for (const slot of list){
+      const card = document.createElement("div");
+      card.className = "charaSlotCard";
+      const img = document.createElement("img");
+      if (slot.image) img.src = slot.image;
+      img.alt = slot.key;
+      const keyText = document.createElement("div");
+      keyText.textContent = slot.key;
+      const delBtn = document.createElement("button");
+      delBtn.type = "button";
+      delBtn.className = "btn secondary";
+      delBtn.textContent = "削除";
+      delBtn.onclick = async ()=>{
+        const ok = confirm(`キャラ「${slot.key}」を削除しますか？`);
+        if (!ok) return;
+        setCharaSlotMsg("削除中…");
+        try{
+          await dbRemove(P.charaSlot(slot.key));
+          await loadCharaSlots();
+          setCharaSlotMsg("削除OK");
+        }catch(e){
+          setCharaSlotMsg("削除失敗（DBルール/ネット制限）", false);
+        }
+      };
+      card.appendChild(img);
+      card.appendChild(keyText);
+      card.appendChild(delBtn);
+      charaSlotGrid.appendChild(card);
+    }
+  }
+  async function loadCharaSlots(){
+    const raw = await dbGet(P.charaSlots());
+    const list = normalizeCharaSlotList(raw);
+    renderCharaSlotGrid(list);
+  }
+
+
   if (itemGroupSelect){
     itemGroupSelect.addEventListener("change", ()=>{
       const groups = normalizeGroupList(_itemGroupsCache);
@@ -1527,12 +1703,62 @@
     });
   }
 
+  if (btnReloadCharaSlots){
+    btnReloadCharaSlots.onclick = async ()=>{
+      setCharaSlotMsg("読み込み中…");
+      try{
+        await loadCharaSlots();
+        setCharaSlotMsg("再読込OK");
+      }catch(e){
+        setCharaSlotMsg("読み込み失敗（DBルール/ネット制限）", false);
+      }
+    };
+  }
+
+  if (btnAddCharaSlot){
+    btnAddCharaSlot.onclick = async ()=>{
+      const raw = String(charaSlotId?.value || "").trim();
+      if (!raw){
+        setCharaSlotMsg("キャラIDを入力して", false);
+        return;
+      }
+      const key = safeKey(raw);
+      let image = String(charaSlotUrl?.value || "").trim();
+      if (charaSlotFile?.files?.length){
+        try{
+          image = await readFileAsDataUrl(charaSlotFile.files[0]);
+        }catch(e){
+          setCharaSlotMsg("画像読込失敗", false);
+          return;
+        }
+      }
+      if (!image){
+        setCharaSlotMsg("画像ファイルまたはURLを入力して", false);
+        return;
+      }
+      setCharaSlotMsg("保存中…");
+      try{
+        await dbSet(P.charaSlot(key), { image, updatedAt: Date.now() });
+        if (charaSlotId) charaSlotId.value = "";
+        if (charaSlotUrl) charaSlotUrl.value = "";
+        if (charaSlotFile) charaSlotFile.value = "";
+        await loadCharaSlots();
+        setCharaSlotMsg("保存OK");
+      }catch(e){
+        setCharaSlotMsg("保存失敗（DBルール/ネット制限）", false);
+      }
+    };
+  }
+
+
+
   btnReloadItems.onclick = async ()=>{
     setItemMsg("読み込み中…");
     try{
       await loadQuizRewards();
       await loadAllQuizList();
       await loadItemGroups();
+      await loadCharaSlots();
       setItemMsg("再読込OK");
     }catch(e){
       setItemMsg("読み込み失敗（DBルール/ネット制限）", false);
@@ -1664,13 +1890,21 @@
     const nameInput = refs?.nameInput;
     const urlInput = refs?.urlInput;
     const fileInput = refs?.fileInput;
+    const classInput = refs?.classInput;
+    const listUrlInput = refs?.listUrlInput;
+    const listFileInput = refs?.listFileInput;
     const name = String(nameInput?.value || "").trim();
+    const itemClass = String(classInput?.value || "").trim();
     if (!key){
       setItemMsg("グループを選択して", false);
       return;
     }
     if (!name){
       setItemMsg("アイテム名を入力して", false);
+      return;
+    }
+    if (!itemClass){
+      setItemMsg("アイテムクラスを選択して", false);
       return;
     }
     let image = String(urlInput?.value || "").trim();
@@ -1686,13 +1920,35 @@
       setItemMsg("画像ファイルまたはURLを入力して", false);
       return;
     }
+    let listImage = String(listUrlInput?.value || "").trim();
+    if (listFileInput?.files?.length){
+      try{
+        listImage = await readFileAsDataUrl(listFileInput.files[0]);
+      }catch(e){
+        setItemMsg("アクセサリー画像読込失敗", false);
+        return;
+      }
+    }
+    if (itemClass === "accesary" && !listImage){
+      setItemMsg("アクセサリー用の画像を追加して", false);
+      return;
+    }
     setItemMsg("保存中…");
     try{
       const itemRef = push(ref(db, P.itemGroupItems(key)));
-      await set(itemRef, { name, image, createdAt: Date.now() });
+      await set(itemRef, {
+        name,
+        image,
+        class: itemClass,
+        listImage: listImage || null,
+        createdAt: Date.now()
+      });
       if (nameInput) nameInput.value = "";
       if (urlInput) urlInput.value = "";
       if (fileInput) fileInput.value = "";
+      if (classInput) classInput.value = "";
+      if (listUrlInput) listUrlInput.value = "";
+      if (listFileInput) listFileInput.value = "";
       await loadItemGroups();
       setItemMsg("アイテム追加OK");
     }catch(e){
@@ -1720,6 +1976,8 @@
     const payload = {
       name: item?.name || selected.itemId,
       image: item?.image || "",
+      class: item?.class || "",
+      listImage: item?.listImage || "",
       groupKey: selected.groupKey,
       groupName: groupInfo?.name || selected.groupKey,
       acquiredAt: Date.now()
@@ -1745,6 +2003,7 @@
       await loadQuizRewards();
       await loadAllQuizList();
       await loadItemGroups();
+      await loadCharaSlots();
       setItemMsg("読み込みOK");
     }catch(e){
       setItemMsg("読み込み失敗（DBルール/ネット制限）", false);
