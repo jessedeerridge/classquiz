@@ -1545,8 +1545,8 @@ const GAUGE_COLORS = [
 ];
 const GAUGE_ALPHA = 0.28;
 
-let charaSlotList = DEFAULT_CHARA_LIST.map((key)=> ({ key, image: `${key}.png` }));
-let charaSlotMap = new Map(charaSlotList.map(slot=> [slot.key, slot]));
+let charaSlotList = [];
+let charaSlotMap = new Map();
 let initialItemMap = {};
 
 function normLesson(v){ return String(v ?? "").trim(); }
@@ -1597,7 +1597,7 @@ function normalizeCharaSlotList(raw){
   return list;
 }
 
-async function loadCharaSlots(){
+async function loadCharaSlots({ render = true } = {}){
   try{
     const raw = await dbGet(P.charaSlots());
     const list = normalizeCharaSlotList(raw);
@@ -1644,28 +1644,34 @@ function buildInitialItemMap(groupKey, group){
   initialItemMap = next;
 }
 
-async function loadInitialItems(){
+async function loadInitialItems({ render = true } = {}){
   try{
     const groups = await dbGet(P.itemGroups());
     if (!groups || typeof groups !== "object"){
       initialItemMap = {};
-      renderCharaSelectButtons();
-      renderCharaItems();
+      if (render){
+        renderCharaSelectButtons();
+        renderCharaItems();
+      }
       return;
     }
     const fallbackKey = groupKeyFromName(INITIAL_ITEM_GROUP_NAME);
     if (groups[fallbackKey]){
       buildInitialItemMap(fallbackKey, groups[fallbackKey]);
-      renderCharaSelectButtons();
-      renderCharaItems();
+      if (render){
+        renderCharaSelectButtons();
+        renderCharaItems();
+      }
       return;
     }
     for (const [key, group] of Object.entries(groups)){
       const name = String(group?.name || "").trim();
       if (name === INITIAL_ITEM_GROUP_NAME){
         buildInitialItemMap(key, group);
+      if (render){
         renderCharaSelectButtons();
         renderCharaItems();
+      }
         return;
       }
     }
@@ -1673,8 +1679,51 @@ async function loadInitialItems(){
   }catch(e){
     initialItemMap = {};
   }
-  renderCharaSelectButtons();
-        renderCharaItems();
+  if (render){
+    renderCharaSelectButtons();
+    renderCharaItems();
+  }
+}
+
+async function ensureInitialItemsOwned(){
+  if (!STUDENT.studentKey) return;
+  if (!Object.keys(initialItemMap || {}).length){
+    await loadInitialItems({ render:false });
+  }
+  const items = Object.values(initialItemMap || {}).filter(item=> item?.groupKey && item?.itemId);
+  if (!items.length) return;
+
+  const grouped = new Map();
+  for (const item of items){
+    if (!grouped.has(item.groupKey)) grouped.set(item.groupKey, []);
+    grouped.get(item.groupKey).push(item);
+  }
+
+  const now = nowTs();
+  for (const [groupKey, groupItems] of grouped.entries()){
+    let owned = null;
+    try{
+      owned = await dbGet(P.itemsOwned(STUDENT.studentKey, groupKey));
+    }catch(e){
+      owned = null;
+    }
+    const ownedSet = owned && typeof owned === "object" ? new Set(Object.keys(owned)) : new Set();
+    const writes = [];
+    for (const item of groupItems){
+      if (ownedSet.has(item.itemId)) continue;
+      const payload = {
+        name: item.name || item.itemId,
+        image: item.image || "",
+        class: item.class || "",
+        listImage: item.listImage || "",
+        groupKey: item.groupKey,
+        groupName: item.groupName || "",
+        acquiredAt: now
+      };
+      writes.push(dbSet(`${P.itemsOwned(STUDENT.studentKey, groupKey)}/${item.itemId}`, payload));
+    }
+    if (writes.length) await Promise.all(writes);
+  }
 }
 
 
@@ -2419,7 +2468,7 @@ function renderCharaSelect(){
 function renderCharaSelectButtons(){
   if (!charaSelect) return;
   charaSelect.innerHTML = "";
-  const slots = charaSlotList.length ? charaSlotList : DEFAULT_CHARA_LIST.map((key)=> ({ key, image: `${key}.png` }));
+  const slots = charaSlotList;
   charaButtons = [];
   for (const slot of slots){
     const btn = document.createElement("button");
@@ -2444,9 +2493,6 @@ function renderCharaSelectButtons(){
   }
   renderCharaSelect();
 }
-renderCharaSelectButtons();
-loadCharaSlots().catch(()=>{});
-loadInitialItems().catch(()=>{});
 
 
 
@@ -2545,7 +2591,17 @@ async function enterStudent(name){
   const sk = STUDENT.studentKey;
   const path = P.students(sk);
   const now = nowTs();
+  let existing = null;
+  try{
+    existing = await dbGet(path);
+  }catch(e){
+    existing = null;
+  }
+
   await dbUpdate(path, { studentKey: sk, name, createdAt: now, lastSeenAt: now });
+  if (!existing || !existing.createdAt){
+    await ensureInitialItemsOwned();
+  }
   try{
     setInterval(()=> dbUpdate(path, { lastSeenAt: nowTs() }).catch(()=>{}), 30000);
   }catch(e){}
@@ -5735,6 +5791,12 @@ function renderQuizReviewBalls(lesson, animateFromPrev=false, prevCount=0){
 
 /* ========= 初期化 ========= */
 await loadGradeSettings();
+await Promise.all([
+  loadCharaSlots({ render:false }),
+  loadInitialItems({ render:false })
+]);
+renderCharaSelectButtons();
+renderCharaItems();
 showNameScreen();
 syncDropletColorToGauge();
 </script>
