@@ -708,6 +708,27 @@ font-size: var(--reviewWordMaxPx);
     .sessionCenter .line2{ font-size:34px; margin-top:6px; }
     .sessionCenter .line3{ font-size:18px; margin-top:10px; opacity:.95; }
 
+    #sessionTitle{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    #sessionTitle .sessionAsaGain{
+      display:inline-flex;
+      align-items:center;
+      gap:0px;
+      font-weight:900;
+      white-space:nowrap;
+    }
+    #sessionTitle .sessionAsaCoin{
+      width:24px;
+      height:24px;
+      transform:none;
+      display:block;
+    }
+
     .sessionCenter .line4{
       font-size:14px;
       margin-top:8px;
@@ -1499,7 +1520,15 @@ font-size: var(--reviewWordMaxPx);
     <div class="sessionCenter">
       <div class="line1">結果！</div>
       <div class="line2" id="sessionPct">--%</div>
-<div class="line3" id="sessionTitle">間違えたことば</div>
+<div class="line3" id="sessionTitle">
+  <span id="sessionTitleText">間違えたことば</span>
+  <span class="sessionAsaGain" id="sessionAsaGain">
+    <span class="sessionAsaSign">+</span>
+    <span class="sessionAsaValue" id="sessionAsaValue">0</span>
+    <canvas class="asaCoinCanvas sessionAsaCoin" id="sessionAsaCoin" aria-hidden="true"></canvas>
+  </span>
+</div>
+
       <div class="line4" id="sessionReward" style="display:none"></div>
     </div>
 
@@ -2032,6 +2061,11 @@ const sessionPct  = document.getElementById("sessionPct");
 const sessionReward = document.getElementById("sessionReward");
 const wrongList   = document.getElementById("wrongList");
 const btnSessionClose = document.getElementById("btnSessionClose");
+const sessionTitle = document.getElementById("sessionTitle");
+const sessionTitleText = document.getElementById("sessionTitleText");
+const sessionAsaGain = document.getElementById("sessionAsaGain");
+const sessionAsaValue = document.getElementById("sessionAsaValue");
+const sessionAsaCoin = document.getElementById("sessionAsaCoin");
 
 /* ✅ 所持アイテムDOM */
 const inventoryBack = document.getElementById("inventoryBack");
@@ -2078,16 +2112,17 @@ function applyAsaState(obj){
   renderAsaPop();
 }
 
-function drawAsaCoin(){
-  if (!asaCoinCanvas) return;
-  const sizePx = getComputedStyle(asaCoinCanvas).width;
+function drawAsaCoinOn(canvas, options = {}){
+  if (!canvas) return;
+  const expand = Number(options.expand || 0);
+  const sizePx = getComputedStyle(canvas).width;
   const size = Math.max(12, Math.round(parseFloat(sizePx) || 0));
   const scale = window.devicePixelRatio || 1;
-  asaCoinCanvas.width = size * scale;
-  asaCoinCanvas.height = size * scale;
-  asaCoinCanvas.style.width = `${size + 20}px`;
-  asaCoinCanvas.style.height = `${size+ 20}px`;
-  const ctx = asaCoinCanvas.getContext("2d");
+  canvas.width = size * scale;
+  canvas.height = size * scale;
+  canvas.style.width = `${size + expand}px`;
+  canvas.style.height = `${size + expand}px`;
+  const ctx = canvas.getContext("2d");
   if (!ctx) return;
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
   ctx.clearRect(0, 0, size, size);
@@ -2121,7 +2156,9 @@ function drawAsaCoin(){
 
 
 }
-
+function drawAsaCoin(){
+  drawAsaCoinOn(asaCoinCanvas, { expand: 20 });
+}
 
 
 function syncAsaCircleSize(){
@@ -4485,10 +4522,21 @@ function openSessionResult(){
   }
 
   // ✅ タイトル（間違えたことば → GET！）
-  const sessionTitle = document.getElementById("sessionTitle");
-  if (sessionTitle){
+  if (sessionTitleText){
+    sessionTitleText.textContent = (pct >= 100) ? "おめでとう🎉" : "間違えたことば";
+  }else if (sessionTitle){
+
     sessionTitle.textContent = (pct >= 100) ? "おめでとう🎉" : "間違えたことば";
   }
+  if (sessionAsaValue){
+    const gained = calcAsaFromPct(pct);
+    sessionAsaValue.textContent = String(gained);
+  }
+  if (sessionAsaGain){
+    sessionAsaGain.style.display = "inline-flex";
+  }
+  drawAsaCoinOn(sessionAsaCoin);
+
 
   // ✅ ベスト％をDBに保存（最大値だけ残す）
   (async ()=>{
@@ -4839,17 +4887,14 @@ async function startStage(stage){
   if (stage === "pre2" && btnStagePre2.disabled) return;
   if (stage === "review" && btnStageReview.disabled) return;
 
-  // ✅ pre1/pre2 だけ 40%未満なら lowRateポップ
+  // ✅ pre1/pre2 は常に lowRateポップを表示
   if (stage === "pre1" || stage === "pre2"){
     await ensureLessonMetaForLowRate(_pendingLesson);
-    const r = getStageRate01FromMeta(_pendingLessonMeta, stage);
-    if (r != null && r < LOW_RATE_THRESHOLD){
-      const lesson = normLesson(_pendingLesson);
-      const meta = _pendingLessonMeta || null;
-      closeStagePop();
-      await openLowRatePop(lesson, stage, meta);
-      return;
-    }
+    const lesson = normLesson(_pendingLesson);
+    const meta = _pendingLessonMeta || null;
+    closeStagePop();
+    await openLowRatePop(lesson, stage, meta);
+    return;
   }
 
   // 普通に開始
