@@ -6008,9 +6008,26 @@ function drawLessonTrapezoids(animateLevels=true){
         targetLevelY: levelYTarget
       });
 
+      const CUP_SCALE = 1.33;
+      const cupW = trapTopW * CUP_SCALE;
+      const cupH = safeTrapH * CUP_SCALE;
+      const cupX = cx - cupW / 2;
+      const cupY = topY - (cupH - safeTrapH) / 2 - (safeTrapH * 0.03);
+
+      const cup = sEl("image");
+      cup.setAttribute("href", "cup.png");
+      cup.setAttribute("x", cupX);
+      cup.setAttribute("y", cupY);
+      cup.setAttribute("width", cupW);
+      cup.setAttribute("height", cupH);
+      cup.setAttribute("preserveAspectRatio", "xMidYMid meet");
+      cup.style.pointerEvents = "none";
+      lessonSvg.appendChild(cup);
+
+
       const imgW = trapTopW * 0.65;
       const imgH = safeTrapH * 0.7;
-      const imgX = cx - imgW/2;
+      const imgX = cx - imgW / 2;
       const imgY = topY + (safeTrapH - imgH) * 0.40;
 
       const img = sEl("image");
@@ -6025,17 +6042,6 @@ function drawLessonTrapezoids(animateLevels=true){
       img.style.pointerEvents = "none";
       lessonSvg.appendChild(img);
 
-      const outline = sEl("path");
-      const dOutline = `M ${x1} ${y1} L ${x4} ${y4} L ${x3} ${y3} L ${x2} ${y2}`;
-      outline.setAttribute("d", dOutline);
-      outline.setAttribute("fill", "none");
-      outline.setAttribute("stroke", shapeStroke);
-      outline.setAttribute("stroke-width", base.strokeW);
-      outline.setAttribute("stroke-linecap", "round");
-      outline.setAttribute("stroke-linejoin", "round");
-      outline.setAttribute("filter", "url(#handDrawnStroke)");
-      outline.style.pointerEvents = "none";
-      lessonSvg.appendChild(outline);
 
       const labelY = topY + safeTrapH*0.47;
       const label = sEl("text");
@@ -6066,21 +6072,20 @@ function drawLessonTrapezoids(animateLevels=true){
       const RING_STROKE = "#BC3825";
       const RING_STROKE_W = Math.max(1, Math.round(base.strokeW * 1));
 
-      // リング（常に表示／100%で赤）
-      const ring = sEl("ellipse");
-      ring.setAttribute("cx", cxRing);
-      ring.setAttribute("cy", cyRing);
-      ring.setAttribute("rx", rxRing);
-      ring.setAttribute("ry", ryRing);
-      ring.setAttribute("fill", isFull ? RING_FILL : "none");
-      ring.setAttribute("stroke", isFull ? RING_STROKE : shapeStroke);
-      ring.setAttribute("stroke-width", isFull ? RING_STROKE_W : base.strokeW);
-      ring.setAttribute("filter", "url(#handDrawnStroke)");
-      ring.style.pointerEvents = "none";
-      lessonSvg.appendChild(ring);
 
-      // 100%のときだけ：リング内に kame2、左に赤三角
       if (isFull){
+        const ring = sEl("ellipse");
+        ring.setAttribute("cx", cxRing);
+        ring.setAttribute("cy", cyRing);
+        ring.setAttribute("rx", rxRing);
+        ring.setAttribute("ry", ryRing);
+        ring.setAttribute("fill", RING_FILL);
+        ring.setAttribute("stroke", RING_STROKE);
+        ring.setAttribute("stroke-width", RING_STROKE_W);
+        ring.setAttribute("filter", "url(#handDrawnStroke)");
+        ring.style.pointerEvents = "none";
+        lessonSvg.appendChild(ring);
+
         // リング内クリップ
         const ringClipId = `ringclip_${i}_${j}`;
         const ringClip = sEl("clipPath");
