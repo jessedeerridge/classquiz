@@ -5331,9 +5331,9 @@ async function startFlow(){
   STARTING = true;
   try{
     const selectedChara = getSavedChara();
-    if (!selectedChara){ setStuStatus("キャラクターを選んでください", false); return; }
+    if (!selectedChara){ setStuStatus("キャラクターを選んでください。", false); return; }
     const name = normName(stuName.value);
-    if (!name){ setStuStatus("名前を入力して。", false); return; }
+    if (!name){ setStuStatus("名前を入力してください。", false); return; }
     localStorage.setItem(NAME_KEY, name);
 
 
