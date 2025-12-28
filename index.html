@@ -932,6 +932,39 @@ font-size: var(--reviewWordMaxPx);
       opacity: 0.85;
     }
 
+/* ✅ セッション結果：100%時に表示するGETアイテム */
+.sessionRewardItem{
+  margin-top:10px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+}
+
+.sessionRewardThumb{
+  width:96px;
+  height:96px;
+  border-radius:14px;
+  border:1px solid #ddd;
+  background:#f5f5f5;
+  overflow:hidden;
+  box-shadow:0 6px 16px rgba(0,0,0,.18);
+}
+
+.sessionRewardThumb img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  display:block;
+}
+
+.sessionRewardName{
+  font-size:14px;
+  font-weight:900;
+  color:#111;
+}
+
+
     /* =========================
        ✅ review達成(10%ごと)の黒丸
        - 初期落下位置：ランダム（startDX）
@@ -1450,7 +1483,7 @@ font-size: var(--reviewWordMaxPx);
     <div class="sessionCenter">
       <div class="line1">結果！</div>
       <div class="line2" id="sessionPct">--%</div>
-      <div class="line3">間違えたことば</div>
+<div class="line3" id="sessionTitle">間違えたことば</div>
       <div class="line4" id="sessionReward" style="display:none"></div>
     </div>
 
@@ -4288,61 +4321,131 @@ function endSessionIfNeeded(){
   return false;
 }
 
+
 function openSessionResult(){
   if (!SESSION) return;
 
-  const totalAsked = Math.max(1, SESSION.asked);
-  const pct = Math.round((SESSION.correct / totalAsked) * 100);
+  const totalAsked = Math.max(1, SESSION.asked || 0);
+  const pct = Math.round((SESSION.correct || 0) / totalAsked * 100);
+
+  // ✅ まず表示をリセット
   if (sessionReward){
     sessionReward.textContent = "";
     sessionReward.style.display = "none";
   }
+  if (wrongList){
+    wrongList.innerHTML = "";
+    wrongList.style.display = "none";
+  }
+
+  // ✅ タイトル（間違えたことば → GET！）
+  const sessionTitle = document.getElementById("sessionTitle");
+  if (sessionTitle){
+    sessionTitle.textContent = (pct >= 100) ? "GET！" : "間違えたことば";
+  }
 
   // ✅ ベスト％をDBに保存（最大値だけ残す）
-  // 表示の邪魔をしないように裏で実行
   (async ()=>{
     try{
       await apiSaveBestStage(CURRENT.name, SELECTED_GRADE, SESSION.lesson, SESSION.stage, pct);
-      // ベスト更新があり得るので、一覧側の表示も追従させる
-      // （review中の黒玉は既に「最後だけ落とす」設計なので、ここは軽くrefreshだけ）
+      // ベスト更新があり得るので、一覧側の表示も追従
       defer(()=> refreshLessons().catch(()=>{}));
     }catch(_){}
   })();
 
+  // パーセンテージ表示
   sessionPct.textContent = `${pct}%`;
+
+  // ASA付与
   awardAsaForSession(pct).catch(()=>{});
+
+  // ✅ アイテム報酬 + 間違い一覧の描画
   (async ()=>{
+    let reward = null;
     try{
-      const reward = await awardItemForSession(pct);
-      if (reward && sessionReward){
-        sessionReward.textContent = `🎁 アイテム獲得：${reward.name}`;
-        sessionReward.style.display = "";
-      }
+      reward = await awardItemForSession(pct);
     }catch(_){}
+
+    if (pct >= 100){
+      // ------- 100% のとき：GET表示＋サムネ、間違いリスト非表示 -------
+      if (sessionReward){
+        if (reward && reward.image){
+          const name = reward.name || "アイテム";
+          const imgSrc = reward.image;
+
+          sessionReward.innerHTML =
+            `<div class="sessionRewardItem">
+               <div class="sessionRewardThumb">
+                 <img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(name)}">
+               </div>
+               <div class="sessionRewardName">${escapeHtml(name)}</div>
+             </div>`;
+
+        }else if (reward){
+          // 画像なしだが名前はある場合
+          sessionReward.textContent = `${reward.name || "アイテム"} をGET！`;
+        }else{
+          // そもそも新規アイテムが無かった場合
+          sessionReward.textContent = "アイテムは全部集めました！";
+        }
+        sessionReward.style.display = "block";
+      }
+
+      // ✅ 間違いリストは消す（下線も消える）
+      if (wrongList){
+        wrongList.style.display = "none";
+      }
+    }else{
+      // ------- 100% 以外：通常どおり「間違えたことば」を表示 -------
+      renderSessionWrongList();
+    }
+
+    requestAnimationFrame(fitSessionModalWidth);
   })();
 
-  wrongList.innerHTML = "";
-  const shouldShowMeaning = SESSION.stage !== "review";
-  (SESSION.wrongs || []).forEach(x=>{
-    const li = document.createElement("li");
-    // ✅ もし問題文に（）が含まれていたら、入力ボックスに置き換えて空所埋め形式で再表示
-    const hasParens = x.word && x.word.includes("（") && x.word.includes("）");
-    const displayWordHtml = (hasParens && x.meaning)
-      ? fillAnswerIntoParensHtml(x.word, x.meaning)
-      : escapeHtml(x.word);
-    const meaningHtml = (shouldShowMeaning && x.meaning)
-      ? `<div class="m">${escapeHtml(x.meaning)}</div>`
-      : "";
-
-    li.innerHTML =
-      `<div class="w">${displayWordHtml}</div>` +
-      meaningHtml;
-    wrongList.appendChild(li);
-  });
-
+  // モーダル表示
   sessionBack.style.display = "flex";
   requestAnimationFrame(fitSessionModalWidth);
 }
+
+/* ✅ 100%以外のときの「間違えたことば」リスト描画 */
+function renderSessionWrongList(){
+  if (!wrongList || !SESSION) return;
+
+  const wrongs = Array.isArray(SESSION.wrongs) ? SESSION.wrongs : [];
+  if (!wrongs.length){
+    wrongList.style.display = "none";
+    return;
+  }
+
+  wrongList.innerHTML = "";
+  wrongList.style.display = "block";
+
+  wrongs.forEach((w)=>{
+    const li = document.createElement("li");
+
+    const wordEl = document.createElement("div");
+    wordEl.className = "w";
+    wordEl.textContent = w.word || "";
+
+    const meanEl = document.createElement("div");
+    meanEl.className = "m";
+
+    const parts = [];
+    if (w.meaning) parts.push(w.meaning);
+    if (w.correct && w.correct !== w.meaning) parts.push(`（正：${w.correct}）`);
+    if (w.chosen && w.chosen !== w.correct) parts.push(`／あなたの答え：${w.chosen}`);
+
+    meanEl.textContent = parts.join(" ");
+
+    li.appendChild(wordEl);
+    li.appendChild(meanEl);
+    wrongList.appendChild(li);
+  });
+}
+
+
+
 function closeSessionResult(){
   sessionBack.style.display = "none";
 }
