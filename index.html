@@ -4365,7 +4365,6 @@ function startSession(lesson, stage, meta){
     rewardPrepared: false,
     preparedReward: null,
   };
-  defer(()=>{ prepareSessionReward().catch(()=>{}); });
 }
 function endSessionIfNeeded(){
   if (!SESSION) return false;
@@ -4960,6 +4959,10 @@ const example = (j.example != null) ? String(j.example) : "";
 
 CURRENT.currentQ = { raw:j, word_id: wordId, word, correct, example };
 quizWord.textContent = word || "（no word）";
+
+if (SESSION && !SESSION.rewardPrepared && SESSION.asked === 1){
+  defer(()=>{ prepareSessionReward().catch(()=>{}); });
+}
 
 // ✅ reviewのとき：改行しない＆自動縮小＆例文表示
 requestAnimationFrame(applyReviewPromptLayout);
