@@ -1587,9 +1587,30 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-async function dbGet(path){
-  const snap = await get(ref(db, path));
-  return snap.exists() ? snap.val() : null;
+function delay(ms){
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+async function dbGet(path, options={}){
+  const timeoutMs = Number.isFinite(options.timeoutMs) ? options.timeoutMs : 5000;
+  const retries = Number.isFinite(options.retries) ? options.retries : 2;
+
+  let lastError = null;
+  for (let attempt = 0; attempt <= retries; attempt++){
+    try{
+      const snap = await Promise.race([
+        get(ref(db, path)),
+        new Promise((_, reject)=> setTimeout(()=> reject(new Error("db_get_timeout")), timeoutMs))
+      ]);
+      return snap.exists() ? snap.val() : null;
+    }catch(e){
+      lastError = e;
+      if (attempt < retries){
+        await delay(200 + (attempt * 200));
+      }
+    }
+  }
+
+  throw lastError || new Error("db_get_failed");
 }
 async function dbSet(path, value){
   await set(ref(db, path), value);
