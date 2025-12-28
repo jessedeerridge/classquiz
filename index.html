@@ -4350,6 +4350,35 @@ function stageLabel(s){
   return s || "";
 }
 
+async function ensureLessonMetaForLowRate(lesson){
+  const normalized = normLesson(lesson);
+  if (_pendingLessonMeta && _pendingLessonMeta.stageStats) return _pendingLessonMeta;
+  try{
+    const j = await apiLessons(CURRENT.name, SELECTED_GRADE);
+    if (!j.ok || !Array.isArray(j.lessons)) return _pendingLessonMeta;
+    const target = j.lessons.find(x=>{
+      const name = normLesson(x.lesson ?? x.lesson_name ?? x.name ?? "");
+      return name === normalized;
+    });
+    if (!target) return _pendingLessonMeta;
+    const st = target.stage_status || {};
+    const stageStats = readStageStats(target);
+    _pendingLessonMeta = {
+      lesson: normalized,
+      achieveRate: clamp(Number(target.achieveRate ?? 0), 0, 1),
+      doneAt: target.completed_at || null,
+      stageDone: {
+        pre1: st.pre1?.completed_at || null,
+        pre2: st.pre2?.completed_at || null,
+        review: st.review?.completed_at || null,
+      },
+      stageStats,
+    };
+  }catch(e){}
+  return _pendingLessonMeta;
+}
+
+
 /* =========================
    ✅ セッション（その回）管理
 ========================= */
@@ -4768,6 +4797,7 @@ async function startStage(stage){
 
   // ✅ pre1/pre2 だけ 40%未満なら lowRateポップ
   if (stage === "pre1" || stage === "pre2"){
+    await ensureLessonMetaForLowRate(_pendingLesson);
     const r = getStageRate01FromMeta(_pendingLessonMeta, stage);
     if (r != null && r < LOW_RATE_THRESHOLD){
       const lesson = normLesson(_pendingLesson);
