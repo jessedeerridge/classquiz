@@ -922,7 +922,7 @@ font-size: var(--reviewWordMaxPx);
     .sessionBackBtn:active{ transform:scale(.99); }
 
     .line3{
-      text-align: left;
+      text-align: center;
       font-weight: 900;
       font-size: 14px;
       color: #111;
@@ -4489,7 +4489,7 @@ function openSessionResult(){
   // ✅ タイトル（間違えたことば → GET！）
   const sessionTitle = document.getElementById("sessionTitle");
   if (sessionTitle){
-    sessionTitle.textContent = (pct >= 100) ? "GET！" : "間違えたことば";
+    sessionTitle.textContent = (pct >= 100) ? "おめでとう🎉" : "間違えたことば";
   }
 
   // ✅ ベスト％をDBに保存（最大値だけ残す）
