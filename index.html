@@ -200,7 +200,7 @@
 
     .lesson-chara{
       position:absolute;
-      right:12px;
+      left:12px;
       bottom:28px;
       width:112px;
       height:112px;
@@ -1475,7 +1475,7 @@ const P = {
   quizReward: (grade, lesson, stage)=> `quizRewards/${grade}/${lesson}/${stage}`,
   itemsOwnedRoot: (studentKey)=> `itemsOwned/${studentKey}`,
   itemsOwned: (studentKey, groupKey)=> `itemsOwned/${studentKey}/${groupKey}`,
-  charaItems: (studentKey, chara)=> `charaItems/${studentKey}/${chara}`,
+  charaItems: (studentKey)=> `charaItems/${studentKey}`,
 };
 
 /* ✅ 名前→同一進行（同じ名前なら同じDBパス） */
@@ -1632,6 +1632,23 @@ const ITEM_CLASS_LABELS = {
 function getInitialPreviewItems(){
   return Object.values(initialItemMap || {}).filter(item=> item?.image);
 }
+
+function getCharaSelectPreviewItems(){
+  return getPlacedCharaItems();
+}
+
+function updateCharaSelectPreview(){
+  if (!charaSelect || !charaButtons?.length) return;
+  for (const btn of charaButtons){
+    const key = btn.dataset.chara;
+    if (!key) continue;
+    const stack = btn.querySelector(".chara-stack");
+    if (!stack) continue;
+    const baseImage = charaSlotMap.get(key)?.image || getCharaImage(key);
+    renderCharaStack(stack, baseImage, getCharaSelectPreviewItems());
+  }
+}
+
 
 function getInitialItemKeySet(){
   const keys = new Set();
@@ -2045,14 +2062,12 @@ let _charaItemCacheKey = "";
 let _charaItemRenderTick = null;
 
 function getCharaItemCacheKey(){
-  const chara = getSavedChara();
-  if (!STUDENT.studentKey || !chara) return "";
-  return `${STUDENT.studentKey}__${chara}`;
+  if (!STUDENT.studentKey) return "";
+  return `${STUDENT.studentKey}`;
 }
 function getCharaItemPath(){
-  const chara = getSavedChara();
-  if (!STUDENT.studentKey || !chara) return null;
-  return P.charaItems(STUDENT.studentKey, chara);
+  if (!STUDENT.studentKey) return null;
+  return P.charaItems(STUDENT.studentKey);
 }
 function renderInventoryChara(){
   if (!inventoryCharaStack) return;
@@ -2252,13 +2267,15 @@ async function loadCharaItemPlacements(){
   if (!key){
     charaItemPlacements = {};
     _charaItemCacheKey = "";
-  renderCharaPreviewImmediate();
+    renderCharaPreviewImmediate();
     updateInventoryPlacedState();
+    updateCharaSelectPreview();
     return;
   }
   if (key === _charaItemCacheKey && Object.keys(charaItemPlacements).length){
     scheduleCharaItemsRender();
     updateInventoryPlacedState();
+    updateCharaSelectPreview();
     return;
   }
   _charaItemCacheKey = key;
@@ -2281,6 +2298,7 @@ async function loadCharaItemPlacements(){
   await ensureInitialClassPlacements({ render: false });
   scheduleCharaItemsRender();
   updateInventoryPlacedState();
+  updateCharaSelectPreview();
 }
 async function saveCharaItemPlacement(itemKey, payload){
   const path = getCharaItemPath();
@@ -2289,6 +2307,7 @@ async function saveCharaItemPlacement(itemKey, payload){
   charaItemPlacements[itemKey] = placement;
   renderCharaPreviewImmediate();
   updateInventoryPlacedState();
+  updateCharaSelectPreview();
   try{
     await dbSet(`${path}/${itemKey}`, placement);
   }catch(e){}
@@ -2299,6 +2318,7 @@ async function removeCharaItemPlacement(itemKey){
   delete charaItemPlacements[itemKey];
   renderCharaPreviewImmediate();
   updateInventoryPlacedState();
+  updateCharaSelectPreview();
   try{
     await dbSet(`${path}/${itemKey}`, null);
   }catch(e){}
@@ -2497,8 +2517,10 @@ async function loadInventory(){
 
 /* ========= 初期：名前復元 ========= */
 const savedName = localStorage.getItem(NAME_KEY);
-if (savedName) stuName.value = savedName;
-
+if (savedName){
+  stuName.value = savedName;
+  STUDENT.studentKey = studentKeyFromName(savedName);
+}
 /* ========= 初期：chara復元 ========= */
 function normalizeChara(value){
   return charaSlotMap.has(value) ? value : "";
@@ -2556,7 +2578,7 @@ function renderCharaSelectButtons(){
     btn.setAttribute("aria-label", `chara ${slot.key}`);
     const stack = document.createElement("div");
     stack.className = "chara-stack";
-    renderCharaStack(stack, slot.image || getCharaImage(slot.key), getInitialPreviewItems());
+    renderCharaStack(stack, slot.image || getCharaImage(slot.key), getCharaSelectPreviewItems());
     btn.appendChild(stack);
     btn.addEventListener("click", ()=>{
       if (charaSelect.classList.contains("single")){
@@ -5867,6 +5889,7 @@ function renderQuizReviewBalls(lesson, animateFromPrev=false, prevCount=0){
   _quizReviewBallPrev.set(key, count);
 }
 
+
 /* ========= 初期化 ========= */
 await loadGradeSettings();
 await Promise.all([
@@ -5875,6 +5898,10 @@ await Promise.all([
 ]);
 renderCharaSelectButtons();
 renderCharaItems();
+if (savedName){
+  await loadCharaItemPlacements();
+}
+updateCharaSelectPreview();
 showNameScreen();
 syncDropletColorToGauge();
 </script>
