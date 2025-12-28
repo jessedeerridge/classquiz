@@ -1848,6 +1848,10 @@ function preloadCharaImages(){
   return preloadImages(collectCharaImageSources());
 }
 
+const LESSON_ASSET_SOURCES = ["kame.png", "kame2.png"];
+function preloadLessonAssets(){
+  return preloadImages(LESSON_ASSET_SOURCES);
+}
 
 
 function updateCharaSelectPreview(){
@@ -4154,7 +4158,16 @@ async function showLessonList(){
   document.body.classList.add("lesson-bg");
   document.body.classList.remove("quiz-bg");
 
-  await refreshLessons();
+  if (_lastLessonTiles.length){
+    drawLessonTrapezoids(false);
+  }
+  const prefetched = _lessonPrefetchPromise;
+  if (prefetched){
+    await prefetched;
+  } else {
+    await refreshLessons();
+  }
+
   closeStagePop();
   closeSessionResult();
   closeLowRatePop();
@@ -4310,6 +4323,15 @@ function readStageStats(x){
 /* ========= lessons ========= */
 let _lastLessonTiles = [];
 let _refreshLessonsRunId = 0;
+let _lessonPrefetchPromise = null;
+function prefetchLessons(){
+  if (!CURRENT.name) return null;
+  if (_lessonPrefetchPromise) return _lessonPrefetchPromise;
+  _lessonPrefetchPromise = refreshLessons()
+    .catch(()=>{})
+    .finally(()=>{ _lessonPrefetchPromise = null; });
+  return _lessonPrefetchPromise;
+}
 async function refreshLessons(){
   const runId = ++_refreshLessonsRunId;
   const j = await apiLessons(CURRENT.name, SELECTED_GRADE);
@@ -5252,6 +5274,7 @@ async function startFlow(){
 
     CURRENT.name = normName(j.name || name);
     await applyLastGradeFromMenu();
+    prefetchLessons();
     await loadAsa();
     await loadCharaItemPlacements();
 
@@ -6353,6 +6376,7 @@ if (savedName){
 }
 await Promise.all(initialLoads);
 preloadCharaImages();
+preloadLessonAssets();
 renderCharaSelectButtons();
 renderCharaItems();
 updateCharaSelectPreview();
