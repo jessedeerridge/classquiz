@@ -6101,7 +6101,8 @@ function drawLessonTrapezoids(animateLevels=true){
       // =========================
       const isFull = (rate >= 0.999);
 
-      const rxRing = trapTopW / 2;
+      const FULL_RING_WIDTH_SCALE = 1.1;
+      const rxRing = (trapTopW / 2) * FULL_RING_WIDTH_SCALE;
       const ryRing = Math.max(6, base.lineH * 0.65);
       const RING_SHIFT_Y = 8;
 
@@ -6157,7 +6158,7 @@ function drawLessonTrapezoids(animateLevels=true){
 
         // 三角（サイズ/位置はここだけで調整可）
         const TRI = {
-          dx: -(rxRing - 73),
+          dx: -(rxRing - 73) + 6,
           dy: 7,
           scale: 0.6,
           rot: -69,
