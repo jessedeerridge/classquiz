@@ -1729,8 +1729,26 @@ const INITIAL_ITEM_NAMES = {
   pants: "pants1",
   shoes: "shoes1"
 };
-const ITEM_CLASSES = ["hat", "cloth", "right", "left", "pants", "shoes", "accesary"];
-
+const ITEM_CLASSES = [
+  "hat",
+  "cloth",
+  "cloth(special)",
+  "right",
+  "left",
+  "pants",
+  "pants(special)",
+  "shoes",
+  "accesary"
+];
+const ITEM_CLASS_DISPLAY_GROUPS = {
+  "cloth(special)": "cloth",
+  "pants(special)": "pants"
+};
+const ITEM_CLASS_EXCLUSIVE_GROUPS = {
+  "cloth(special)": "special",
+  "pants(special)": "special"
+};
+const INVENTORY_CLASS_ORDER = ["hat", "cloth", "right", "left", "pants", "shoes", "accesary", "unknown"];
 
 /* ========= 波ゲージ色（ローカル） ========= */
 const GAUGE_COLOR_KEY = "yuko_wordlog_gauge_colors_v1";
@@ -1820,9 +1838,11 @@ const INITIAL_ITEM_CLASS_BY_NAME = Object.fromEntries(
 const ITEM_CLASS_LABELS = {
   hat: "ぼうし",
   cloth: "ふく",
+  "cloth(special)": "ふく",
   right: "みぎて",
   left: "ひだりて",
   pants: "ズボン",
+  "pants(special)": "ズボン",
   shoes: "くつ",
   accesary: "アクセサリー",
   unknown: "そのほか"
@@ -2348,6 +2368,8 @@ const CHARA_LAYER_Z = {
   pants: 10,
   shoes: 20,
   cloth: 30,
+  "pants(special)": 35,
+  "cloth(special)": 30,
   base: 40,
   left: 50,
   right: 50,
@@ -2421,6 +2443,12 @@ function normalizeItemClass(value){
   if (raw === "shoes") return "shoes";
   if (ITEM_CLASSES.includes(raw)) return raw;
   return raw || "unknown";
+}
+function getItemClassDisplayGroup(itemClass){
+  return ITEM_CLASS_DISPLAY_GROUPS[itemClass] || itemClass;
+}
+function getItemClassExclusiveGroup(itemClass){
+  return ITEM_CLASS_EXCLUSIVE_GROUPS[itemClass] || itemClass;
 }
 
 function renderCharaStacksNow(){
@@ -2524,9 +2552,11 @@ function reorderInventoryItems(){
 
 function findPlacedItemKeyByClass(itemClass){
   if (!itemClass) return null;
+  const targetGroup = getItemClassExclusiveGroup(itemClass);
   for (const [key, placement] of Object.entries(charaItemPlacements || {})){
-    if (normalizeItemClass(placement?.class) === itemClass) return key;
-  }
+    const placedClass = normalizeItemClass(placement?.class);
+    if (getItemClassExclusiveGroup(placedClass) === targetGroup) return key;
+ }
   return null;
 }
 async function ensureUniqueClassPlacements(){
@@ -2535,12 +2565,13 @@ async function ensureUniqueClassPlacements(){
   const removals = [];
   for (const [key, placement] of Object.entries(charaItemPlacements || {})){
     const cls = normalizeItemClass(placement?.class);
-    if (cls === "unknown") continue;
-    if (seen.has(cls)){
+    const group = getItemClassExclusiveGroup(cls);
+    if (group === "unknown") continue;
+    if (seen.has(group)){
       delete charaItemPlacements[key];
       if (path) removals.push(dbSet(`${path}/${key}`, null));
     }else{
-      seen.add(cls);
+      seen.add(group);
     }
   }
   if (removals.length) await Promise.all(removals);
@@ -2739,8 +2770,9 @@ async function loadInventory(){
       for (const [itemId, item] of Object.entries(items)){
         const itemKey = `${groupKey}::${itemId}`;
         const itemClass = normalizeItemClass(item?.class);
-        if (!itemsByClass.has(itemClass)) itemsByClass.set(itemClass, []);
-        itemsByClass.get(itemClass).push({ groupKey, itemId, item });
+        const displayClass = getItemClassDisplayGroup(itemClass);
+        if (!itemsByClass.has(displayClass)) itemsByClass.set(displayClass, []);
+        itemsByClass.get(displayClass).push({ groupKey, itemId, item, itemClass, displayClass });
         totalItems += 1;
       }
     }
@@ -2749,7 +2781,7 @@ async function loadInventory(){
       await removeAllCharaItemPlacements();
       return true;
     }
-    const classOrder = [...ITEM_CLASSES, "unknown"];
+    const classOrder = INVENTORY_CLASS_ORDER;
     for (const itemClass of classOrder){
       const entries = itemsByClass.get(itemClass);
       if (!entries || !entries.length) continue;
@@ -2768,7 +2800,7 @@ async function loadInventory(){
         return String(aName).localeCompare(String(bName), "ja");
       });
       for (const entry of sortedEntries){
-        const { groupKey, itemId, item } = entry;
+        const { groupKey, itemId, item, itemClass: rawClass, displayClass } = entry;
         const name = item?.name || "アイテム";
         const image = item?.image || "";
         const listImage = item?.listImage || "";
@@ -2776,11 +2808,11 @@ async function loadInventory(){
         const card = document.createElement("div");
         card.className = "inventoryItem";
         card.dataset.itemKey = itemKey;
-        card.dataset.itemClass = itemClass;
-        if (itemClass === "accesary"){
+        card.dataset.itemClass = displayClass;
+        if (rawClass === "accesary"){
           card.dataset.thumb = "full";
         }
-        const thumbSrc = (itemClass === "accesary" && listImage) ? listImage : image;
+        const thumbSrc = (rawClass === "accesary" && listImage) ? listImage : image;
         card.innerHTML = `
           <div class="inventoryItemThumb">
             <img src="${escapeHtml(thumbSrc)}" alt="${escapeHtml(name)}">
@@ -2793,7 +2825,7 @@ async function loadInventory(){
             groupKey,
             name,
             image,
-            class: itemClass,
+            class: rawClass,
             listImage
           };
           if (charaItemPlacements?.[itemKey]){
@@ -2804,7 +2836,7 @@ async function loadInventory(){
             await ensureInitialClassPlacements();
             return;
           }
-          const existingKey = findPlacedItemKeyByClass(itemClass);
+          const existingKey = findPlacedItemKeyByClass(rawClass);
           if (existingKey && existingKey !== itemKey){
             delete charaItemPlacements[existingKey];
             persistCharaItemRemoval(existingKey);
@@ -4580,10 +4612,11 @@ function openSessionResult(){
           const imgSrc = reward.image;
 
           const itemClass = normalizeItemClass(reward.class);
+          const displayClass = getItemClassDisplayGroup(itemClass);
           const isAccessory = itemClass === "accesary";
           const listImage = reward.listImage || "";
           const thumbSrc = (isAccessory && listImage) ? listImage : imgSrc;
-          const itemClassAttr = itemClass ? ` data-item-class="${escapeHtml(itemClass)}"` : "";
+          const itemClassAttr = displayClass ? ` data-item-class="${escapeHtml(displayClass)}"` : "";
           const thumbAttr = isAccessory ? ' data-thumb="full"' : "";
 
 
