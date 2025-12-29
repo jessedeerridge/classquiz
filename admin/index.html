@@ -415,6 +415,118 @@
       margin:0;
     }
 
+   .wordCatalog{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .wordFold{
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:#fff;
+      overflow:hidden;
+    }
+    .wordFold[open] .wordFoldHead::after{
+      transform: rotate(90deg);
+    }
+    .wordFoldHead{
+      list-style:none;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 12px;
+      cursor:pointer;
+      background: rgba(17,24,39,.04);
+      font-weight:900;
+    }
+    .wordFoldHead::-webkit-details-marker{display:none}
+    .wordFoldHead::after{
+      content:"›";
+      margin-left:auto;
+      font-weight:900;
+      color:rgba(17,24,39,.65);
+      transform: rotate(0deg);
+      transition: transform .2s ease;
+    }
+    .wordFoldMeta{
+      font-size:12px;
+      font-weight:850;
+      color:var(--muted);
+    }
+    .wordFoldBody{
+      padding:10px 12px 12px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .wordFold.sub{
+      border-radius:10px;
+    }
+    .wordFold.sub .wordFoldHead{
+      background: rgba(17,24,39,.02);
+      padding:8px 10px;
+      font-size:12px;
+    }
+    .wordFold.sub .wordFoldBody{
+      padding:8px 10px 10px;
+    }
+    .wordNested{
+      padding-left:10px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .wordListItem{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:8px 10px;
+      background:#fff;
+      flex-wrap:wrap;
+    }
+    .wordListMeta{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
+    .wordListTitle{
+      font-weight:900;
+      font-size:13px;
+    }
+    .wordListSub{
+      font-size:12px;
+      font-weight:800;
+      color:var(--muted);
+    }
+    .wordListActions{
+      margin-left:auto;
+      display:flex;
+      align-items:center;
+      gap:6px;
+      flex-wrap:wrap;
+    }
+    .btn.tiny{
+      padding:6px 8px;
+      font-size:11px;
+      border-radius:10px;
+    }
+    .wordStageBtn{
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--text);
+      font-weight:900;
+      font-size:11px;
+      padding:4px 8px;
+      border-radius:999px;
+      cursor:pointer;
+    }
+    .wordStageBtn:hover{
+      background: rgba(17,24,39,.04);
+    }
+
+
     .itemAddRow{
       display:grid;
       gap:8px;
@@ -653,6 +765,27 @@
     <div class="row" style="margin-bottom:12px">
       <span class="muted">単語管理ページはそのまま残しています。</span>
     </div>
+
+   <div class="card" style="margin-bottom:14px">
+      <div class="cardHead">
+        <h2>登録リスト</h2>
+        <div class="space"></div>
+        <button class="btn secondary" id="btnReloadWordCatalog" type="button">更新</button>
+      </div>
+      <div class="cardBody">
+        <div class="small" id="wordCatalogMsg">学年を開いて、課とクイズを順に確認できます。</div>
+        <div class="wordCatalog" style="margin-top:10px">
+          <details class="wordFold" open>
+            <summary class="wordFoldHead">
+              <span>学年リスト</span>
+              <span class="wordFoldMeta" id="wordGradeCount">0件</span>
+            </summary>
+            <div class="wordFoldBody" id="wordGradeList"></div>
+          </details>
+        </div>
+      </div>
+    </div>
+
 
     <div class="card" style="margin-bottom:14px">
       <div class="cardHead">
@@ -1004,6 +1137,11 @@
   const btnBulkDeleteWords = $("btnBulkDeleteWords"); // ✅ 追加
   const wordsMsg = $("wordsMsg");
   const wordsTbody = $("wordsTbody");
+  const btnReloadWordCatalog = $("btnReloadWordCatalog");
+  const wordCatalogMsg = $("wordCatalogMsg");
+  const wordGradeList = $("wordGradeList");
+  const wordGradeCount = $("wordGradeCount");
+
 
   // Bulk
   const bulkAddText = $("bulkAddText");
@@ -1062,6 +1200,10 @@
     tab_words.style.display = (name==="words") ? "" : "none";
     tab_items.style.display = (name==="items") ? "" : "none";
     tab_owned_items.style.display = (name==="owned-items") ? "" : "none";
+    if (name === "words"){
+      ensureWordCatalogLoaded().catch(()=>{});
+    }
+
     if (name === "items"){
       ensureItemsLoaded().catch(()=>{});
     }
@@ -1138,7 +1280,8 @@
   let viewMode = "pre"; // "pre" | "review"
   let _wordsCacheByGrade = new Map(); // grade -> wordsGradeObj
   let gradeDisplay = defaultGradeSettings();
-
+  let _wordCatalogLoadedOnce = false;
+  let _wordCatalogCache = { gradeData: new Map() };
     function defaultGradeSettings(){
     const obj = {};
     for (let g=1; g<=MAX_GRADE; g++){
@@ -2591,10 +2734,213 @@
     const p = currentWordsPath();
     addPath.textContent = p ? p : "(学年/課/stage を指定)";
   }
-  wGradeSel.onchange = updateAddPath;
+
+  function setWordsSelectors({ grade, lesson, stage, autoLoad } = {}){
+    if (grade !== undefined) wGradeSel.value = String(grade);
+    if (lesson !== undefined) wLessonSel.value = String(lesson);
+    if (stage !== undefined) wStageSel.value = String(stage);
+    updateAddPath();
+    if (autoLoad){
+      try{ btnLoadWords.click(); }catch(e){}
+    }
+  }
+
+  function renderWordGradeList(){
+    if (!wordGradeList) return;
+    const rows = [];
+    for (let g=1; g<=MAX_GRADE; g++){
+      const data = _wordCatalogCache.gradeData.get(String(g));
+      const lessonCount = data?.lessonEntries?.length || 0;
+      if (!lessonCount) continue;
+      rows.push({
+        grade: g,
+        lessonCount,
+        quizCount: data?.quizCount || 0,
+        wordCount: data?.wordCount || 0
+      });
+    }
+    wordGradeCount.textContent = `${rows.length}件`;
+    if (!rows.length){
+      wordGradeList.innerHTML = `<div class="small">登録された学年がありません。</div>`;
+      return;
+    }
+    wordGradeList.innerHTML = rows.map(r=>{
+      const data = _wordCatalogCache.gradeData.get(String(r.grade));
+      const lessons = data?.lessonEntries || [];
+      const lessonsHtml = lessons.length ? lessons.map(entry=>{
+        const stageButtons = ["pre1","pre2","review"].map(st=>{
+          const count = entry.stageCounts?.[st] || 0;
+          if (!count) return "";
+          return `<button class="wordStageBtn" data-action="select-stage" data-grade="${esc(r.grade)}" data-lesson="${esc(entry.lesson)}" data-stage="${st}" type="button">${st} ${count}</button>`;
+        }).join("");
+        const quizRows = entry.quizzes?.length
+          ? entry.quizzes.map(q=>`
+              <div class="wordListItem">
+                <div class="wordListMeta">
+                  <div class="wordListTitle">${esc(q.grade)}/${esc(q.lesson)}/${esc(q.stage)}</div>
+                  <div class="wordListSub">単語 ${q.count}</div>
+                </div>
+                <div class="wordListActions">
+                  <button class="btn secondary tiny" data-action="select-quiz" data-grade="${esc(q.grade)}" data-lesson="${esc(q.lesson)}" data-stage="${esc(q.stage)}" type="button">編集</button>
+                </div>
+              </div>
+            `).join("")
+          : `<div class="small">クイズがありません。</div>`;
+        return `
+          <details class="wordFold sub">
+            <summary class="wordFoldHead">
+              <span>課 ${esc(entry.lesson)}</span>
+              <span class="wordFoldMeta">単語 ${entry.totalWords}</span>
+            </summary>
+            <div class="wordFoldBody">
+              <div class="wordListActions">
+                ${stageButtons || '<span class="small">stage未登録</span>'}
+                <button class="btn secondary tiny" data-action="select-lesson" data-lesson="${esc(entry.lesson)}" data-grade="${esc(r.grade)}" type="button">課を選択</button>
+              </div>
+              <div class="wordNested">
+                ${quizRows}
+              </div>
+            </div>
+          </details>
+        `;
+      }).join("") : `<div class="small">この学年の課は未登録です。</div>`;
+
+      return `
+        <details class="wordFold">
+          <summary class="wordFoldHead">
+            <span>${esc(r.grade)}年</span>
+            <span class="wordFoldMeta">課 ${r.lessonCount} / クイズ ${r.quizCount} / 単語 ${r.wordCount}</span>
+          </summary>
+          <div class="wordFoldBody">
+            <div class="wordListActions">
+              <button class="btn secondary tiny" data-action="select-grade" data-grade="${esc(r.grade)}" type="button">学年を選択</button>
+            </div>
+            <div class="wordNested">
+              ${lessonsHtml}
+            </div>
+          </div>
+        </details>
+      `;
+    }).join("");
+
+    [...wordGradeList.querySelectorAll('button[data-action="select-grade"]')].forEach(btn=>{
+      btn.onclick = ()=> setWordsSelectors({ grade: btn.dataset.grade });
+    });
+    [...wordGradeList.querySelectorAll('button[data-action="select-lesson"]')].forEach(btn=>{
+
+      btn.onclick = ()=> setWordsSelectors({
+        grade: btn.dataset.grade,
+        lesson: btn.dataset.lesson
+      });
+    });
+    [...wordGradeList.querySelectorAll('button[data-action="select-stage"]')].forEach(btn=>{
+      btn.onclick = ()=> setWordsSelectors({
+        grade: btn.dataset.grade,
+        lesson: btn.dataset.lesson,
+        stage: btn.dataset.stage,
+        autoLoad: true
+      });
+    });
+    [...wordGradeList.querySelectorAll('button[data-action="select-quiz"]')].forEach(btn=>{
+      btn.onclick = ()=> setWordsSelectors({
+        grade: btn.dataset.grade,
+        lesson: btn.dataset.lesson,
+        stage: btn.dataset.stage,
+        autoLoad: true
+      });
+    });
+  }
+
+  async function loadWordCatalog(){
+    if (!wordCatalogMsg) return;
+    wordCatalogMsg.textContent = "読み込み中…";
+    const gradeData = new Map();
+
+    for (let g=1; g<=MAX_GRADE; g++){
+      let wg = {};
+      try{
+        wg = await getWordsGradeCached(String(g));
+      }catch(e){
+        wg = {};
+      }
+      const lessons = parseLessonKeys(wg);
+      const lessonEntries = [];
+      let gradeQuizCount = 0;
+      let gradeWordCount = 0;
+
+      for (const lesson of lessons){
+        const lObj = wg?.[lesson] || {};
+        const stageCounts = {};
+        const quizzes = [];
+        let lessonWords = 0;
+
+        for (const stage of ["pre1","pre2","review"]){
+          const ids = (lObj?.[stage] && typeof lObj[stage] === "object") ? Object.keys(lObj[stage]) : [];
+          const count = ids.length;
+          if (!count) continue;
+          stageCounts[stage] = count;
+          lessonWords += count;
+          gradeWordCount += count;
+          quizzes.push({ grade: String(g), lesson: String(lesson), stage, count });
+          gradeQuizCount += 1;
+        }
+
+        lessonEntries.push({
+          lesson: String(lesson),
+          stageCounts,
+          totalWords: lessonWords,
+          quizzes
+        });
+      }
+
+      gradeData.set(String(g), {
+        lessonEntries,
+        quizCount: gradeQuizCount,
+        wordCount: gradeWordCount
+      });
+    }
+
+    for (const data of gradeData.values()){
+      data.lessonEntries.sort((a,b)=> String(a.lesson).localeCompare(String(b.lesson), "ja"));
+      for (const entry of data.lessonEntries){
+        entry.quizzes.sort((a,b)=> String(a.stage).localeCompare(String(b.stage), "ja"));
+      }
+    }
+
+
+    _wordCatalogCache = { gradeData };
+    renderWordGradeList();
+    wordCatalogMsg.textContent = "読み込みOK";
+  }
+
+  async function ensureWordCatalogLoaded(force = false){
+    if (!_wordCatalogLoadedOnce || force){
+      await loadWordCatalog();
+      _wordCatalogLoadedOnce = true;
+      return;
+    }
+    renderWordGradeList();
+  }
+
+  function handleGradeChange(){
+    updateAddPath();
+  }
+
+  wGradeSel.onchange = handleGradeChange;
   wLessonSel.oninput = updateAddPath;
   wStageSel.onchange = updateAddPath;
   updateAddPath();
+
+  if (btnReloadWordCatalog){
+    btnReloadWordCatalog.onclick = ()=>{
+      _wordCatalogLoadedOnce = false;
+      ensureWordCatalogLoaded(true).catch(()=>{
+        if (wordCatalogMsg) wordCatalogMsg.textContent = "読み込み失敗（DBルール/ネット制限）";
+      });
+    };
+  }
+
+
 
   // ========= ここから：区切り仕様（: ： ; ；）対応 =========
   const SEP_CHARS = new Set([",","，","、"]);
@@ -2933,6 +3279,7 @@
       setBulkMsg(`追加OK：${ok.length} 件（NG ${bad.length} 件）`, true);
       bulkAddText.value = "";
       try{ btnLoadWords.click(); }catch(e){}
+      ensureWordCatalogLoaded(true).catch(()=>{});
     }catch(e){
       setBulkMsg("追加失敗（DBルール/ネット制限）", false);
     }
@@ -2980,6 +3327,7 @@
       if (Number(currentGrade) === Number(g)){
         try{ await refreshStudents(); }catch(e){}
       }
+      ensureWordCatalogLoaded(true).catch(()=>{});
     }catch(e){
       wordsMsg.textContent = "一括削除失敗（DBルール/ネット制限）";
     }
@@ -3062,6 +3410,7 @@
             await dbRemove(p + "/" + id);
             tr.remove();
             wordsMsg.textContent = "削除OK";
+            ensureWordCatalogLoaded(true).catch(()=>{});
           }catch(e){
             wordsMsg.textContent = "削除失敗（DBルール/ネット制限）";
           }
