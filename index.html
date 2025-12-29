@@ -206,7 +206,7 @@
       margin: 0 auto;
 
       background:#FFCCCC;
-      border:1px solid rgba(255,255,255,.18);
+      border:0;
       border-radius:18px;
       overflow:hidden;
       box-shadow:0 18px 42px rgba(0,0,0,.55);
@@ -5755,7 +5755,7 @@ function drawLessonTrapezoids(animateLevels=true){
     trapGapX: 18,
     strokeW: 2
   };
-  const strokeColor = "#000";
+  const strokeColor = "transparent";
   const lineColor = "#000";
   const shapeStroke = "#B3B3B3";
   const padY = 160;
@@ -5813,6 +5813,8 @@ function drawLessonTrapezoids(animateLevels=true){
 
   for (let i = 0; i < lineCount; i++) {
     const lineY = Math.max(0, firstLineY + i * lineGapY);
+
+
 
     const line = sEl("rect");
     line.setAttribute("x", marginX);
@@ -5882,6 +5884,7 @@ function drawLessonTrapezoids(animateLevels=true){
       let rate = Number(t.achieveRate);
       if (!Number.isFinite(rate)) rate = 0;
       rate = clamp(rate, 0, 1);
+      const hasGauge = rate > 0;
 
       const levelYTarget_raw = bottomY - (waveBox.h * (GAUGE_MAX * rate));
       const LEVEL_PAD = 2;
@@ -5909,9 +5912,7 @@ function drawLessonTrapezoids(animateLevels=true){
       visClip.appendChild(visRect);
       defs.appendChild(visClip);
 
-      const gWave = sEl("g");
-      gWave.setAttribute("clip-path", `url(#${trapClipId})`);
-      lessonSvg.appendChild(gWave);
+
 
       const wavePath = sEl("path");
       const fill = getGaugeFill(CURRENT.name, SELECTED_GRADE, lessonKey) || "#111";
@@ -5919,7 +5920,12 @@ function drawLessonTrapezoids(animateLevels=true){
       wavePath.setAttribute("opacity", String(GAUGE_ALPHA));
       wavePath.setAttribute("clip-path", `url(#${visClipId})`);
       wavePath.style.pointerEvents = "none";
-      gWave.appendChild(wavePath);
+      if (hasGauge){
+        const gWave = sEl("g");
+        gWave.setAttribute("clip-path", `url(#${trapClipId})`);
+        lessonSvg.appendChild(gWave);
+        gWave.appendChild(wavePath);
+      }
 
       /* ✅ review黒丸（台形内） */
       const ballCount = getReviewBallCount(t);
