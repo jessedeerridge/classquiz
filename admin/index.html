@@ -563,13 +563,22 @@
       justify-content:center;
       overflow:hidden;
       flex:0 0 16px;
+      cursor:pointer;
     }
+
+    .itemImgGroup{
+      display:flex;
+      align-items:center;
+      gap:6px;
+    }
+
     .itemImg img{
       width:100%;
       height:100%;
       object-fit:cover;
       display:block;
     }
+
     .itemName{
       font-size:13px;
       font-weight:900;
@@ -1550,11 +1559,37 @@
           const imgHtml = item?.image
             ? `<img src="${esc(item.image)}" alt="${esc(item?.name ?? "")}">`
             : `<span class="small">-</span>`;
+          const listImgHtml = (itemClass === "accesary" && item?.listImage)
+            ? `<div class="itemImg" title="サム用アイコン"><img src="${esc(item.listImage)}" alt="サム用 ${esc(item?.name ?? "")}"></div>`
+            : "";
+
           card.innerHTML = `
-            <div class="itemImg">${imgHtml}</div>
+            <div class="itemImgGroup">
+              <div class="itemImg">${imgHtml}</div>
+              ${listImgHtml}
+            </div>
             <div class="itemName">${esc(item?.name ?? itemId)}</div>
             <div class="itemClassBadge">${esc(itemClass)}</div>
           `;
+
+          const imgWrap = card.querySelector(".itemImg");
+          const imgInput = document.createElement("input");
+          imgInput.type = "file";
+          imgInput.accept = "image/*";
+          imgInput.style.display = "none";
+          imgWrap.appendChild(imgInput);
+          imgWrap.title = "クリックで画像変更";
+          imgWrap.addEventListener("click", (e)=>{
+            e.stopPropagation();
+            imgInput.click();
+          });
+          imgInput.onchange = async ()=>{
+            const file = imgInput.files?.[0];
+            if (!file) return;
+            await replaceItemImage(group.key, itemId, item, file, group.name);
+            imgInput.value = "";
+          };
+
           const actions = document.createElement("div");
          actions.className = "itemActions";
           const toggleWrap = document.createElement("label");
@@ -2021,6 +2056,59 @@
       setItemMsg("更新失敗（DBルール/ネット制限）", false);
     }
   }
+
+  async function replaceItemImage(groupKey, itemId, item, file, groupName){
+    const key = String(groupKey || "").trim();
+    const id = String(itemId || "").trim();
+    if (!key || !id || !file) return;
+    setItemMsg("画像更新中…");
+    let image = "";
+    try{
+      image = await readFileAsDataUrl(file);
+    }catch(e){
+      setItemMsg("画像読込失敗", false);
+      return;
+    }
+    const payload = {
+      name: String(item?.name || id),
+      image,
+      class: String(item?.class || ""),
+      createdAt: item?.createdAt || Date.now(),
+      updatedAt: Date.now()
+    };
+    if (item?.listImage) payload.listImage = item.listImage;
+    if (item?.disabled) payload.disabled = true;
+    try{
+      const updates = {
+        [`${P.itemGroupItems(key)}/${id}`]: payload
+      };
+      const ownedRoot = await dbGet(P.itemsOwnedRoot());
+      if (ownedRoot && typeof ownedRoot === "object"){
+        for (const [studentKey, groups] of Object.entries(ownedRoot)){
+          const groupItems = groups?.[key];
+          if (!groupItems || typeof groupItems !== "object") continue;
+          if (!(id in groupItems)) continue;
+          const ownedItem = groupItems[id] || {};
+          updates[P.itemsOwnedItem(studentKey, key, id)] = {
+            name: ownedItem?.name || payload.name,
+            image,
+            class: payload.class,
+            listImage: payload.listImage || ownedItem?.listImage || "",
+            groupKey: key,
+            groupName: ownedItem?.groupName || groupName || key,
+            acquiredAt: ownedItem?.acquiredAt || Date.now()
+          };
+        }
+      }
+      await dbMultiUpdate(updates);
+      await loadItemGroups();
+      await loadOwnedItems();
+      setItemMsg("画像更新OK");
+    }catch(e){
+      setItemMsg("画像更新失敗（DBルール/ネット制限）", false);
+    }
+  }
+
 
   if (btnDeleteItemGroup && itemGroupSelect){
     btnDeleteItemGroup.onclick = ()=>{
