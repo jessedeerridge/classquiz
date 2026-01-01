@@ -886,6 +886,7 @@ font-size: var(--reviewWordMaxPx);
       transform: translate(-50%, -50%);
     }
     .inventoryItem[data-item-class="hat"]{ --thumb-y: 33%;--thumb-x: -10% }
+    .inventoryItem[data-item-class="neck"]{ --thumb-y: 0%; --thumb-x: 0%; }
     .inventoryItem[data-item-class="cloth"]{ --thumb-y: 0%; }
     .inventoryItem[data-item-class="right"]{ --thumb-y: 6%;  --thumb-x: -21%; }
     .inventoryItem[data-item-class="left"]{ --thumb-y: 13%; --thumb-x: 28%; }
@@ -996,6 +997,7 @@ font-size: var(--reviewWordMaxPx);
 .sessionRewardItem[data-item-class="hat"]{ --thumb-y: 33%;--thumb-x: -10% }
 .sessionRewardItem[data-item-class="cloth"]{ --thumb-y: 0%; }
 .sessionRewardItem[data-item-class="right"]{ --thumb-y: 6%;  --thumb-x: -21%; }
+    .sessionRewardItem[data-item-class="neck"]{ --thumb-y: 10%; --thumb-x: 0%; }
 .sessionRewardItem[data-item-class="left"]{ --thumb-y: 13%; --thumb-x: 28%; }
 .sessionRewardItem[data-item-class="pants"]{ --thumb-y: -22%; }
 .sessionRewardItem[data-item-class="shoes"]{ --thumb-y: -31%; }
@@ -1723,6 +1725,7 @@ const DEFAULT_CHARA_LIST = ["c1", "c2", "c3"];
 const INITIAL_ITEM_GROUP_NAME = "初期アイテム";
 const INITIAL_ITEM_NAMES = {
   hat: "hat1",
+  neck: "neck1",
   cloth: "cloth1",
   right: "right1",
   left: "left1",
@@ -1731,6 +1734,7 @@ const INITIAL_ITEM_NAMES = {
 };
 const ITEM_CLASSES = [
   "hat",
+  "neck",
   "cloth",
   "cloth(special)",
   "right",
@@ -1749,6 +1753,7 @@ const ITEM_CLASS_EXCLUSIVE_GROUPS = {
   "pants(special)": "special"
 };
 const INVENTORY_CLASS_ORDER = ["hat", "cloth", "right", "left", "pants", "shoes", "accesary", "unknown"];
+const HIDDEN_INVENTORY_CLASSES = new Set(["neck"]);
 
 /* ========= 波ゲージ色（ローカル） ========= */
 const GAUGE_COLOR_KEY = "yuko_wordlog_gauge_colors_v1";
@@ -1837,6 +1842,7 @@ const INITIAL_ITEM_CLASS_BY_NAME = Object.fromEntries(
 
 const ITEM_CLASS_LABELS = {
   hat: "ぼうし",
+  neck: "くび",
   cloth: "ふく",
   "cloth(special)": "ふく",
   right: "みぎて",
@@ -2366,6 +2372,7 @@ async function awardItemForSession(pct){
 
 const CHARA_LAYER_Z = {
   pants: 10,
+  neck: 5,
   shoes: 20,
   cloth: 30,
   "pants(special)": 35,
@@ -2771,6 +2778,7 @@ async function loadInventory(){
         const itemKey = `${groupKey}::${itemId}`;
         const itemClass = normalizeItemClass(item?.class);
         const displayClass = getItemClassDisplayGroup(itemClass);
+        if (HIDDEN_INVENTORY_CLASSES.has(displayClass)) continue;
         if (!itemsByClass.has(displayClass)) itemsByClass.set(displayClass, []);
         itemsByClass.get(displayClass).push({ groupKey, itemId, item, itemClass, displayClass });
         totalItems += 1;
