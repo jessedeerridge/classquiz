@@ -1560,13 +1560,14 @@
             ? `<img src="${esc(item.image)}" alt="${esc(item?.name ?? "")}">`
             : `<span class="small">-</span>`;
           const listImgHtml = (itemClass === "accesary" && item?.listImage)
-            ? `<div class="itemImg" title="サム用アイコン"><img src="${esc(item.listImage)}" alt="サム用 ${esc(item?.name ?? "")}"></div>`
-            : "";
+            ? `<img src="${esc(item.listImage)}" alt="サム用 ${esc(item?.name ?? "")}">`
+            : `<span class="small">-</span>`;
+
 
           card.innerHTML = `
             <div class="itemImgGroup">
               <div class="itemImg">${imgHtml}</div>
-              ${listImgHtml}
+              ${itemClass === "accesary" ? `<div class="itemImg itemListImg" title="サム用アイコン">${listImgHtml}</div>` : ""}
             </div>
             <div class="itemName">${esc(item?.name ?? itemId)}</div>
             <div class="itemClassBadge">${esc(itemClass)}</div>
@@ -1579,8 +1580,16 @@
           imgInput.style.display = "none";
           imgWrap.appendChild(imgInput);
           imgWrap.title = "クリックで画像変更";
-          imgWrap.addEventListener("click", (e)=>{
+          imgWrap.addEventListener("click", async (e)=>{
             e.stopPropagation();
+            const useUrl = confirm("画像URLで変更しますか？\nOK=URL入力 / キャンセル=画像アップロード");
+            if (useUrl){
+              const url = prompt("画像URLを入力してください");
+              if (!url) return;
+              await replaceItemImageWithUrl(group.key, itemId, item, url, group.name);
+              return;
+            }
+
             imgInput.click();
           });
           imgInput.onchange = async ()=>{
@@ -1589,6 +1598,34 @@
             await replaceItemImage(group.key, itemId, item, file, group.name);
             imgInput.value = "";
           };
+
+          const listImgWrap = card.querySelector(".itemListImg");
+          if (listImgWrap){
+            const listImgInput = document.createElement("input");
+            listImgInput.type = "file";
+            listImgInput.accept = "image/*";
+            listImgInput.style.display = "none";
+            listImgWrap.appendChild(listImgInput);
+            listImgWrap.title = "クリックでサム用画像を変更";
+            listImgWrap.addEventListener("click", async (e)=>{
+              e.stopPropagation();
+              const useUrl = confirm("サム用画像をURLで変更しますか？\nOK=URL入力 / キャンセル=画像アップロード");
+              if (useUrl){
+                const url = prompt("サム用画像URLを入力してください");
+                if (!url) return;
+                await replaceItemListImageWithUrl(group.key, itemId, item, url, group.name);
+                return;
+              }
+              listImgInput.click();
+            });
+            listImgInput.onchange = async ()=>{
+              const file = listImgInput.files?.[0];
+              if (!file) return;
+              await replaceItemListImage(group.key, itemId, item, file, group.name);
+              listImgInput.value = "";
+            };
+          }
+
 
           const actions = document.createElement("div");
          actions.className = "itemActions";
@@ -1627,6 +1664,7 @@
           <select class="itemAddClass">
             <option value="">選択してください</option>
             <option value="hat">hat</option>
+            <option value="neck">neck</option>
             <option value="cloth">cloth</option>
             <option value="cloth(special)">cloth(special)</option>
             <option value="right">right</option>
@@ -1635,6 +1673,7 @@
             <option value="pants(special)">pants(special)</option>
             <option value="shoes">shoes</option>
             <option value="accesary">accesary</option>
+            <option value="neck">neck</option>
           </select>
         </div>
         <div>
@@ -1845,6 +1884,31 @@
       const img = document.createElement("img");
       if (slot.image) img.src = slot.image;
       img.alt = slot.key;
+
+      img.title = "クリックで画像変更";
+      img.style.cursor = "pointer";
+      const imgInput = document.createElement("input");
+      imgInput.type = "file";
+      imgInput.accept = "image/*";
+      imgInput.style.display = "none";
+      img.addEventListener("click", async (e)=>{
+        e.stopPropagation();
+        const useUrl = confirm("画像URLで変更しますか？\nOK=URL入力 / キャンセル=画像アップロード");
+        if (useUrl){
+          const url = prompt("画像URLを入力してください");
+          if (!url) return;
+          await replaceCharaSlotImageWithUrl(slot.key, url);
+          return;
+        }
+        imgInput.click();
+      });
+      imgInput.onchange = async ()=>{
+        const file = imgInput.files?.[0];
+        if (!file) return;
+        await replaceCharaSlotImage(slot.key, file);
+        imgInput.value = "";
+      };
+
       const keyText = document.createElement("div");
       keyText.textContent = slot.key;
       const delBtn = document.createElement("button");
@@ -1864,6 +1928,7 @@
         }
       };
       card.appendChild(img);
+      card.appendChild(imgInput);
       card.appendChild(keyText);
       card.appendChild(delBtn);
       charaSlotGrid.appendChild(card);
@@ -1873,6 +1938,40 @@
     const raw = await dbGet(P.charaSlots());
     const list = normalizeCharaSlotList(raw);
     renderCharaSlotGrid(list);
+  }
+
+  async function replaceCharaSlotImage(slotKey, file){
+    const key = String(slotKey || "").trim();
+    if (!key || !file) return;
+    setCharaSlotMsg("画像更新中…");
+    let image = "";
+    try{
+      image = await readFileAsDataUrl(file);
+    }catch(e){
+      setCharaSlotMsg("画像読込失敗", false);
+      return;
+    }
+    await updateCharaSlotImage(key, image);
+  }
+
+  async function replaceCharaSlotImageWithUrl(slotKey, imageUrl){
+    const key = String(slotKey || "").trim();
+    const image = String(imageUrl || "").trim();
+    if (!key || !image) return;
+    setCharaSlotMsg("画像更新中…");
+    await updateCharaSlotImage(key, image);
+  }
+
+  async function updateCharaSlotImage(slotKey, image){
+    const key = String(slotKey || "").trim();
+    if (!key || !image) return;
+    try{
+      await dbSet(P.charaSlot(key), { image, updatedAt: Date.now() });
+      await loadCharaSlots();
+      setCharaSlotMsg("画像更新OK");
+    }catch(e){
+      setCharaSlotMsg("画像更新失敗（DBルール/ネット制限）", false);
+    }
   }
 
 
@@ -2069,6 +2168,50 @@
       setItemMsg("画像読込失敗", false);
       return;
     }
+
+    await updateItemImage(key, id, item, image, groupName);
+  }
+
+  async function replaceItemImageWithUrl(groupKey, itemId, item, imageUrl, groupName){
+    const key = String(groupKey || "").trim();
+    const id = String(itemId || "").trim();
+    const image = String(imageUrl || "").trim();
+    if (!key || !id || !image) return;
+    setItemMsg("画像更新中…");
+    await updateItemImage(key, id, item, image, groupName);
+  }
+
+  async function replaceItemListImage(groupKey, itemId, item, file, groupName){
+    const key = String(groupKey || "").trim();
+    const id = String(itemId || "").trim();
+    if (!key || !id || !file) return;
+    setItemMsg("サム用画像更新中…");
+    let listImage = "";
+    try{
+      listImage = await readFileAsDataUrl(file);
+    }catch(e){
+      setItemMsg("画像読込失敗", false);
+      return;
+    }
+    await updateItemListImage(key, id, item, listImage, groupName);
+  }
+
+  async function replaceItemListImageWithUrl(groupKey, itemId, item, imageUrl, groupName){
+    const key = String(groupKey || "").trim();
+    const id = String(itemId || "").trim();
+    const listImage = String(imageUrl || "").trim();
+    if (!key || !id || !listImage) return;
+    setItemMsg("サム用画像更新中…");
+    await updateItemListImage(key, id, item, listImage, groupName);
+  }
+
+
+  async function updateItemImage(groupKey, itemId, item, image, groupName){
+    const key = String(groupKey || "").trim();
+    const id = String(itemId || "").trim();
+    if (!key || !id || !image) return;
+
+
     const payload = {
       name: String(item?.name || id),
       image,
@@ -2108,6 +2251,51 @@
       setItemMsg("画像更新失敗（DBルール/ネット制限）", false);
     }
   }
+
+  async function updateItemListImage(groupKey, itemId, item, listImage, groupName){
+    const key = String(groupKey || "").trim();
+    const id = String(itemId || "").trim();
+    if (!key || !id || !listImage) return;
+    const payload = {
+      name: String(item?.name || id),
+      image: String(item?.image || ""),
+      class: String(item?.class || ""),
+      listImage,
+      createdAt: item?.createdAt || Date.now(),
+      updatedAt: Date.now()
+    };
+    if (item?.disabled) payload.disabled = true;
+    try{
+      const updates = {
+        [`${P.itemGroupItems(key)}/${id}`]: payload
+      };
+      const ownedRoot = await dbGet(P.itemsOwnedRoot());
+      if (ownedRoot && typeof ownedRoot === "object"){
+        for (const [studentKey, groups] of Object.entries(ownedRoot)){
+          const groupItems = groups?.[key];
+          if (!groupItems || typeof groupItems !== "object") continue;
+          if (!(id in groupItems)) continue;
+          const ownedItem = groupItems[id] || {};
+          updates[P.itemsOwnedItem(studentKey, key, id)] = {
+            name: ownedItem?.name || payload.name,
+            image: payload.image || ownedItem?.image || "",
+            class: payload.class,
+            listImage,
+            groupKey: key,
+            groupName: ownedItem?.groupName || groupName || key,
+            acquiredAt: ownedItem?.acquiredAt || Date.now()
+          };
+        }
+      }
+      await dbMultiUpdate(updates);
+      await loadItemGroups();
+      await loadOwnedItems();
+      setItemMsg("サム用画像更新OK");
+    }catch(e){
+      setItemMsg("サム用画像更新失敗（DBルール/ネット制限）", false);
+    }
+  }
+
 
 
   if (btnDeleteItemGroup && itemGroupSelect){
