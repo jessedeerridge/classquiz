@@ -293,17 +293,15 @@
       border:1px solid var(--line);
       background: rgba(17,24,39,.04);
     }
-    .itemClassBadge{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      padding:4px 8px;
+    .itemClassSelect{
       border-radius:999px;
       border:1px solid var(--line);
       background:#fff;
-      font-size:11px;
+      font-size:13px;
       font-weight:900;
       color:var(--muted);
+      padding:2px 6px;
+      width:auto;
     }
 
     .itemGroupCard{
@@ -1172,6 +1170,38 @@
   const btnAddItem = $("btnAddItem");
   const itemMsg = $("itemMsg");
   const itemGrid = $("itemGrid");
+  const ITEM_CLASS_OPTIONS = [
+    "hat",
+    "neck",
+    "cloth",
+    "cloth(special)",
+    "right",
+    "left",
+    "pants",
+    "pants(special)",
+    "shoes",
+    "accesary",
+    "accesary(glasses)",
+    "accesary(mask)",
+    "accesary(ring)",
+    "accesary(belt)"
+  ];
+
+  function isAccessoryClass(itemClass){
+    return String(itemClass || "").trim().startsWith("accesary");
+  }
+
+  function buildItemClassOptions(selected, emptyLabel){
+    const options = ITEM_CLASS_OPTIONS.slice();
+    if (selected && !options.includes(selected)) options.unshift(selected);
+    const placeholder = emptyLabel ?? "選択してください";
+    const parts = [`<option value="">${esc(placeholder)}</option>`];
+    for (const name of options){
+      const isSelected = name === selected ? " selected" : "";
+      parts.push(`<option value="${esc(name)}"${isSelected}>${esc(name)}</option>`);
+    }
+    return parts.join("");
+  }
   const charaSlotId = $("charaSlotId");
   const charaSlotUrl = $("charaSlotUrl");
   const charaSlotFile = $("charaSlotFile");
@@ -1190,7 +1220,6 @@
   const ownedItemSelect = $("ownedItemSelect");
   const btnOwnedAdd = $("btnOwnedAdd");
   let _loginPassword = sessionStorage.getItem("adminLoginPass") || "";
-
 
 
   // show db host
@@ -1555,22 +1584,24 @@
           const card = document.createElement("div");
           card.className = "itemCard";
           if (item?.disabled) card.classList.add("is-disabled");
-          const itemClass = String(item?.class || "").trim() || "未設定";
+          const itemClassRaw = String(item?.class || "").trim();
+          const itemClass = itemClassRaw || "未設定";
           const imgHtml = item?.image
             ? `<img src="${esc(item.image)}" alt="${esc(item?.name ?? "")}">`
             : `<span class="small">-</span>`;
-          const listImgHtml = (itemClass === "accesary" && item?.listImage)
+          const listImgHtml = (isAccessoryClass(itemClassRaw) && item?.listImage)
             ? `<img src="${esc(item.listImage)}" alt="サム用 ${esc(item?.name ?? "")}">`
             : `<span class="small">-</span>`;
+          const classOptions = buildItemClassOptions(itemClassRaw, "未設定");
 
 
           card.innerHTML = `
             <div class="itemImgGroup">
               <div class="itemImg">${imgHtml}</div>
-              ${itemClass === "accesary" ? `<div class="itemImg itemListImg" title="サム用アイコン">${listImgHtml}</div>` : ""}
+              ${isAccessoryClass(itemClassRaw) ? `<div class="itemImg itemListImg" title="サム用アイコン">${listImgHtml}</div>` : ""}
             </div>
             <div class="itemName">${esc(item?.name ?? itemId)}</div>
-            <div class="itemClassBadge">${esc(itemClass)}</div>
+            <select class="itemClassSelect">${classOptions}</select>
           `;
 
           const imgWrap = card.querySelector(".itemImg");
@@ -1626,6 +1657,33 @@
             };
           }
 
+          const classSelect = card.querySelector(".itemClassSelect");
+          if (classSelect){
+            classSelect.dataset.current = itemClassRaw;
+            classSelect.addEventListener("change", async (e)=>{
+              e.stopPropagation();
+              const next = String(classSelect.value || "").trim();
+              const current = String(classSelect.dataset.current || "").trim();
+              if (!next){
+                setItemMsg("アイテムクラスを選択して", false);
+                classSelect.value = current;
+                return;
+              }
+              if (next === current) return;
+              let listImageOverride = null;
+              if (isAccessoryClass(next) && !item?.listImage){
+                const listUrl = prompt("アクセサリー用のサム画像URLを入力してください");
+                if (!listUrl){
+                  setItemMsg("アクセサリー用の画像を追加して", false);
+                  classSelect.value = current;
+                  return;
+                }
+                listImageOverride = String(listUrl || "").trim();
+              }
+              await updateItemClass(group.key, itemId, item, next, group.name, listImageOverride);
+            });
+          }
+
 
           const actions = document.createElement("div");
          actions.className = "itemActions";
@@ -1654,6 +1712,7 @@
 
       const addWrap = document.createElement("div");
       addWrap.className = "itemAddRow";
+      const itemClassOptions = buildItemClassOptions("", "選択してください");
       addWrap.innerHTML = `
         <div>
           <label>アイテム名</label>
@@ -1662,18 +1721,6 @@
         <div>
           <label>アイテムクラス</label>
           <select class="itemAddClass">
-            <option value="">選択してください</option>
-            <option value="hat">hat</option>
-            <option value="neck">neck</option>
-            <option value="cloth">cloth</option>
-            <option value="cloth(special)">cloth(special)</option>
-            <option value="right">right</option>
-            <option value="left">left</option>
-            <option value="pants">pants</option>
-            <option value="pants(special)">pants(special)</option>
-            <option value="shoes">shoes</option>
-            <option value="accesary">accesary</option>
-            <option value="neck">neck</option>
           </select>
         </div>
         <div>
@@ -1702,7 +1749,7 @@
       const accessoryRows = Array.from(addWrap.querySelectorAll(".itemAddAccessory"));
       if (classSelect){
         classSelect.addEventListener("change", ()=>{
-          const isAccessory = classSelect.value === "accesary";
+          const isAccessory = isAccessoryClass(classSelect.value);
           accessoryRows.forEach(row=>{ row.style.display = isAccessory ? "" : "none"; });
         });
       }
@@ -2296,6 +2343,52 @@
     }
   }
 
+  async function updateItemClass(groupKey, itemId, item, nextClass, groupName, listImageOverride = null){
+    const key = String(groupKey || "").trim();
+    const id = String(itemId || "").trim();
+    const itemClass = String(nextClass || "").trim();
+    if (!key || !id || !itemClass) return;
+    const listImage = String(listImageOverride ?? item?.listImage ?? "").trim();
+    const payload = {
+      name: String(item?.name || id),
+      image: String(item?.image || ""),
+      class: itemClass,
+      createdAt: item?.createdAt || Date.now(),
+      updatedAt: Date.now()
+    };
+    if (listImage) payload.listImage = listImage;
+    if (item?.disabled) payload.disabled = true;
+    try{
+      const updates = {
+        [`${P.itemGroupItems(key)}/${id}`]: payload
+      };
+      const ownedRoot = await dbGet(P.itemsOwnedRoot());
+      if (ownedRoot && typeof ownedRoot === "object"){
+        for (const [studentKey, groups] of Object.entries(ownedRoot)){
+          const groupItems = groups?.[key];
+          if (!groupItems || typeof groupItems !== "object") continue;
+          if (!(id in groupItems)) continue;
+          const ownedItem = groupItems[id] || {};
+          updates[P.itemsOwnedItem(studentKey, key, id)] = {
+            name: ownedItem?.name || payload.name,
+            image: payload.image || ownedItem?.image || "",
+            class: itemClass,
+            listImage: listImage || ownedItem?.listImage || "",
+            groupKey: key,
+            groupName: ownedItem?.groupName || groupName || key,
+            acquiredAt: ownedItem?.acquiredAt || Date.now()
+          };
+        }
+      }
+      await dbMultiUpdate(updates);
+      await loadItemGroups();
+      await loadOwnedItems();
+      setItemMsg("クラス更新OK");
+    }catch(e){
+      setItemMsg("クラス更新失敗（DBルール/ネット制限）", false);
+    }
+  }
+
 
 
   if (btnDeleteItemGroup && itemGroupSelect){
@@ -2350,7 +2443,7 @@
         return;
       }
     }
-    if (itemClass === "accesary" && !listImage){
+    if (isAccessoryClass(itemClass) && !listImage){
       setItemMsg("アクセサリー用の画像を追加して", false);
       return;
     }
