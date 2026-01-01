@@ -1742,11 +1742,19 @@ const ITEM_CLASSES = [
   "pants",
   "pants(special)",
   "shoes",
-  "accesary"
+  "accesary",
+  "accesary(glasses)",
+  "accesary(mask)",
+  "accesary(ring)",
+  "accesary(belt)"
 ];
 const ITEM_CLASS_DISPLAY_GROUPS = {
   "cloth(special)": "cloth",
-  "pants(special)": "pants"
+  "pants(special)": "pants",
+  "accesary(glasses)": "accesary",
+  "accesary(mask)": "accesary",
+  "accesary(ring)": "accesary",
+  "accesary(belt)": "accesary"
 };
 const ITEM_CLASS_EXCLUSIVE_GROUPS = {
   "cloth(special)": "special",
@@ -1851,6 +1859,10 @@ const ITEM_CLASS_LABELS = {
   "pants(special)": "ズボン",
   shoes: "くつ",
   accesary: "アクセサリー",
+  "accesary(glasses)": "アクセサリー",
+  "accesary(mask)": "アクセサリー",
+  "accesary(ring)": "アクセサリー",
+  "accesary(belt)": "アクセサリー",
   unknown: "そのほか"
 };
 
@@ -2455,6 +2467,10 @@ function normalizeItemClass(value){
   if (ITEM_CLASSES.includes(raw)) return raw;
   return raw || "unknown";
 }
+function isAccessoryClass(itemClass){
+  return String(itemClass || "").trim().startsWith("accesary");
+}
+
 function getItemClassDisplayGroup(itemClass){
   return ITEM_CLASS_DISPLAY_GROUPS[itemClass] || itemClass;
 }
@@ -2484,6 +2500,7 @@ function renderCharaPreviewImmediate(){
 function getCharaLayerZ(itemClass){
   if (!itemClass) return CHARA_LAYER_Z.unknown;
   if (itemClass === "shoes") return CHARA_LAYER_Z.shoes;
+  if (isAccessoryClass(itemClass)) return CHARA_LAYER_Z.accesary;
   return CHARA_LAYER_Z[itemClass] ?? CHARA_LAYER_Z.unknown;
 }
 function getPlacedCharaItems(){
@@ -2850,10 +2867,10 @@ async function loadInventory(){
         card.className = "inventoryItem";
         card.dataset.itemKey = itemKey;
         card.dataset.itemClass = displayClass;
-        if (rawClass === "accesary"){
+        if (isAccessoryClass(rawClass)){
           card.dataset.thumb = "full";
         }
-        const thumbSrc = (rawClass === "accesary" && listImage) ? listImage : image;
+        const thumbSrc = (isAccessoryClass(rawClass) && listImage) ? listImage : image;
         card.innerHTML = `
           <div class="inventoryItemThumb">
             <img src="${escapeHtml(thumbSrc)}" alt="${escapeHtml(name)}">
@@ -4654,7 +4671,7 @@ function openSessionResult(){
 
           const itemClass = normalizeItemClass(reward.class);
           const displayClass = getItemClassDisplayGroup(itemClass);
-          const isAccessory = itemClass === "accesary";
+          const isAccessory = isAccessoryClass(itemClass);
           const listImage = reward.listImage || "";
           const thumbSrc = (isAccessory && listImage) ? listImage : imgSrc;
           const itemClassAttr = displayClass ? ` data-item-class="${escapeHtml(displayClass)}"` : "";
