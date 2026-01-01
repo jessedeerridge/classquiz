@@ -2419,7 +2419,11 @@ function renderInventoryChara(){
     inventoryCharaStack.innerHTML = "";
     return;
   }
-  renderCharaStack(inventoryCharaStack, getCharaImage(saved), getEffectiveCharaItems());
+  renderCharaStack(
+    inventoryCharaStack,
+    getCharaImage(saved),
+    getEffectiveCharaItems({ forceNeckBase: true })
+  );
 }
 function normalizeCharaItemPlacement(raw){
   const itemClass = normalizeItemClass(raw?.class);
@@ -2461,9 +2465,14 @@ function getItemClassExclusiveGroup(itemClass){
 function renderCharaStacksNow(){
   const saved = getSavedChara();
   const baseImage = saved ? getCharaImage(saved) : "";
-  const items = getEffectiveCharaItems();
-  if (inventoryCharaStack) renderCharaStack(inventoryCharaStack, baseImage, items);
-  if (lessonCharaStack) renderCharaStack(lessonCharaStack, baseImage, items);
+  if (inventoryCharaStack){
+    const items = getEffectiveCharaItems({ forceNeckBase: true });
+    renderCharaStack(inventoryCharaStack, baseImage, items);
+  }
+  if (lessonCharaStack){
+    const items = getEffectiveCharaItems();
+    renderCharaStack(lessonCharaStack, baseImage, items);
+  }
 }
 
 function renderCharaPreviewImmediate(){
@@ -2480,7 +2489,21 @@ function getCharaLayerZ(itemClass){
 function getPlacedCharaItems(){
   return Object.values(charaItemPlacements || {}).map(normalizeCharaItemPlacement);
 }
-function getEffectiveCharaItems(){
+function getInitialItemByClass(itemClass){
+  const cls = normalizeItemClass(itemClass);
+  if (!cls || cls === "unknown") return null;
+  const item = initialItemMap?.[cls];
+  if (!item?.image) return null;
+  return item;
+}
+function isSameCharaItem(a, b){
+  if (!a || !b) return false;
+  if (a.groupKey && b.groupKey && a.itemId && b.itemId){
+    return a.groupKey === b.groupKey && a.itemId === b.itemId;
+  }
+  return Boolean(a.image && b.image && a.image === b.image);
+}
+function getEffectiveCharaItems({ forceNeckBase = false } = {}){
   const placed = getPlacedCharaItems();
   const placedByClass = new Map();
   const extras = [];
@@ -2499,7 +2522,18 @@ function getEffectiveCharaItems(){
       fallbackItems.push(item);
     }
   }
-  return [...placedByClass.values(), ...extras, ...fallbackItems];
+  const forcedItems = [];
+  if (forceNeckBase){
+    const neckBase = getInitialItemByClass("neck");
+    if (neckBase){
+      const alreadyHas = placed.some((item)=> isSameCharaItem(item, neckBase))
+        || fallbackItems.some((item)=> isSameCharaItem(item, neckBase));
+      if (!alreadyHas){
+        forcedItems.push(neckBase);
+      }
+    }
+  }
+  return [...forcedItems, ...placedByClass.values(), ...extras, ...fallbackItems];
 }
 function renderCharaStack(container, baseImage, items){
   if (!container) return;
@@ -2731,15 +2765,14 @@ async function removeUnownedCharaItemPlacements(ownedRoot){
 
 
 function renderCharaItems(){
-  renderCharaItemsToStage(inventoryCharaStage, inventoryCharaItems, inventoryCharaImg);
-  renderCharaItemsToStage(lessonChara, lessonCharaItems, lessonCharaImg);
+  renderCharaItemsToStage(inventoryCharaStack, { forceNeckBase: true });
+  renderCharaItemsToStage(lessonCharaStack);
 }
-function renderCharaItemsToStage(stageEl, itemsEl, imageEl){
+function renderCharaItemsToStage(stackEl, { forceNeckBase = false } = {}){
   const saved = getSavedChara();
   const baseImage = saved ? getCharaImage(saved) : "";
-  const items = getEffectiveCharaItems();
-  renderCharaStack(inventoryCharaStack, baseImage, items);
-  renderCharaStack(lessonCharaStack, baseImage, items);
+  const items = getEffectiveCharaItems({ forceNeckBase });
+  if (stackEl) renderCharaStack(stackEl, baseImage, items);
 }
 
 
