@@ -1727,8 +1727,7 @@ const INITIAL_ITEM_NAMES = {
   right: "right1",
   left: "left1",
   pants: "pants1",
-  shoes: "shoes1",
-  neck: "neck1"
+  shoes: "shoes1"
 };
 const ITEM_CLASSES = [
   "hat",
@@ -1739,8 +1738,7 @@ const ITEM_CLASSES = [
   "pants",
   "pants(special)",
   "shoes",
-  "accesary",
-  "neck"
+  "accesary"
 ];
 const ITEM_CLASS_DISPLAY_GROUPS = {
   "cloth(special)": "cloth",
@@ -1750,7 +1748,7 @@ const ITEM_CLASS_EXCLUSIVE_GROUPS = {
   "cloth(special)": "special",
   "pants(special)": "special"
 };
-const INVENTORY_CLASS_ORDER = ["hat", "neck", "cloth", "right", "left", "pants", "shoes", "accesary", "unknown"];
+const INVENTORY_CLASS_ORDER = ["hat", "cloth", "right", "left", "pants", "shoes", "accesary", "unknown"];
 
 /* ========= 波ゲージ色（ローカル） ========= */
 const GAUGE_COLOR_KEY = "yuko_wordlog_gauge_colors_v1";
@@ -1837,7 +1835,6 @@ const INITIAL_ITEM_CLASS_BY_NAME = Object.fromEntries(
   })
 );
 
-
 const ITEM_CLASS_LABELS = {
   hat: "ぼうし",
   cloth: "ふく",
@@ -1848,7 +1845,6 @@ const ITEM_CLASS_LABELS = {
   "pants(special)": "ズボン",
   shoes: "くつ",
   accesary: "アクセサリー",
-  neck: "くび",
   unknown: "そのほか"
 };
 
@@ -2371,13 +2367,12 @@ async function awardItemForSession(pct){
 const CHARA_LAYER_Z = {
   pants: 10,
   shoes: 20,
-  neck: 25,
   cloth: 30,
   "pants(special)": 35,
   "cloth(special)": 30,
   base: 40,
-  left: 70,
-  right: 70,
+  left: 50,
+  right: 50,
   hat: 60,
   accesary: 70,
   unknown: 35
@@ -2769,28 +2764,21 @@ async function loadInventory(){
 
     const itemsByClass = new Map();
     let totalItems = 0;
-    let visibleItems = 0;
 
     for (const [groupKey, items] of groups){
       if (!items || typeof items !== "object") continue;
       for (const [itemId, item] of Object.entries(items)){
         const itemKey = `${groupKey}::${itemId}`;
         const itemClass = normalizeItemClass(item?.class);
-        totalItems += 1;
-        if (itemClass === "neck") continue;
         const displayClass = getItemClassDisplayGroup(itemClass);
         if (!itemsByClass.has(displayClass)) itemsByClass.set(displayClass, []);
         itemsByClass.get(displayClass).push({ groupKey, itemId, item, itemClass, displayClass });
-        visibleItems += 1;
+        totalItems += 1;
       }
     }
     if (!totalItems){
       inventoryMsg.textContent = "所持アイテムはまだありません。";
       await removeAllCharaItemPlacements();
-      return true;
-    }
-    if (!visibleItems){
-      inventoryMsg.textContent = "表示できるアイテムがありません。";
       return true;
     }
     const classOrder = INVENTORY_CLASS_ORDER;
