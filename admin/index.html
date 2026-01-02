@@ -860,7 +860,7 @@
 学生、学生、先生、図書館
 跑步、走る、食べる、寝る；例文も；でOK、ここは例文として丸ごと"></textarea>
           <div class="small" style="margin-top:6px">
-            形式：<span class="mono">問題、正解、誤答1、誤答2（誤答は2個以上）</span>　※誤答は3個以上もOK<br>
+            形式：<span class="mono">問題、正解、誤答1（誤答は1個以上）</span>　※誤答は2個以上もOK<br>
             例文：誤答のどれかに <span class="mono">誤答：例文</span>（<span class="mono">:</span>/<span class="mono">：</span>/<span class="mono">;</span>/<span class="mono">；</span>）を混ぜてもOK（区切りの後はカンマが入っても例文扱い）
           </div>
           <div class="row" style="margin-top:10px">
@@ -3509,8 +3509,8 @@
     // 正解と同じ誤答を除外
     wrongs = wrongs.filter(w => w.toLowerCase() !== String(meaning||"").toLowerCase());
 
-    if (!word || !meaning || wrongs.length < 2){
-      return { ok:false, reason:"問題/正解/誤答(2個以上) が必要", line };
+    if (!word || !meaning || wrongs.length < 1){
+      return { ok:false, reason:"問題/正解/誤答(1個以上) が必要", line };
     }
 
     return { ok:true, word, meaning, wrongs, example, line };
@@ -3764,8 +3764,8 @@
           // 正解と同じ誤答を除外
           ws = uniqStrings(ws.filter(x => String(x||"").toLowerCase() !== String(m2||"").toLowerCase()));
 
-          if (!w2 || !m2 || ws.length < 2){
-            wordsMsg.textContent = "保存NG：単語/正解 と 誤選択肢(2個以上) が必要（※正解と同じ誤答は除外）";
+          if (!w2 || !m2 || ws.length < 1){
+            wordsMsg.textContent = "保存NG：単語/正解 と 誤選択肢(1個以上) が必要（※正解と同じ誤答は除外）";
             return;
           }
           wordsMsg.textContent = "保存中…";
