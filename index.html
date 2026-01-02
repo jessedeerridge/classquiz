@@ -1708,6 +1708,14 @@ const QUIZ_RULES = {
  askAllWordsAlways: true,//今は全部出題（出題形式を変えるならここ）
 };
 
+const QUIZ_SESSION_RULES = {
+  fastMs: 2000,
+  masteredFastCount: 2,
+  masteredCorrectCount: 3,
+  endMinShowsPerWord: 2,
+  endTotalWrongs: 10,
+};
+
 const DEBUG_STAGE_RATES = false;
 const DEFAULT_MAX_GRADE = 8;
 const GRADE_SETTINGS_PATH = "settings/gradeButtons";
@@ -3348,15 +3356,36 @@ async function apiQuestion(name, grade, lesson, stage){
     // ✅ 常に全単語から候補
     let candidates = STAGE_POOL.words;
 
-    // ✅ repeatPerWord（1回だけ等）を守る：出せるものがある時だけ絞る
+    // ✅ このクイズで「達成済み」の単語は出題しない
     try{
+      ensureSessionWordStats();
       if (typeof canAskWordId === "function" && SESSION){
         const okc = candidates.filter(w=>canAskWordId(w.id));
         if (okc.length) candidates = okc;
       }
     }catch(e){}
 
-    const w = candidates[Math.floor(Math.random()*candidates.length)];
+    if (!candidates.length){
+      return { ok:false, error:"session_done" };
+    }
+
+
+    const lastId = String(SESSION?.lastWordId ?? "");
+    let pickList = candidates.slice();
+    if (lastId && pickList.length > 1){
+      const withoutLast = pickList.filter(w=>String(w.id ?? "") !== lastId);
+      if (withoutLast.length) pickList = withoutLast;
+    }
+
+    if (pickList.length === 1 && lastId && String(pickList[0].id ?? "") === lastId){
+      const fallbackId = pickFallbackWordId(lastId);
+      if (fallbackId){
+        const fallback = STAGE_POOL.words.find(w=>String(w.id ?? "") === fallbackId);
+        if (fallback) pickList = [fallback];
+      }
+    }
+
+    const w = pickList[Math.floor(Math.random()*pickList.length)];
     const options = makeOptionsForWord(w);
 
 return {
@@ -4577,16 +4606,15 @@ function computePlannedCount(meta, stage){
   return Math.min(total, Math.trunc(n)) * Math.max(1, QUIZ_RULES.repeatPerWord|0);
 }
 function startSession(lesson, stage, meta){
-  const planned = computePlannedCount(meta, stage);
   SESSION = {
     key: `${CURRENT.name}|${SELECTED_GRADE}|${lesson}|${stage}|${Date.now()}`,
     lesson, stage,
-    planned,
     asked: 0,
     correct: 0,
     wrongs: [],
-    seenWordIds: new Set(),
-    perWordAsked: new Map(),
+    totalWrongs: 0,
+    wordStats: new Map(),
+    wordIds: [],
     asaAwarded: false,
     itemAwarded: false,
     rewardPrepared: false,
@@ -4595,8 +4623,123 @@ function startSession(lesson, stage, meta){
 }
 function endSessionIfNeeded(){
   if (!SESSION) return false;
-  if (SESSION.planned != null && SESSION.asked >= SESSION.planned) return true;
+  const ids = Array.isArray(SESSION.wordIds) ? SESSION.wordIds : [];
+  if (!ids.length || !SESSION.wordStats) return false;
+
+  const allAchieved = ids.every((id)=> SESSION.wordStats.get(id)?.achieved);
+  if (allAchieved) return true;
+
+  if (SESSION.totalWrongs >= QUIZ_SESSION_RULES.endTotalWrongs){
+    const allShownEnough = ids.every((id)=> (SESSION.wordStats.get(id)?.shown || 0) >= QUIZ_SESSION_RULES.endMinShowsPerWord);
+    if (allShownEnough) return true;
+  }
   return false;
+}
+
+
+function ensureSessionWordStats(){
+  if (!SESSION || !STAGE_POOL || !Array.isArray(STAGE_POOL.words)) return;
+  if (!SESSION.wordStats) SESSION.wordStats = new Map();
+  const ids = STAGE_POOL.words.map(w=>String(w.id ?? ""));
+  SESSION.wordIds = ids.filter(Boolean);
+  SESSION.wordIds.forEach((id)=>{
+    if (!SESSION.wordStats.has(id)){
+      SESSION.wordStats.set(id, {
+        shown: 0,
+        correct: 0,
+        fast: 0,
+        wrongStreak: 0,
+        achieved: false,
+      });
+    }
+  });
+}
+
+function getSessionWordStats(wordId){
+  if (!SESSION) return null;
+  ensureSessionWordStats();
+  if (!SESSION.wordStats) return null;
+  const id = String(wordId ?? "");
+  if (!id) return null;
+  if (!SESSION.wordStats.has(id)){
+    SESSION.wordStats.set(id, {
+      shown: 0,
+      correct: 0,
+      fast: 0,
+      wrongStreak: 0,
+      achieved: false,
+    });
+  }
+  return SESSION.wordStats.get(id);
+}
+
+function markWordShown(wordId){
+  const stats = getSessionWordStats(wordId);
+  if (!stats) return;
+  stats.shown = (stats.shown || 0) + 1;
+}
+
+function applyWordAnswerStats(wordId, isCorrect, isFast){
+  const stats = getSessionWordStats(wordId);
+  if (!stats) return;
+  if (isCorrect){
+    stats.correct = (stats.correct || 0) + 1;
+    if (isFast) stats.fast = (stats.fast || 0) + 1;
+    stats.wrongStreak = 0;
+  } else {
+    stats.wrongStreak = (stats.wrongStreak || 0) + 1;
+    if (stats.wrongStreak >= 2){
+      stats.correct = 0;
+      stats.fast = 0;
+      stats.achieved = false;
+    }
+  }
+  if (stats.fast >= QUIZ_SESSION_RULES.masteredFastCount || stats.correct >= QUIZ_SESSION_RULES.masteredCorrectCount){
+    stats.achieved = true;
+  }
+}
+
+function applySessionAnswerStats({ wordId, word, correctText, chosen, isCorrect, isFast }){
+  if (!SESSION) return;
+  if (isCorrect){
+    SESSION.correct += 1;
+  } else {
+    SESSION.totalWrongs += 1;
+    SESSION.wrongs.push({ word: word || "", meaning: String(correctText || "") });
+  }
+  applyWordAnswerStats(wordId, isCorrect, isFast);
+}
+
+function pickFallbackWordId(excludeId){
+  if (!SESSION || !STAGE_POOL || !Array.isArray(STAGE_POOL.words)) return null;
+  ensureSessionWordStats();
+  const exclude = String(excludeId ?? "");
+  const candidates = STAGE_POOL.words
+    .map(w=>({ id: String(w.id ?? ""), stats: SESSION.wordStats.get(String(w.id ?? "")) }))
+    .filter(x=> x.id && x.id !== exclude);
+  if (!candidates.length) return null;
+
+  candidates.sort((a, b)=>{
+    const sa = a.stats || {};
+    const sb = b.stats || {};
+    const aAch = sa.achieved ? 1 : 0;
+    const bAch = sb.achieved ? 1 : 0;
+    if (aAch !== bAch) return aAch - bAch;
+    const aCorrect = sa.correct || 0;
+    const bCorrect = sb.correct || 0;
+    if (aCorrect !== bCorrect) return aCorrect - bCorrect;
+    const aFast = sa.fast || 0;
+    const bFast = sb.fast || 0;
+    if (aFast !== bFast) return aFast - bFast;
+    const aShown = sa.shown || 0;
+    const bShown = sb.shown || 0;
+    if (aShown !== bShown) return aShown - bShown;
+    const aWrong = sa.wrongStreak || 0;
+    const bWrong = sb.wrongStreak || 0;
+    return bWrong - aWrong;
+  });
+
+  return candidates[0]?.id || null;
 }
 
 
@@ -4770,8 +4913,6 @@ function renderSessionWrongList(){
     const parts = [];
     if (!filled.filled && w.meaning) parts.push(w.meaning);
     if (!filled.filled && w.correct && w.correct !== w.meaning) parts.push(`（正：${w.correct}）`);
-
-    if (w.chosen && w.chosen !== w.correct) parts.push(`／あなたの答え：${w.chosen}`);
 
     meanEl.textContent = parts.join(" ");
 
@@ -5039,6 +5180,7 @@ const QT_MS = 4000;
 let _qtRAF = null;
 let _qtStart = 0;
 let _qtActive = false;
+let _questionShownAt = 0;
 
 function initCircle(){
   const r = 18;
@@ -5115,24 +5257,14 @@ function primeNextQuestion(){
 /* ✅ 重複排除 */
 function canAskWordId(wordId){
   if (!SESSION) return true;
-  const id = String(wordId ?? "");
-  const n = SESSION.perWordAsked.get(id) || 0;
-  return n < Math.max(1, QUIZ_RULES.repeatPerWord|0);
-}
-function markAskedWordId(wordId){
-  if (!SESSION) return;
-  const id = String(wordId ?? "");
-  const n = (SESSION.perWordAsked.get(id) || 0) + 1;
-  SESSION.perWordAsked.set(id, n);
-  if (n >= Math.max(1, QUIZ_RULES.repeatPerWord|0)){
-    SESSION.seenWordIds.add(id);
-  }
+  const stats = getSessionWordStats(wordId);
+  return !stats || !stats.achieved;
 }
 
 async function pickUniqueQuestion(forceFresh=false){
   const key = buildQKey();
 
-  if (SESSION && SESSION.planned != null && SESSION.asked >= SESSION.planned){
+  if (endSessionIfNeeded()){
     return { ok:false, error:"session_done" };
   }
 
@@ -5180,6 +5312,7 @@ function renderQuestionJson(j){
   clearOptions();
   quizWord.textContent = "";
   stopQuestionTimer();
+  _questionShownAt = 0;
   syncDropletColorToGauge();
   setReviewVisualMode();
 
@@ -5222,6 +5355,8 @@ const example = (j.example != null) ? String(j.example) : "";
 
 CURRENT.currentQ = { raw:j, word_id: wordId, word, correct, example };
 quizWord.textContent = word || "（no word）";
+markWordShown(wordId);
+if (SESSION) SESSION.lastWordId = wordId;
 
 if (SESSION && !SESSION.rewardPrepared && SESSION.asked === 1){
   defer(()=>{ prepareSessionReward().catch(()=>{}); });
@@ -5254,6 +5389,7 @@ requestAnimationFrame(applyReviewPromptLayout);
     optGrid.appendChild(b);
   });
 
+  _questionShownAt = performance.now();
   startQuestionTimer(QT_MS);
 }
 
@@ -5287,6 +5423,8 @@ async function submitAnswer(text, chosenBtnEl){
 
   const correctLocal = (CURRENT.currentQ.correct != null) ? String(CURRENT.currentQ.correct) : null;
   const chosen = String(text);
+  const answeredAt = performance.now();
+  const isFastAnswer = _questionShownAt > 0 && ((answeredAt - _questionShownAt) <= QUIZ_SESSION_RULES.fastMs);
 
   // ✅ 1) 即ローカル判定で色を付ける
   let isCorrectLocal = null;
@@ -5324,9 +5462,16 @@ async function submitAnswer(text, chosenBtnEl){
   // ✅ 2) セッション集計も“即”更新
   if (SESSION){
     SESSION.asked += 1;
-    markAskedWordId(CURRENT.currentQ.word_id);
-    if (isCorrectLocal === true) SESSION.correct += 1;
-    else if (isCorrectLocal === false) SESSION.wrongs.push({ word: CURRENT.currentQ.word || "", meaning: String(correctLocal || "") });
+    if (isCorrectLocal != null){
+      applySessionAnswerStats({
+        wordId: CURRENT.currentQ.word_id,
+        word: CURRENT.currentQ.word || "",
+        correctText: correctLocal || "",
+        chosen,
+        isCorrect: isCorrectLocal,
+        isFast: isCorrectLocal ? isFastAnswer : false,
+      });
+    }
   }
 
   const snapshot = {
@@ -5337,7 +5482,8 @@ async function submitAnswer(text, chosenBtnEl){
     word_id: CURRENT.currentQ.word_id,
     word: CURRENT.currentQ.word || "",
     correctLocal,
-    chosen
+    chosen,
+    isFastAnswer
   };
 
   const doneNow = endSessionIfNeeded();
@@ -5368,8 +5514,14 @@ async function submitAnswer(text, chosenBtnEl){
       // correctLocalが取れなかった場合だけ補正
       if (SESSION && snapshot.correctLocal == null){
         const isCorrect = !!(j.is_correct ?? j.isCorrect ?? j.correct);
-        if (isCorrect) SESSION.correct += 1;
-        else SESSION.wrongs.push({ word: snapshot.word, meaning: String(j.correct || "") });
+        applySessionAnswerStats({
+          wordId: snapshot.word_id,
+          word: snapshot.word,
+          correctText: String(j.correct || ""),
+          chosen: snapshot.chosen,
+          isCorrect,
+          isFast: isCorrect ? snapshot.isFastAnswer : false,
+        });
       }
 
       // ✅ 進捗更新は裏で（ただしreview中の黒玉は更新しない）
