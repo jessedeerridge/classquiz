@@ -887,6 +887,7 @@ font-size: var(--reviewWordMaxPx);
     }
     .inventoryItem[data-item-class="hat"]{ --thumb-y: 33%;--thumb-x: -10% }
     .inventoryItem[data-item-class="neck"]{ --thumb-y: 0%; --thumb-x: 0%; }
+    .inventoryItem[data-item-class="hands"]{ --thumb-y: 0%; --thumb-x: 0%; }
     .inventoryItem[data-item-class="cloth"]{ --thumb-y: 0%; }
     .inventoryItem[data-item-class="right"]{ --thumb-y: 6%;  --thumb-x: -21%; }
     .inventoryItem[data-item-class="left"]{ --thumb-y: 13%; --thumb-x: 28%; }
@@ -997,7 +998,8 @@ font-size: var(--reviewWordMaxPx);
 .sessionRewardItem[data-item-class="hat"]{ --thumb-y: 33%;--thumb-x: -10% }
 .sessionRewardItem[data-item-class="cloth"]{ --thumb-y: 0%; }
 .sessionRewardItem[data-item-class="right"]{ --thumb-y: 6%;  --thumb-x: -21%; }
-    .sessionRewardItem[data-item-class="neck"]{ --thumb-y: 10%; --thumb-x: 0%; }
+.sessionRewardItem[data-item-class="neck"]{ --thumb-y: 10%; --thumb-x: 0%; }
+.sessionRewardItem[data-item-class="hands"]{ --thumb-y: 0%; --thumb-x: 0%; }
 .sessionRewardItem[data-item-class="left"]{ --thumb-y: 13%; --thumb-x: 28%; }
 .sessionRewardItem[data-item-class="pants"]{ --thumb-y: -22%; }
 .sessionRewardItem[data-item-class="shoes"]{ --thumb-y: -31%; }
@@ -1734,6 +1736,7 @@ const INITIAL_ITEM_GROUP_NAME = "初期アイテム";
 const INITIAL_ITEM_NAMES = {
   hat: "hat1",
   neck: "neck1",
+  hands: "hands1",
   cloth: "cloth1",
   right: "right1",
   left: "left1",
@@ -1743,6 +1746,7 @@ const INITIAL_ITEM_NAMES = {
 const ITEM_CLASSES = [
   "hat",
   "neck",
+  "hands",
   "cloth",
   "cloth(special)",
   "right",
@@ -1769,7 +1773,7 @@ const ITEM_CLASS_EXCLUSIVE_GROUPS = {
   "pants(special)": "special"
 };
 const INVENTORY_CLASS_ORDER = ["hat", "cloth", "right", "left", "pants", "shoes", "accesary", "unknown"];
-const HIDDEN_INVENTORY_CLASSES = new Set(["neck"]);
+const HIDDEN_INVENTORY_CLASSES = new Set(["neck", "hands"]);
 
 /* ========= 波ゲージ色（ローカル） ========= */
 const GAUGE_COLOR_KEY = "yuko_wordlog_gauge_colors_v1";
@@ -1859,6 +1863,7 @@ const INITIAL_ITEM_CLASS_BY_NAME = Object.fromEntries(
 const ITEM_CLASS_LABELS = {
   hat: "ぼうし",
   neck: "くび",
+  hands: "て",
   cloth: "ふく",
   "cloth(special)": "ふく",
   right: "みぎて",
@@ -2393,6 +2398,7 @@ async function awardItemForSession(pct){
 const CHARA_LAYER_Z = {
   pants: 25,
   neck: 5,
+  hands: 29,
   shoes: 20,
   cloth: 30,
   "pants(special)": 35,
@@ -2442,7 +2448,7 @@ function renderInventoryChara(){
   renderCharaStack(
     inventoryCharaStack,
     getCharaImage(saved),
-    getEffectiveCharaItems({ forceNeckBase: true })
+    getEffectiveCharaItems({ forceNeckBase: true, forceHandsBase: true })
   );
 }
 function normalizeCharaItemPlacement(raw){
@@ -2490,7 +2496,7 @@ function renderCharaStacksNow(){
   const saved = getSavedChara();
   const baseImage = saved ? getCharaImage(saved) : "";
   if (inventoryCharaStack){
-    const items = getEffectiveCharaItems({ forceNeckBase: true });
+    const items = getEffectiveCharaItems({ forceNeckBase: true, forceHandsBase: true });
     renderCharaStack(inventoryCharaStack, baseImage, items);
   }
   if (lessonCharaStack){
@@ -2528,7 +2534,7 @@ function isSameCharaItem(a, b){
   }
   return Boolean(a.image && b.image && a.image === b.image);
 }
-function getEffectiveCharaItems({ forceNeckBase = false } = {}){
+function getEffectiveCharaItems({ forceNeckBase = false, forceHandsBase = false } = {}){
   const placed = getPlacedCharaItems();
   const placedByClass = new Map();
   const extras = [];
@@ -2558,6 +2564,18 @@ function getEffectiveCharaItems({ forceNeckBase = false } = {}){
       }
     }
   }
+
+  if (forceHandsBase){
+    const handsBase = getInitialItemByClass("hands");
+    if (handsBase){
+      const alreadyHas = placed.some((item)=> isSameCharaItem(item, handsBase))
+        || fallbackItems.some((item)=> isSameCharaItem(item, handsBase));
+      if (!alreadyHas){
+        forcedItems.push(handsBase);
+      }
+    }
+  }
+
   return [...forcedItems, ...placedByClass.values(), ...extras, ...fallbackItems];
 }
 function renderCharaStack(container, baseImage, items){
@@ -2790,13 +2808,13 @@ async function removeUnownedCharaItemPlacements(ownedRoot){
 
 
 function renderCharaItems(){
-  renderCharaItemsToStage(inventoryCharaStack, { forceNeckBase: true });
+  renderCharaItemsToStage(inventoryCharaStack, { forceNeckBase: true, forceHandsBase: true });
   renderCharaItemsToStage(lessonCharaStack);
 }
-function renderCharaItemsToStage(stackEl, { forceNeckBase = false } = {}){
+function renderCharaItemsToStage(stackEl, { forceNeckBase = false, forceHandsBase = false } = {}){
   const saved = getSavedChara();
   const baseImage = saved ? getCharaImage(saved) : "";
-  const items = getEffectiveCharaItems({ forceNeckBase });
+  const items = getEffectiveCharaItems({ forceNeckBase, forceHandsBase });
   if (stackEl) renderCharaStack(stackEl, baseImage, items);
 }
 
