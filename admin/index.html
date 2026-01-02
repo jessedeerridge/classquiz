@@ -3320,6 +3320,13 @@
   const SEP_CHARS = new Set([",","，","、"]);
   const MARK_CHARS = new Set([":","：",";","；"]);
 
+  function readQuotedChunk(text, index){
+    if (text[index] !== "\"") return null;
+    const end = text.indexOf("\"", index + 1);
+    if (end === -1) return null;
+    return { value: text.slice(index + 1, end), nextIndex: end };
+  }
+
   function normalizeDelims(text){
     // 「区切りのカンマ」を統一したい場所だけで使用（例文部分には使わない）
     return String(text||"").replaceAll("，", ",").replaceAll("、", ",");
@@ -3439,6 +3446,15 @@
     while (i < s.length){
       const ch = s[i];
 
+      if (ch === "\""){
+        const quoted = readQuotedChunk(s, i);
+        if (quoted){
+          buf += quoted.value;
+          i = quoted.nextIndex + 1;
+          continue;
+        }
+      }
+
       if (SEP_CHARS.has(ch)){
         const token = buf.trim();
         if (token) fields.push(token);
@@ -3478,6 +3494,15 @@
     // i は「meaningの後の区切り」の次の位置
     for (; i < s.length; i++){
       const ch = s[i];
+
+      if (ch === "\""){
+        const quoted = readQuotedChunk(s, i);
+        if (quoted){
+          buf += quoted.value;
+          i = quoted.nextIndex;
+          continue;
+        }
+      }
 
       if (MARK_CHARS.has(ch)){
         const w = buf.trim();
