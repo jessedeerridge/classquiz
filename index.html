@@ -1884,9 +1884,7 @@ function getInitialPreviewItems(){
 }
 
 function getCharaSelectPreviewItems(){
-  const placed = getPlacedCharaItems();
-  if (placed.length) return placed;
-  return getInitialPreviewItems();
+  return getEffectiveCharaItems({ forceNeckBase: true, forceHandsBase: true });
 }
 
 const preloadedImageCache = new Set();
