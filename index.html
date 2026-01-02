@@ -3208,8 +3208,11 @@ async function ensureStagePool(grade, lesson, stage){
       if (!v || typeof v !== "object") continue;
       const word = String(v.word ?? "").trim();
       const meaning = String(v.meaning ?? "").trim();
-      const wrongs = Array.isArray(v.wrongs) ? v.wrongs.map(x=>String(x||"").trim()).filter(Boolean) : [];
-      if (!word || !meaning || wrongs.length < 2) continue;
+      const wrongsRaw = Array.isArray(v.wrongs) ? v.wrongs : [];
+      const wrongs = wrongsRaw
+        .map(x=>String(x||"").trim())
+        .filter(text=>Boolean(text) && text !== meaning);
+      if (!word || !meaning || wrongs.length < 1) continue;
 const example = String(v.example ?? "").trim();
 words.push({ id:String(wid), word, meaning, wrongs, example });
     }
@@ -3224,14 +3227,20 @@ words.push({ id:String(wid), word, meaning, wrongs, example });
 }
 
 function makeOptionsForWord(w){
-  const wrongs = Array.isArray(w.wrongs) ? w.wrongs.filter(Boolean) : [];
+  const meaning = String(w.meaning ?? "");
+  const wrongs = Array.isArray(w.wrongs)
+    ? w.wrongs.filter(text=>Boolean(text) && String(text) !== meaning)
+    : [];
   const shuffled = wrongs.slice().sort(()=>Math.random()-0.5);
-  let opts = [w.meaning, ...shuffled.slice(0, Math.min(5, Math.max(2, shuffled.length)))];
+  let opts = [meaning, ...shuffled.slice(0, 1)];
 
-  if (opts.length < 3 && STAGE_POOL && Array.isArray(STAGE_POOL.words)){
-    const others = STAGE_POOL.words.filter(x=>x.id!==w.id).map(x=>x.meaning).filter(Boolean);
+  if (opts.length < 2 && STAGE_POOL && Array.isArray(STAGE_POOL.words)){
+    const others = STAGE_POOL.words
+      .filter(x=>x.id!==w.id)
+      .map(x=>x.meaning)
+      .filter(Boolean);
     others.sort(()=>Math.random()-0.5);
-    while (opts.length < 3 && others.length) opts.push(others.pop());
+    while (opts.length < 2 && others.length) opts.push(others.pop());
   }
 
   opts = Array.from(new Set(opts.map(x=>String(x))));
@@ -5352,7 +5361,7 @@ function renderQuestionJson(j){
   if (!j || !j.ok){
     if (j && j.error === "choices_not_configured"){
       quizWord.textContent = j.word ? `（${j.word}）` : "";
-      setResult("この単語は選択肢が不足（正解+誤答2以上）です。", false);
+      setResult("この単語は選択肢が不足（正解+誤答1以上）です。", false);
       return;
     }
     setResult(`問題取得失敗：${(j && (j.error||j.message)) || "unknown"}`, false);
