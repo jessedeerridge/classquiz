@@ -304,6 +304,122 @@
       width:auto;
     }
 
+    .itemClassEditor{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap:10px;
+      align-items:end;
+    }
+    .itemClassEditor .row{
+      grid-column: 1 / -1;
+    }
+    .itemClassTable{
+      width:100%;
+      border-collapse:collapse;
+      border:1px solid var(--line);
+      background:#fff;
+      margin-top:10px;
+    }
+    .itemClassTable th,
+    .itemClassTable td{
+      border:1px solid var(--line);
+      padding:8px 10px;
+      font-size:12px;
+      font-weight:900;
+      text-align:left;
+      vertical-align:top;
+    }
+    .itemClassTable th{
+      background: rgba(17,24,39,.03);
+      color:var(--muted);
+      text-align:center;
+      white-space:nowrap;
+    }
+    .itemClassTable td .muted{
+      font-size:11px;
+    }
+
+
+  .itemClassExclusiveList{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      max-height:160px;
+      overflow:auto;
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:8px;
+      background:#fff;
+    }
+    .itemClassExclusiveList label{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      font-size:12px;
+      font-weight:900;
+      color:var(--text);
+      margin:0;
+    }
+    .itemClassExclusiveList input{
+      width:auto;
+      margin:0;
+    }
+
+    .itemClassActions{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      justify-content:center;
+    }
+
+    .thumbEditor{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .thumbPreview{
+      position:relative;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background: rgba(17,24,39,.04);
+      overflow:hidden;
+      min-height:160px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .thumbPreview img{
+      width:100%;
+      height:auto;
+      display:block;
+    }
+    .thumbCrop{
+      position:absolute;
+      border:2px solid #22c55e;
+      width:120px;
+      height:120px;
+      cursor:grab;
+      box-shadow:0 0 0 9999px rgba(0,0,0,.25);
+      border-radius:8px;
+    }
+    .thumbCrop.is-dragging{
+      cursor:grabbing;
+    }
+    .thumbResult{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .thumbResult img{
+      width:64px;
+      height:64px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      object-fit:cover;
+      background: rgba(17,24,39,.04);
+    }
+
+
     .itemGroupCard{
       border:1px solid var(--line);
       border-radius:16px;
@@ -532,6 +648,10 @@
     }
     .itemAddRow .row{
       align-items:center;
+      grid-column: 1 / -1;
+    }
+
+    .itemAddThumb{
       grid-column: 1 / -1;
     }
 
@@ -907,6 +1027,84 @@
         <div class="charaSlotGrid" id="charaSlotGrid"></div>
       </div>
     </div>
+
+    <div class="card" style="margin-bottom:14px">
+      <div class="cardHead">
+        <h2>アイテムクラス管理</h2>
+        <div class="space"></div>
+        <button class="btn secondary" id="btnReloadItemClasses" type="button">再読込</button>
+        <button class="btn" id="btnSaveItemClass" type="button">追加/更新</button>
+      </div>
+      <div class="cardBody">
+        <div class="itemClassEditor">
+          <div>
+            <label>クラス名</label>
+            <input id="itemClassName" placeholder="例）hat" />
+          </div>
+          <div>
+            <label>画像必要数</label>
+            <select id="itemClassImageCount">
+              <option value="1">1</option>
+              <option value="2">2</option>
+            </select>
+          </div>
+          <div>
+            <label>画像1 レイヤー数値</label>
+            <input id="itemClassLayer1" type="number" placeholder="例）30" />
+          </div>
+          <div>
+            <label>画像2 レイヤー数値</label>
+            <input id="itemClassLayer2" type="number" placeholder="例）50" />
+          </div>
+          <div>
+            <label>サム表示Xずらし(%)</label>
+            <input id="itemClassThumbX" type="number" placeholder="例）-10" />
+          </div>
+          <div>
+            <label>サム表示Yずらし(%)</label>
+            <input id="itemClassThumbY" type="number" placeholder="例）20" />
+          </div>
+
+          <div class="row small muted">サム表示ずらしは一覧/報酬のサム画像の中心位置を % で調整します（未指定は 0）。</div>
+
+          <div>
+            <label>共存しないクラス</label>
+            <div id="itemClassExclusive" class="itemClassExclusiveList"></div>
+          </div>
+          <div>
+            <label>ゲーム画面用クラス名</label>
+            <input id="itemClassGameClass" placeholder="例）cloth" />
+          </div>
+         <div>
+            <label>ゲーム画面用 表示順(上から)</label>
+            <input id="itemClassGameClassOrder" type="number" placeholder="例）1" />
+          </div>
+          <div class="row small muted">表示順は同じゲーム画面用クラス名で1つ設定すれば共有されます。</div>
+          <div style="display:flex; align-items:center; gap:8px">
+            <label style="margin:0">ゲーム画面に表示しない</label>
+            <input id="itemClassHidden" type="checkbox" style="width:auto">
+          </div>
+        </div>
+        <div class="small" id="itemClassMsg" style="margin-top:8px"></div>
+        <table class="itemClassTable">
+          <thead>
+            <tr>
+              <th>クラス名</th>
+              <th>画像数 / レイヤー</th>
+              <th>サム表示ずらし</th>
+              <th>共存しないクラス</th>
+              <th>ゲーム画面用クラス名</th>
+              <th>表示順</th>
+              <th>非表示</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="itemClassTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+
     <div class="card">
       <div class="cardHead">
         <h2>アイテムストレージ</h2>
@@ -1036,6 +1234,10 @@
     itemGroups: ()=> `itemGroups`,
     itemGroup: (key)=> `itemGroups/${key}`,
     itemGroupItems: (key)=> `itemGroups/${key}/items`,
+
+    itemClasses: ()=> `itemClasses`,
+    itemClass: (key)=> `itemClasses/${key}`,
+
     charaSlots: ()=> `charaSlots`,
     charaSlot: (key)=> `charaSlots/${key}`,
     quizRewards: ()=> `quizRewards`,
@@ -1061,6 +1263,10 @@
   }
   function groupKeyFromName(name){
     return `group_${safeKey(name)}`;
+  }
+
+ function classKeyFromName(name){
+    return `class_${safeKey(name)}`;
   }
 
   function fmtTime(ts){
@@ -1160,6 +1366,21 @@
   const addPath = $("addPath");
 
  // Items
+  const btnReloadItemClasses = $("btnReloadItemClasses");
+  const btnSaveItemClass = $("btnSaveItemClass");
+  const itemClassNameInput = $("itemClassName");
+  const itemClassImageCount = $("itemClassImageCount");
+  const itemClassLayer1 = $("itemClassLayer1");
+  const itemClassLayer2 = $("itemClassLayer2");
+  const itemClassThumbX = $("itemClassThumbX");
+  const itemClassThumbY = $("itemClassThumbY");
+  const itemClassExclusive = $("itemClassExclusive");
+  const itemClassGameClass = $("itemClassGameClass");
+  const itemClassGameClassOrder = $("itemClassGameClassOrder");
+  const itemClassHidden = $("itemClassHidden");
+  const itemClassMsg = $("itemClassMsg");
+  const itemClassTable = $("itemClassTable");
+
   const btnReloadItems = $("btnReloadItems");
   const itemGroupName = $("itemGroupName");
   const btnAddItemGroup = $("btnAddItemGroup");
@@ -1170,40 +1391,11 @@
   const btnAddItem = $("btnAddItem");
   const itemMsg = $("itemMsg");
   const itemGrid = $("itemGrid");
-  const ITEM_CLASS_OPTIONS = [
-    "hat",
-    "neck",
-    "hands",
-    "cloth",
-    "cloth(special)",
-    "right",
-    "left",
-    "pants",
-    "pants(special)",
-    "shoes",
-    "accesary",
-    "accesary(glasses)",
-    "accesary(mask)",
-    "accesary(ring)",
-    "accesary(belt)"
-  ];
-
-
-  function isAccessoryClass(itemClass){
-    return String(itemClass || "").trim().startsWith("accesary");
-  }
-
-  function buildItemClassOptions(selected, emptyLabel){
-    const options = ITEM_CLASS_OPTIONS.slice();
-    if (selected && !options.includes(selected)) options.unshift(selected);
-    const placeholder = emptyLabel ?? "選択してください";
-    const parts = [`<option value="">${esc(placeholder)}</option>`];
-    for (const name of options){
-      const isSelected = name === selected ? " selected" : "";
-      parts.push(`<option value="${esc(name)}"${isSelected}>${esc(name)}</option>`);
-    }
-    return parts.join("");
-  }
+   let _itemClassesCache = null;
+  let itemClassList = [];
+  let itemClassMap = new Map();
+  let currentItemClassKey = "";
+  let currentItemClassName = "";
   const charaSlotId = $("charaSlotId");
   const charaSlotUrl = $("charaSlotUrl");
   const charaSlotFile = $("charaSlotFile");
@@ -1411,6 +1603,159 @@
     itemMsg.className = ok ? "okline" : "badline";
   }
 
+ function setItemClassMsg(msg, ok=true){
+    if (!itemClassMsg) return;
+    itemClassMsg.textContent = msg;
+    itemClassMsg.className = ok ? "okline" : "badline";
+  }
+
+  function normalizeItemClassList(raw){
+    if (!raw || typeof raw !== "object") return [];
+    const list = [];
+    for (const [key, value] of Object.entries(raw)){
+      const name = String(value?.name || key).trim();
+      if (!name) continue;
+      const imageCount = Number(value?.imageCount || 1);
+      const layer1 = Number(value?.layer1 ?? value?.image1Layer ?? 0);
+      const layer2 = Number(value?.layer2 ?? value?.image2Layer ?? 0);
+     const thumbX = Number(value?.thumbX ?? value?.thumbOffsetX ?? 0);
+      const thumbY = Number(value?.thumbY ?? value?.thumbOffsetY ?? 0);
+      const exclusiveWith = Array.isArray(value?.exclusiveWith)
+        ? value.exclusiveWith.map((v)=> String(v||"").trim()).filter(Boolean)
+        : [];
+      const gameClass = String(value?.gameClass || value?.displayClass || "").trim();
+      const gameClassOrder = Number(value?.gameClassOrder ?? value?.displayOrder ?? NaN);
+      const hideInGame = value?.hideInGame === true;
+      list.push({
+        key,
+        name,
+        imageCount,
+        layer1,
+        layer2,
+        thumbX,
+        thumbY,
+        exclusiveWith,
+        gameClass,
+        gameClassOrder,
+        hideInGame
+      });
+    }
+    list.sort((a,b)=> a.name.localeCompare(b.name, "ja"));
+    return list;
+  }
+
+  function refreshItemClassMap(list){
+    itemClassList = list || [];
+    itemClassMap = new Map(itemClassList.map((c)=> [c.name, c]));
+  }
+
+  function getItemClassConfig(name){
+    return itemClassMap.get(String(name || "").trim()) || null;
+  }
+
+  function buildItemClassOptions(selected, emptyLabel){
+    const options = itemClassList.map((c)=> c.name);
+    if (selected && !options.includes(selected)) options.unshift(selected);
+    const placeholder = emptyLabel ?? "選択してください";
+    const parts = [`<option value="">${esc(placeholder)}</option>`];
+    for (const name of options){
+      const isSelected = name === selected ? " selected" : "";
+      parts.push(`<option value="${esc(name)}"${isSelected}>${esc(name)}</option>`);
+    }
+    return parts.join("");
+  }
+
+  function renderItemClassExclusiveOptions(selectedList = []){
+    if (!itemClassExclusive) return;
+    itemClassExclusive.innerHTML = "";
+    for (const cls of itemClassList){
+      const label = document.createElement("label");
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.value = cls.name;
+      input.checked = selectedList.includes(cls.name);
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(cls.name));
+      itemClassExclusive.appendChild(label);
+    }
+  }
+
+  function renderItemClassTable(list){
+    if (!itemClassTable) return;
+    itemClassTable.innerHTML = "";
+    if (!list.length){
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td colspan="8" class="small">アイテムクラスが未登録です。</td>`;
+      itemClassTable.appendChild(tr);
+      return;
+    }
+    const sharedOrderMap = new Map();
+    for (const cls of list){
+      const key = String(cls.gameClass || "").trim();
+      if (!key || sharedOrderMap.has(key)) continue;
+      if (Number.isFinite(cls.gameClassOrder)) sharedOrderMap.set(key, cls.gameClassOrder);
+    }
+    for (const cls of list){
+      const tr = document.createElement("tr");
+      const exclusiveLabel = cls.exclusiveWith.length ? cls.exclusiveWith.join(", ") : "—";
+      const thumbOffset = `${Number(cls.thumbX || 0)}% / ${Number(cls.thumbY || 0)}%`;
+      const sharedOrder = sharedOrderMap.get(String(cls.gameClass || "").trim());
+      const orderValue = Number.isFinite(cls.gameClassOrder) ? cls.gameClassOrder : sharedOrder;
+      const orderLabel = Number.isFinite(orderValue) ? String(orderValue) : "—";
+      tr.innerHTML = `
+        <td>${esc(cls.name)}</td>
+        <td class="mono">${cls.imageCount} / ${cls.layer1 || 0}${cls.imageCount >= 2 ? ` / ${cls.layer2 || 0}` : ""}</td>
+        <td class="mono">${esc(thumbOffset)}</td>
+        <td>${esc(exclusiveLabel)}</td>
+        <td>${esc(cls.gameClass || "—")}</td>
+        <td class="mono">${esc(orderLabel)}</td>
+        <td class="mono">${cls.hideInGame ? "true" : "false"}</td>
+        <td>
+          <div class="itemClassActions">
+            <button class="btn secondary tiny" data-action="edit" type="button">編集</button>
+            <button class="btn danger tiny" data-action="delete" type="button">削除</button>
+          </div>
+        </td>
+      `;
+      tr.querySelector('[data-action="edit"]').onclick = ()=>{
+        if (itemClassNameInput) itemClassNameInput.value = cls.name;
+        if (itemClassImageCount) itemClassImageCount.value = String(cls.imageCount || 1);
+        if (itemClassLayer1) itemClassLayer1.value = String(cls.layer1 ?? "");
+        if (itemClassLayer2) itemClassLayer2.value = String(cls.layer2 ?? "");
+        if (itemClassThumbX) itemClassThumbX.value = String(cls.thumbX ?? "");
+        if (itemClassThumbY) itemClassThumbY.value = String(cls.thumbY ?? "");
+        if (itemClassGameClass) itemClassGameClass.value = cls.gameClass || "";
+        if (itemClassGameClassOrder){
+          itemClassGameClassOrder.value = Number.isFinite(orderValue) ? String(orderValue) : "";
+        }
+        if (itemClassHidden) itemClassHidden.checked = !!cls.hideInGame;
+        currentItemClassKey = cls.key;
+        currentItemClassName = cls.name;
+        renderItemClassExclusiveOptions(cls.exclusiveWith || []);
+        toggleItemClassLayer2();
+      };
+      tr.querySelector('[data-action="delete"]').onclick = async ()=>{
+        if (!confirm(`クラス「${cls.name}」を削除しますか？`)) return;
+        await deleteItemClass(cls.key, cls.name);
+      };
+      itemClassTable.appendChild(tr);
+    }
+  }
+
+  function toggleItemClassLayer2(){
+    if (!itemClassImageCount || !itemClassLayer2) return;
+    const count = Number(itemClassImageCount.value || 1);
+    itemClassLayer2.disabled = count < 2;
+    if (count < 2) itemClassLayer2.value = "";
+  }
+
+  function readItemClassExclusive(){
+    if (!itemClassExclusive) return [];
+    return Array.from(itemClassExclusive.querySelectorAll('input[type="checkbox"]'))
+      .filter((input)=> input.checked)
+      .map((input)=> String(input.value || "").trim())
+      .filter(Boolean);
+  }
 
   function normalizeGroupList(obj){
     if (!obj || typeof obj !== "object") return [];
@@ -1588,10 +1933,17 @@
           if (item?.disabled) card.classList.add("is-disabled");
           const itemClassRaw = String(item?.class || "").trim();
           const itemClass = itemClassRaw || "未設定";
+
+          const classConfig = getItemClassConfig(itemClassRaw);
+          const showImage2 = Number(classConfig?.imageCount || 1) >= 2 || item?.image2;
+
           const imgHtml = item?.image
             ? `<img src="${esc(item.image)}" alt="${esc(item?.name ?? "")}">`
             : `<span class="small">-</span>`;
-          const listImgHtml = (isThumbItemClass(itemClassRaw) && item?.listImage)
+          const img2Html = item?.image2
+            ? `<img src="${esc(item.image2)}" alt="${esc(item?.name ?? "")} 画像2">`
+            : `<span class="small">-</span>`;
+          const listImgHtml = item?.listImage
             ? `<img src="${esc(item.listImage)}" alt="サム用 ${esc(item?.name ?? "")}">`
             : `<span class="small">-</span>`;
           const classOptions = buildItemClassOptions(itemClassRaw, "未設定");
@@ -1599,14 +1951,15 @@
 
           card.innerHTML = `
             <div class="itemImgGroup">
-              <div class="itemImg">${imgHtml}</div>
-              ${isThumbItemClass(itemClassRaw) ? `<div class="itemImg itemListImg" title="サム用アイコン">${listImgHtml}</div>` : ""}
+              <div class="itemImg itemImgMain">${imgHtml}</div>
+              ${showImage2 ? `<div class="itemImg itemImgSecondary">${img2Html}</div>` : ""}
+              ${item?.listImage ? `<div class="itemImg itemListImg" title="サム表示">${listImgHtml}</div>` : ""}
             </div>
             <div class="itemName">${esc(item?.name ?? itemId)}</div>
             <select class="itemClassSelect">${classOptions}</select>
           `;
 
-          const imgWrap = card.querySelector(".itemImg");
+          const imgWrap = card.querySelector(".itemImgMain");
           const imgInput = document.createElement("input");
           imgInput.type = "file";
           imgInput.accept = "image/*";
@@ -1619,7 +1972,7 @@
             if (useUrl){
               const url = prompt("画像URLを入力してください");
               if (!url) return;
-              await replaceItemImageWithUrl(group.key, itemId, item, url, group.name);
+              await replaceItemImageWithUrl(group.key, itemId, item, url, group.name, "image");
               return;
             }
 
@@ -1628,34 +1981,34 @@
           imgInput.onchange = async ()=>{
             const file = imgInput.files?.[0];
             if (!file) return;
-            await replaceItemImage(group.key, itemId, item, file, group.name);
+            await replaceItemImage(group.key, itemId, item, file, group.name, "image");
             imgInput.value = "";
           };
 
-          const listImgWrap = card.querySelector(".itemListImg");
-          if (listImgWrap){
-            const listImgInput = document.createElement("input");
-            listImgInput.type = "file";
-            listImgInput.accept = "image/*";
-            listImgInput.style.display = "none";
-            listImgWrap.appendChild(listImgInput);
-            listImgWrap.title = "クリックでサム用画像を変更";
-            listImgWrap.addEventListener("click", async (e)=>{
+          const img2Wrap = card.querySelector(".itemImgSecondary");
+          if (img2Wrap){
+            const img2Input = document.createElement("input");
+            img2Input.type = "file";
+            img2Input.accept = "image/*";
+            img2Input.style.display = "none";
+            img2Wrap.appendChild(img2Input);
+            img2Wrap.title = "クリックで画像2を変更";
+            img2Wrap.addEventListener("click", async (e)=>{
               e.stopPropagation();
-              const useUrl = confirm("サム用画像をURLで変更しますか？\nOK=URL入力 / キャンセル=画像アップロード");
+              const useUrl = confirm("画像2をURLで変更しますか？\nOK=URL入力 / キャンセル=画像アップロード");
               if (useUrl){
-                const url = prompt("サム用画像URLを入力してください");
+                const url = prompt("画像2のURLを入力してください");
                 if (!url) return;
-                await replaceItemListImageWithUrl(group.key, itemId, item, url, group.name);
+                await replaceItemImageWithUrl(group.key, itemId, item, url, group.name, "image2");
                 return;
               }
-              listImgInput.click();
+              img2Input.click();
             });
-            listImgInput.onchange = async ()=>{
-              const file = listImgInput.files?.[0];
+            img2Input.onchange = async ()=>{
+              const file = img2Input.files?.[0];
               if (!file) return;
-              await replaceItemListImage(group.key, itemId, item, file, group.name);
-              listImgInput.value = "";
+              await replaceItemImage(group.key, itemId, item, file, group.name, "image2");
+              img2Input.value = "";
             };
           }
 
@@ -1672,17 +2025,7 @@
                 return;
               }
               if (next === current) return;
-              let listImageOverride = null;
-              if (isAccessoryClass(next) && !item?.listImage){
-                const listUrl = prompt("アクセサリー用のサム画像URLを入力してください");
-                if (!listUrl){
-                  setItemMsg("アクセサリー用の画像を追加して", false);
-                  classSelect.value = current;
-                  return;
-                }
-                listImageOverride = String(listUrl || "").trim();
-              }
-              await updateItemClass(group.key, itemId, item, next, group.name, listImageOverride);
+              await updateItemClass(group.key, itemId, item, next, group.name);
             });
           }
 
@@ -1734,13 +2077,30 @@
           <label>画像ファイル</label>
           <input class="itemAddFile" type="file" accept="image/*" />
         </div>
-        <div class="itemAddAccessory" style="display:none">
-          <label>サム用 画像URL</label>
-          <input class="itemAddListUrl" placeholder="アイテム欄の表示用" />
+        <div class="itemAddImage2" style="display:none">
+          <label>画像2 URL</label>
+          <input class="itemAddUrl2" placeholder="https://example.com/item2.png" />
         </div>
-        <div class="itemAddAccessory" style="display:none">
-          <label>サム用 画像ファイル</label>
-          <input class="itemAddListFile" type="file" accept="image/*" />
+       <div class="itemAddImage2" style="display:none">
+          <label>画像2 ファイル</label>
+          <input class="itemAddFile2" type="file" accept="image/*" />
+        </div>
+        <div class="itemAddThumb">
+          <label>サム表示画像（未指定なら画像1を使用）</label>
+          <div class="row">
+            <input class="itemAddThumbUrl" placeholder="https://example.com/thumb.png" />
+            <input class="itemAddThumbFile" type="file" accept="image/*" />
+          </div>
+          <div class="thumbEditor">
+            <div class="thumbPreview">
+              <img class="thumbSource" alt="サム用画像" />
+              <div class="thumbCrop"></div>
+            </div>
+            <div class="thumbResult">
+              <span class="muted">サム表示プレビュー</span>
+              <img class="thumbResultImg" alt="サム表示プレビュー" />
+            </div>
+          </div>
         </div>
         <div class="row" style="justify-content:flex-end; align-items:flex-end">
           <button class="btn itemAddBtn" type="button">このグループに追加</button>
@@ -1749,27 +2109,32 @@
       `;
       const addBtn = addWrap.querySelector(".itemAddBtn");
       const classSelect = addWrap.querySelector(".itemAddClass");
-      const accessoryRows = Array.from(addWrap.querySelectorAll(".itemAddAccessory"));
+      const image2Rows = Array.from(addWrap.querySelectorAll(".itemAddImage2"));
       if (classSelect){
         classSelect.addEventListener("change", ()=>{
-          const isThumb = isThumbItemClass(classSelect.value);
-          accessoryRows.forEach(row=>{ row.style.display = isThumb ? "" : "none"; });
+           const cfg = getItemClassConfig(classSelect.value);
+          const needsTwo = Number(cfg?.imageCount || 1) >= 2;
+          image2Rows.forEach(row=>{ row.style.display = needsTwo ? "" : "none"; });
         });
+        classSelect.dispatchEvent(new Event("change"));
       }
+      const thumbEditor = initThumbEditor(addWrap);
       addBtn.onclick = async ()=>{
         const nameInput = addWrap.querySelector(".itemAddName");
         const urlInput = addWrap.querySelector(".itemAddUrl");
         const fileInput = addWrap.querySelector(".itemAddFile");
+        const url2Input = addWrap.querySelector(".itemAddUrl2");
+        const file2Input = addWrap.querySelector(".itemAddFile2");
         const classInput = addWrap.querySelector(".itemAddClass");
-        const listUrlInput = addWrap.querySelector(".itemAddListUrl");
-        const listFileInput = addWrap.querySelector(".itemAddListFile");
+
         await addItemToGroup(group.key, {
           nameInput,
           urlInput,
           fileInput,
+          url2Input,
+          file2Input,
           classInput,
-          listUrlInput,
-          listFileInput
+           thumbEditor
         });
       };
       body.appendChild(addWrap);
@@ -1891,6 +2256,14 @@
     _ownedItemOptions = buildOwnedItemOptions(groups);
   }
 
+  async function loadItemClasses(){
+    _itemClassesCache = await dbGet(P.itemClasses());
+    const list = normalizeItemClassList(_itemClassesCache);
+    refreshItemClassMap(list);
+    renderItemClassTable(list);
+    renderItemClassExclusiveOptions(readItemClassExclusive());
+  }
+
 
   function readFileAsDataUrl(file){
     return new Promise((resolve, reject)=>{
@@ -1900,6 +2273,197 @@
       reader.readAsDataURL(file);
     });
   }
+
+ function initThumbEditor(addWrap){
+    const preview = addWrap.querySelector(".thumbPreview");
+    const img = addWrap.querySelector(".thumbSource");
+    const crop = addWrap.querySelector(".thumbCrop");
+    const resultImg = addWrap.querySelector(".thumbResultImg");
+    const urlInput = addWrap.querySelector(".itemAddThumbUrl") || addWrap.querySelector(".itemAddUrl");
+    const fileInput = addWrap.querySelector(".itemAddThumbFile") || addWrap.querySelector(".itemAddFile");
+    const state = {
+      hasSource: false,
+      cropX: 0,
+      cropY: 0,
+      cropSize: 120,
+      listImage: "",
+      lastSource: "",
+      pendingSource: ""
+    };
+    if (!preview || !img || !crop || !resultImg){
+      return {
+        hasSource: ()=> false,
+        getListImage: ()=> "",
+        reset: ()=>{}
+      };
+    }
+
+    preview.style.display = "none";
+    resultImg.style.display = "none";
+
+    function clamp(val, min, max){
+      return Math.max(min, Math.min(max, val));
+    }
+
+    function updateCropStyles(){
+      crop.style.width = `${state.cropSize}px`;
+      crop.style.height = `${state.cropSize}px`;
+      crop.style.left = `${state.cropX}px`;
+      crop.style.top = `${state.cropY}px`;
+    }
+
+    function updateResultImage(){
+      if (!state.hasSource) return;
+      const rect = img.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      const canvas = document.createElement("canvas");
+      canvas.width = 160;
+      canvas.height = 160;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      const scaleX = img.naturalWidth / rect.width;
+      const scaleY = img.naturalHeight / rect.height;
+      const sx = state.cropX * scaleX;
+      const sy = state.cropY * scaleY;
+      const sSize = state.cropSize * Math.max(scaleX, scaleY);
+      try{
+        ctx.drawImage(img, sx, sy, sSize, sSize, 0, 0, canvas.width, canvas.height);
+        state.listImage = canvas.toDataURL("image/png");
+        resultImg.src = state.listImage;
+        resultImg.style.display = "";
+      }catch(e){
+        // CORS等で失敗したら、既存のサムがあれば維持する
+        if (!state.listImage){
+          resultImg.src = "";
+          resultImg.style.display = "none";
+        }
+      }
+    }
+
+    function resetCropBox(){
+      const rect = img.getBoundingClientRect();
+      const size = clamp(Math.min(rect.width, rect.height) * 0.5, 80, 220);
+      state.cropSize = size;
+      state.cropX = Math.max(0, (rect.width - size) / 2);
+      state.cropY = Math.max(0, (rect.height - size) / 2);
+      updateCropStyles();
+      updateResultImage();
+    }
+
+    let dragging = false;
+    let startX = 0;
+    let startY = 0;
+    let startLeft = 0;
+    let startTop = 0;
+
+    function onPointerMove(e){
+      if (!dragging) return;
+      const rect = img.getBoundingClientRect();
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      const nextX = clamp(startLeft + dx, 0, rect.width - state.cropSize);
+      const nextY = clamp(startTop + dy, 0, rect.height - state.cropSize);
+      state.cropX = nextX;
+      state.cropY = nextY;
+      updateCropStyles();
+      updateResultImage();
+    }
+
+    function onPointerUp(){
+      if (!dragging) return;
+      dragging = false;
+      crop.classList.remove("is-dragging");
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+    }
+
+    crop.addEventListener("pointerdown", (e)=>{
+      if (!state.hasSource) return;
+      dragging = true;
+      crop.classList.add("is-dragging");
+      startX = e.clientX;
+      startY = e.clientY;
+      startLeft = state.cropX;
+      startTop = state.cropY;
+      window.addEventListener("pointermove", onPointerMove);
+      window.addEventListener("pointerup", onPointerUp);
+    });
+
+    function setPreviewSource(src){
+      const next = String(src || "").trim();
+      if (!next) return;
+      state.hasSource = true;
+      preview.style.display = "";
+      state.pendingSource = next;
+
+     if (/^https?:/i.test(next)){
+        img.referrerPolicy = "no-referrer";
+        img.crossOrigin = "anonymous";
+      }else{
+        img.removeAttribute("crossorigin");
+        img.referrerPolicy = "";
+      }
+      img.src = next;
+    }
+
+    img.onload = ()=>{
+      state.lastSource = state.pendingSource || img.src;
+      resetCropBox();
+    };
+    img.onerror = ()=>{
+      if (state.lastSource && state.lastSource !== img.src){
+        img.src = state.lastSource;
+        return;
+      }
+      state.hasSource = false;
+      preview.style.display = "none";
+      state.listImage = "";
+      resultImg.src = "";
+      resultImg.style.display = "none";
+    };
+
+    if (urlInput){
+      const handler = ()=>{
+        const value = String(urlInput.value || "").trim();
+        if (value) setPreviewSource(value);
+      };
+      urlInput.addEventListener("input", handler);
+      urlInput.addEventListener("change", handler);
+      urlInput.addEventListener("blur", handler);
+    }
+    if (fileInput){
+      fileInput.addEventListener("change", async ()=>{
+        const file = fileInput.files?.[0];
+        if (!file) return;
+        try{
+          const dataUrl = await readFileAsDataUrl(file);
+          if (urlInput) urlInput.value = "";
+          setPreviewSource(dataUrl);
+        }catch(e){
+          setItemMsg("画像読込失敗", false);
+        }
+      });
+    }
+
+    return {
+      hasSource: ()=> state.hasSource,
+      getListImage: ()=> state.listImage,
+      getSource: ()=> state.lastSource || state.pendingSource || "",
+      reset: ()=>{
+        state.hasSource = false;
+        state.listImage = "";
+        state.lastSource = "";
+        state.pendingSource = "";
+        resultImg.src = "";
+        resultImg.style.display = "none";
+        preview.style.display = "none";
+        img.src = "";
+        if (urlInput) urlInput.value = "";
+        if (fileInput) fileInput.value = "";
+      }
+    };
+  }
+
 
   function setCharaSlotMsg(msg, ok=true){
     if (!charaSlotMsg) return;
@@ -2084,6 +2648,7 @@
   btnReloadItems.onclick = async ()=>{
     setItemMsg("読み込み中…");
     try{
+      await loadItemClasses();
       await loadQuizRewards();
       await loadAllQuizList();
       await loadItemGroups();
@@ -2093,6 +2658,98 @@
       setItemMsg("読み込み失敗（DBルール/ネット制限）", false);
     }
   };
+
+  if (btnReloadItemClasses){
+    btnReloadItemClasses.onclick = async ()=>{
+      setItemClassMsg("読み込み中…");
+      try{
+        await loadItemClasses();
+        await loadItemGroups();
+        setItemClassMsg("再読込OK");
+      }catch(e){
+        setItemClassMsg("読み込み失敗（DBルール/ネット制限）", false);
+      }
+    };
+  }
+
+  if (itemClassImageCount){
+    itemClassImageCount.addEventListener("change", toggleItemClassLayer2);
+    toggleItemClassLayer2();
+  }
+
+  if (btnSaveItemClass){
+    btnSaveItemClass.onclick = async ()=>{
+      const name = String(itemClassNameInput?.value || "").trim();
+      if (!name){
+        setItemClassMsg("クラス名を入力して", false);
+        return;
+      }
+      const existing = itemClassList.find((cls)=> cls.name === name);
+      let key = existing?.key || "";
+      const isRenaming = currentItemClassKey && currentItemClassName && currentItemClassName !== name;
+      if (!key){
+        key = classKeyFromName(name);
+      }
+      const imageCount = Number(itemClassImageCount?.value || 1);
+      const layer1 = Number(itemClassLayer1?.value || 0);
+      const layer2 = Number(itemClassLayer2?.value || 0);
+      const thumbXRaw = itemClassThumbX?.value ?? "";
+      const thumbYRaw = itemClassThumbY?.value ?? "";
+      const thumbX = Number(thumbXRaw);
+      const thumbY = Number(thumbYRaw);
+      const exclusiveWith = readItemClassExclusive().filter((v)=> v !== name);
+      const gameClass = String(itemClassGameClass?.value || "").trim();
+      const gameClassOrderRaw = String(itemClassGameClassOrder?.value ?? "").trim();
+      const gameClassOrder = gameClassOrderRaw === "" ? Number.NaN : Number(gameClassOrderRaw);
+      const hideInGame = !!itemClassHidden?.checked;
+
+      setItemClassMsg("保存中…");
+      try{
+        const updates = {
+          [`${P.itemClass(key)}`]: {
+            name,
+            imageCount,
+            layer1,
+            layer2: imageCount >= 2 ? layer2 : null,
+            thumbX: Number.isFinite(thumbX) ? thumbX : null,
+            thumbY: Number.isFinite(thumbY) ? thumbY : null,
+            exclusiveWith: exclusiveWith.length ? exclusiveWith : null,
+            gameClass: gameClass || null,
+            gameClassOrder: Number.isFinite(gameClassOrder) ? gameClassOrder : null,
+            hideInGame: hideInGame || null,
+            updatedAt: Date.now()
+          }
+       
+        };
+        if (isRenaming && currentItemClassKey && currentItemClassKey !== key){
+          updates[P.itemClass(currentItemClassKey)] = null;
+        }
+        await dbMultiUpdate(updates);
+        if (itemClassNameInput) itemClassNameInput.value = "";
+        if (itemClassLayer1) itemClassLayer1.value = "";
+        if (itemClassLayer2) itemClassLayer2.value = "";
+        if (itemClassThumbX) itemClassThumbX.value = "";
+        if (itemClassThumbY) itemClassThumbY.value = "";
+        if (itemClassGameClass) itemClassGameClass.value = "";
+        if (itemClassGameClassOrder) itemClassGameClassOrder.value = "";
+        if (itemClassHidden) itemClassHidden.checked = false;
+        if (itemClassExclusive){
+          itemClassExclusive.querySelectorAll('input[type="checkbox"]').forEach((input)=>{ input.checked = false; });
+        }
+        if (itemClassImageCount) itemClassImageCount.value = "1";
+        currentItemClassKey = "";
+        currentItemClassName = "";
+        toggleItemClassLayer2();
+        await loadItemClasses();
+        await loadItemGroups();
+        setItemClassMsg("保存OK");
+      }catch(e){
+        setItemClassMsg("保存失敗（DBルール/ネット制限）", false);
+      }
+    };
+  }
+
+
 
   if (btnReloadOwnedItems){
     btnReloadOwnedItems.onclick = async ()=>{
@@ -2160,6 +2817,23 @@
     }
   }
 
+  async function deleteItemClass(classKey, className){
+    const key = String(classKey || "").trim();
+    if (!key){
+      setItemClassMsg("削除するクラスが見つかりません", false);
+      return;
+    }
+    setItemClassMsg("削除中…");
+    try{
+      await dbRemove(P.itemClass(key));
+      await loadItemClasses();
+      await loadItemGroups();
+      setItemClassMsg(`クラス削除OK：${className || key}`);
+    }catch(e){
+      setItemClassMsg("削除失敗（DBルール/ネット制限）", false);
+    }
+  }
+
   async function deleteItem(groupKey, itemId){
     const ok = confirm("このアイテムを削除しますか？");
     if (!ok) return;
@@ -2206,7 +2880,7 @@
     }
   }
 
-  async function replaceItemImage(groupKey, itemId, item, file, groupName){
+  async function replaceItemImage(groupKey, itemId, item, file, groupName, imageField){
     const key = String(groupKey || "").trim();
     const id = String(itemId || "").trim();
     if (!key || !id || !file) return;
@@ -2219,52 +2893,28 @@
       return;
     }
 
-    await updateItemImage(key, id, item, image, groupName);
+    await updateItemImage(key, id, item, image, groupName, imageField);
   }
 
-  async function replaceItemImageWithUrl(groupKey, itemId, item, imageUrl, groupName){
+  async function replaceItemImageWithUrl(groupKey, itemId, item, imageUrl, groupName, imageField){
     const key = String(groupKey || "").trim();
     const id = String(itemId || "").trim();
     const image = String(imageUrl || "").trim();
     if (!key || !id || !image) return;
     setItemMsg("画像更新中…");
-    await updateItemImage(key, id, item, image, groupName);
+    await updateItemImage(key, id, item, image, groupName, imageField);
   }
 
-  async function replaceItemListImage(groupKey, itemId, item, file, groupName){
-    const key = String(groupKey || "").trim();
-    const id = String(itemId || "").trim();
-    if (!key || !id || !file) return;
-    setItemMsg("サム用画像更新中…");
-    let listImage = "";
-    try{
-      listImage = await readFileAsDataUrl(file);
-    }catch(e){
-      setItemMsg("画像読込失敗", false);
-      return;
-    }
-    await updateItemListImage(key, id, item, listImage, groupName);
-  }
-
-  async function replaceItemListImageWithUrl(groupKey, itemId, item, imageUrl, groupName){
-    const key = String(groupKey || "").trim();
-    const id = String(itemId || "").trim();
-    const listImage = String(imageUrl || "").trim();
-    if (!key || !id || !listImage) return;
-    setItemMsg("サム用画像更新中…");
-    await updateItemListImage(key, id, item, listImage, groupName);
-  }
-
-
-  async function updateItemImage(groupKey, itemId, item, image, groupName){
+  async function updateItemImage(groupKey, itemId, item, image, groupName, imageField){
     const key = String(groupKey || "").trim();
     const id = String(itemId || "").trim();
     if (!key || !id || !image) return;
 
-
+    const imageKey = imageField === "image2" ? "image2" : "image";
     const payload = {
       name: String(item?.name || id),
-      image,
+      image: imageKey === "image" ? image : String(item?.image || ""),
+      image2: imageKey === "image2" ? image : String(item?.image2 || ""),
       class: String(item?.class || ""),
       createdAt: item?.createdAt || Date.now(),
       updatedAt: Date.now()
@@ -2284,7 +2934,8 @@
           const ownedItem = groupItems[id] || {};
           updates[P.itemsOwnedItem(studentKey, key, id)] = {
             name: ownedItem?.name || payload.name,
-            image,
+            image: payload.image || ownedItem?.image || "",
+            image2: payload.image2 || ownedItem?.image2 || "",
             class: payload.class,
             listImage: payload.listImage || ownedItem?.listImage || "",
             groupKey: key,
@@ -2302,64 +2953,20 @@
     }
   }
 
-  async function updateItemListImage(groupKey, itemId, item, listImage, groupName){
-    const key = String(groupKey || "").trim();
-    const id = String(itemId || "").trim();
-    if (!key || !id || !listImage) return;
-    const payload = {
-      name: String(item?.name || id),
-      image: String(item?.image || ""),
-      class: String(item?.class || ""),
-      listImage,
-      createdAt: item?.createdAt || Date.now(),
-      updatedAt: Date.now()
-    };
-    if (item?.disabled) payload.disabled = true;
-    try{
-      const updates = {
-        [`${P.itemGroupItems(key)}/${id}`]: payload
-      };
-      const ownedRoot = await dbGet(P.itemsOwnedRoot());
-      if (ownedRoot && typeof ownedRoot === "object"){
-        for (const [studentKey, groups] of Object.entries(ownedRoot)){
-          const groupItems = groups?.[key];
-          if (!groupItems || typeof groupItems !== "object") continue;
-          if (!(id in groupItems)) continue;
-          const ownedItem = groupItems[id] || {};
-          updates[P.itemsOwnedItem(studentKey, key, id)] = {
-            name: ownedItem?.name || payload.name,
-            image: payload.image || ownedItem?.image || "",
-            class: payload.class,
-            listImage,
-            groupKey: key,
-            groupName: ownedItem?.groupName || groupName || key,
-            acquiredAt: ownedItem?.acquiredAt || Date.now()
-          };
-        }
-      }
-      await dbMultiUpdate(updates);
-      await loadItemGroups();
-      await loadOwnedItems();
-      setItemMsg("サム用画像更新OK");
-    }catch(e){
-      setItemMsg("サム用画像更新失敗（DBルール/ネット制限）", false);
-    }
-  }
-
-  async function updateItemClass(groupKey, itemId, item, nextClass, groupName, listImageOverride = null){
+  async function updateItemClass(groupKey, itemId, item, nextClass, groupName){
     const key = String(groupKey || "").trim();
     const id = String(itemId || "").trim();
     const itemClass = String(nextClass || "").trim();
     if (!key || !id || !itemClass) return;
-    const listImage = String(listImageOverride ?? item?.listImage ?? "").trim();
     const payload = {
       name: String(item?.name || id),
       image: String(item?.image || ""),
+      image2: String(item?.image2 || ""),
       class: itemClass,
       createdAt: item?.createdAt || Date.now(),
       updatedAt: Date.now()
     };
-    if (listImage) payload.listImage = listImage;
+    if (item?.listImage) payload.listImage = item.listImage;
     if (item?.disabled) payload.disabled = true;
     try{
       const updates = {
@@ -2375,8 +2982,9 @@
           updates[P.itemsOwnedItem(studentKey, key, id)] = {
             name: ownedItem?.name || payload.name,
             image: payload.image || ownedItem?.image || "",
+            image2: payload.image2 || ownedItem?.image2 || "",
             class: itemClass,
-            listImage: listImage || ownedItem?.listImage || "",
+            listImage: payload.listImage || ownedItem?.listImage || "",
             groupKey: key,
             groupName: ownedItem?.groupName || groupName || key,
             acquiredAt: ownedItem?.acquiredAt || Date.now()
@@ -2407,9 +3015,10 @@
     const nameInput = refs?.nameInput;
     const urlInput = refs?.urlInput;
     const fileInput = refs?.fileInput;
+    const url2Input = refs?.url2Input;
+    const file2Input = refs?.file2Input;
     const classInput = refs?.classInput;
-    const listUrlInput = refs?.listUrlInput;
-    const listFileInput = refs?.listFileInput;
+    const thumbEditor = refs?.thumbEditor;
     const name = String(nameInput?.value || "").trim();
     const itemClass = String(classInput?.value || "").trim();
     if (!key){
@@ -2437,35 +3046,45 @@
       setItemMsg("画像ファイルまたはURLを入力して", false);
       return;
     }
-    let listImage = String(listUrlInput?.value || "").trim();
-    if (listFileInput?.files?.length){
+    let image2 = String(url2Input?.value || "").trim();
+    if (file2Input?.files?.length){
       try{
-        listImage = await readFileAsDataUrl(listFileInput.files[0]);
+        image2 = await readFileAsDataUrl(file2Input.files[0]);
       }catch(e){
-        setItemMsg("サム用画像読込失敗", false);
+        setItemMsg("画像2の読込失敗", false);
         return;
       }
     }
-    if (isAccessoryClass(itemClass) && !listImage){
-      setItemMsg("アクセサリー用の画像を追加して", false);
+    const classConfig = getItemClassConfig(itemClass);
+    const needsTwo = Number(classConfig?.imageCount || 1) >= 2;
+    if (needsTwo && !image2){
+      setItemMsg("画像2が必要なクラスです。画像2を追加してください。", false);
       return;
+    }
+    let listImage = thumbEditor?.getListImage ? thumbEditor.getListImage() : "";
+    if (!listImage){
+      const thumbSource = thumbEditor?.getSource ? thumbEditor.getSource() : "";
+      listImage = thumbSource || image;
     }
     setItemMsg("保存中…");
     try{
       const itemRef = push(ref(db, P.itemGroupItems(key)));
-      await set(itemRef, {
+      const payload = {
         name,
         image,
         class: itemClass,
-        listImage: listImage || null,
         createdAt: Date.now()
-      });
+      };
+      if (image2) payload.image2 = image2;
+      if (listImage) payload.listImage = listImage;
+      await set(itemRef, payload);
       if (nameInput) nameInput.value = "";
       if (urlInput) urlInput.value = "";
       if (fileInput) fileInput.value = "";
+      if (url2Input) url2Input.value = "";
+      if (file2Input) file2Input.value = "";
       if (classInput) classInput.value = "";
-      if (listUrlInput) listUrlInput.value = "";
-      if (listFileInput) listFileInput.value = "";
+      if (thumbEditor?.reset) thumbEditor.reset();
       await loadItemGroups();
       setItemMsg("アイテム追加OK");
     }catch(e){
@@ -2493,6 +3112,7 @@
     const payload = {
       name: item?.name || selected.itemId,
       image: item?.image || "",
+      image2: item?.image2 || "",
       class: item?.class || "",
       listImage: item?.listImage || "",
       groupKey: selected.groupKey,
@@ -2513,10 +3133,11 @@
     _quizRewardsCache = await dbGet(P.quizRewards()) || {};
   }
 
-    async function ensureItemsLoaded(){
+  async function ensureItemsLoaded(){
     if (_itemsLoadedOnce) return;
     _itemsLoadedOnce = true;
     try{
+      await loadItemClasses();
       await loadQuizRewards();
       await loadAllQuizList();
       await loadItemGroups();
