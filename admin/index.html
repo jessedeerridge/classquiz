@@ -1591,7 +1591,7 @@
           const imgHtml = item?.image
             ? `<img src="${esc(item.image)}" alt="${esc(item?.name ?? "")}">`
             : `<span class="small">-</span>`;
-          const listImgHtml = (isAccessoryClass(itemClassRaw) && item?.listImage)
+          const listImgHtml = (isThumbItemClass(itemClassRaw) && item?.listImage)
             ? `<img src="${esc(item.listImage)}" alt="サム用 ${esc(item?.name ?? "")}">`
             : `<span class="small">-</span>`;
           const classOptions = buildItemClassOptions(itemClassRaw, "未設定");
@@ -1600,7 +1600,7 @@
           card.innerHTML = `
             <div class="itemImgGroup">
               <div class="itemImg">${imgHtml}</div>
-              ${isAccessoryClass(itemClassRaw) ? `<div class="itemImg itemListImg" title="サム用アイコン">${listImgHtml}</div>` : ""}
+              ${isThumbItemClass(itemClassRaw) ? `<div class="itemImg itemListImg" title="サム用アイコン">${listImgHtml}</div>` : ""}
             </div>
             <div class="itemName">${esc(item?.name ?? itemId)}</div>
             <select class="itemClassSelect">${classOptions}</select>
@@ -1735,11 +1735,11 @@
           <input class="itemAddFile" type="file" accept="image/*" />
         </div>
         <div class="itemAddAccessory" style="display:none">
-          <label>アクセサリー用 画像URL</label>
+          <label>サム用 画像URL</label>
           <input class="itemAddListUrl" placeholder="アイテム欄の表示用" />
         </div>
         <div class="itemAddAccessory" style="display:none">
-          <label>アクセサリー用 画像ファイル</label>
+          <label>サム用 画像ファイル</label>
           <input class="itemAddListFile" type="file" accept="image/*" />
         </div>
         <div class="row" style="justify-content:flex-end; align-items:flex-end">
@@ -1752,8 +1752,8 @@
       const accessoryRows = Array.from(addWrap.querySelectorAll(".itemAddAccessory"));
       if (classSelect){
         classSelect.addEventListener("change", ()=>{
-          const isAccessory = isAccessoryClass(classSelect.value);
-          accessoryRows.forEach(row=>{ row.style.display = isAccessory ? "" : "none"; });
+          const isThumb = isThumbItemClass(classSelect.value);
+          accessoryRows.forEach(row=>{ row.style.display = isThumb ? "" : "none"; });
         });
       }
       addBtn.onclick = async ()=>{
@@ -2442,7 +2442,7 @@
       try{
         listImage = await readFileAsDataUrl(listFileInput.files[0]);
       }catch(e){
-        setItemMsg("アクセサリー画像読込失敗", false);
+        setItemMsg("サム用画像読込失敗", false);
         return;
       }
     }
