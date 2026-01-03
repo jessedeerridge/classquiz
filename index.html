@@ -2485,6 +2485,11 @@ function isAccessoryClass(itemClass){
   return String(itemClass || "").trim().startsWith("accesary");
 }
 
+function isThumbListClass(itemClass){
+  const raw = String(itemClass || "").trim();
+  return raw === "shoes" || isAccessoryClass(raw);
+}
+
 function getItemClassDisplayGroup(itemClass){
   return ITEM_CLASS_DISPLAY_GROUPS[itemClass] || itemClass;
 }
@@ -2896,7 +2901,7 @@ async function loadInventory(){
         if (isAccessoryClass(rawClass)){
           card.dataset.thumb = "full";
         }
-        const thumbSrc = (isAccessoryClass(rawClass) && listImage) ? listImage : image;
+        const thumbSrc = (isThumbListClass(rawClass) && listImage) ? listImage : image;
         card.innerHTML = `
           <div class="inventoryItemThumb">
             <img src="${escapeHtml(thumbSrc)}" alt="${escapeHtml(name)}">
@@ -4843,7 +4848,7 @@ function openSessionResult(){
           const displayClass = getItemClassDisplayGroup(itemClass);
           const isAccessory = isAccessoryClass(itemClass);
           const listImage = reward.listImage || "";
-          const thumbSrc = (isAccessory && listImage) ? listImage : imgSrc;
+          const thumbSrc = (isThumbListClass(itemClass) && listImage) ? listImage : imgSrc;
           const itemClassAttr = displayClass ? ` data-item-class="${escapeHtml(displayClass)}"` : "";
           const thumbAttr = isAccessory ? ' data-thumb="full"' : "";
 
@@ -5014,6 +5019,45 @@ const REVIEW_WORD_BASE_PX = (()=> {
 
 const REVIEW_WORD_MIN_PX  = 18;
 
+const REVIEW_OPTION_MIN_PX = 12;
+
+function applyReviewOptionLayout(){
+  if (!optGrid) return;
+
+  const isReview = (CURRENT.stage === "review");
+  const btns = [...optGrid.querySelectorAll(".optBtn")];
+  if (!btns.length) return;
+
+  if (!isReview){
+    btns.forEach((btn)=>{
+      btn.style.whiteSpace = "";
+      btn.style.overflow = "";
+      btn.style.textOverflow = "";
+      btn.style.fontSize = "";
+    });
+    return;
+  }
+
+  const basePx = (()=> {
+    const size = Number.parseFloat(getComputedStyle(btns[0]).fontSize || "16");
+    return Number.isFinite(size) && size > 0 ? size : 16;
+  })();
+
+  btns.forEach((btn)=>{
+    btn.style.whiteSpace = "nowrap";
+    btn.style.overflow = "hidden";
+    btn.style.textOverflow = "ellipsis";
+
+    let fs = Math.round(basePx);
+    btn.style.fontSize = `${fs}px`;
+
+    while (fs > REVIEW_OPTION_MIN_PX && (btn.scrollWidth > btn.clientWidth + 1)){
+      fs -= 1;
+      btn.style.fontSize = `${fs}px`;
+    }
+  });
+}
+
 function positionQuizExampleUnderWord(){
   if (!quizStage || !quizWord || !quizExample) return;
   if (quizExample.style.display === "none") return;
@@ -5077,6 +5121,7 @@ function applyReviewPromptLayout(){
       quizExample.style.display = "none";
     }
   }
+  applyReviewOptionLayout();
 }
 
 function escapeHtml(s){
@@ -5416,6 +5461,7 @@ requestAnimationFrame(applyReviewPromptLayout);
     optGrid.appendChild(b);
   });
 
+  requestAnimationFrame(applyReviewOptionLayout);
   _questionShownAt = performance.now();
   startQuestionTimer(QT_MS);
 }
@@ -6468,6 +6514,8 @@ function scheduleLessonRedraw(){
 }
 window.addEventListener("resize", scheduleLessonRedraw);
 window.addEventListener("resize", scheduleCharaItemsRender);
+window.addEventListener("resize", ()=>requestAnimationFrame(applyReviewOptionLayout));
+
 
 /* ========= ★ クイズ全体：pre1+pre2 波ゲージ ========= */
 function getCurrentLessonSumRate01(){
