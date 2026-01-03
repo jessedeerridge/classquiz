@@ -885,15 +885,6 @@ font-size: var(--reviewWordMaxPx);
       height:100%;
       transform: translate(-50%, -50%);
     }
-    .inventoryItem[data-item-class="hat"]{ --thumb-y: 33%;--thumb-x: -10% }
-    .inventoryItem[data-item-class="neck"]{ --thumb-y: 0%; --thumb-x: 0%; }
-    .inventoryItem[data-item-class="hands"]{ --thumb-y: 0%; --thumb-x: 0%; }
-    .inventoryItem[data-item-class="cloth"]{ --thumb-y: 0%; }
-    .inventoryItem[data-item-class="right"]{ --thumb-y: 6%;  --thumb-x: -21%; }
-    .inventoryItem[data-item-class="left"]{ --thumb-y: 13%; --thumb-x: 28%; }
-    .inventoryItem[data-item-class="pants"]{ --thumb-y: -22%; }
-    .inventoryItem[data-item-class="shoes"]{ --thumb-y: -31%; }
-    .inventoryItem[data-item-class="accesary"]{ --thumb-y: 0%; }
     .lesson-chara .chara-layer{
     }
 
@@ -995,15 +986,6 @@ font-size: var(--reviewWordMaxPx);
   height:100%;
   transform: translate(-50%, -50%);
 }
-.sessionRewardItem[data-item-class="hat"]{ --thumb-y: 33%;--thumb-x: -10% }
-.sessionRewardItem[data-item-class="cloth"]{ --thumb-y: 0%; }
-.sessionRewardItem[data-item-class="right"]{ --thumb-y: 6%;  --thumb-x: -21%; }
-.sessionRewardItem[data-item-class="neck"]{ --thumb-y: 10%; --thumb-x: 0%; }
-.sessionRewardItem[data-item-class="hands"]{ --thumb-y: 0%; --thumb-x: 0%; }
-.sessionRewardItem[data-item-class="left"]{ --thumb-y: 13%; --thumb-x: 28%; }
-.sessionRewardItem[data-item-class="pants"]{ --thumb-y: -22%; }
-.sessionRewardItem[data-item-class="shoes"]{ --thumb-y: -31%; }
-.sessionRewardItem[data-item-class="accesary"]{ --thumb-y: 0%; }
 
 .sessionRewardName{
   font-size:14px;
@@ -1674,6 +1656,7 @@ const P = {
 
   itemGroups: ()=> `itemGroups`,
   itemGroupItems: (groupKey)=> `itemGroups/${groupKey}/items`,
+  itemClasses: ()=> `itemClasses`,
   charaSlots: ()=> `charaSlots`,
   quizReward: (grade, lesson, stage)=> `quizRewards/${grade}/${lesson}/${stage}`,
   itemsOwnedRoot: (studentKey)=> `itemsOwned/${studentKey}`,
@@ -1743,39 +1726,9 @@ const INITIAL_ITEM_NAMES = {
   pants: "pants1",
   shoes: "shoes1"
 };
-const ITEM_CLASSES = [
-  "hat",
-  "neck",
-  "hands",
-  "cloth",
-  "cloth(special)",
-  "right",
-  "left",
-  "pants",
-  "pants(special)",
-  "shoes",
-  "accesary",
-  "accesary(glasses)",
-  "accesary(mask)",
-  "accesary(ring)",
-  "accesary(belt)"
-];
-const ITEM_CLASS_DISPLAY_GROUPS = {
-  "cloth(special)": "cloth",
-  "pants(special)": "pants",
-  "accesary(glasses)": "accesary",
-  "accesary(mask)": "accesary",
-  "accesary(ring)": "accesary",
-  "accesary(belt)": "accesary"
-};
-const ITEM_CLASS_EXCLUSIVE_GROUPS = {
-  "cloth(special)": "special",
-  "pants(special)": "special",
-  "cloth(special)": "cloth",
-  "pants(special)": "pants",
-};
-const INVENTORY_CLASS_ORDER = ["hat", "cloth", "right", "left", "pants", "shoes", "accesary", "unknown"];
-const HIDDEN_INVENTORY_CLASSES = new Set(["neck", "hands"]);
+const DEFAULT_ITEM_LAYER_Z = 35;
+const DEFAULT_ITEM_LAYER_2Z = 60;
+const BASE_LAYER_Z = 40;
 
 /* ========= 波ゲージ色（ローカル） ========= */
 const GAUGE_COLOR_KEY = "yuko_wordlog_gauge_colors_v1";
@@ -1791,6 +1744,8 @@ const GAUGE_ALPHA = 0.28;
 let charaSlotList = [];
 let charaSlotMap = new Map();
 let initialItemMap = {};
+let itemClassList = [];
+let itemClassMap = new Map();
 
 function normLesson(v){ return String(v ?? "").trim(); }
 function normName(v){ return String(v ?? "").trim(); }
@@ -1855,6 +1810,131 @@ async function loadCharaSlots({ render = true } = {}){
   if (render) renderCharaSelectButtons();
 }
 
+function normalizeItemClassList(raw){
+  if (!raw || typeof raw !== "object") return [];
+  const list = [];
+  for (const [key, value] of Object.entries(raw)){
+    const name = String(value?.name || key).trim();
+    if (!name) continue;
+    const imageCount = Number(value?.imageCount || 1);
+    const layer1 = Number(value?.layer1 ?? value?.image1Layer ?? DEFAULT_ITEM_LAYER_Z);
+    const layer2 = Number(value?.layer2 ?? value?.image2Layer ?? DEFAULT_ITEM_LAYER_2Z);
+    const thumbX = Number(value?.thumbX ?? value?.thumbOffsetX ?? 0);
+    const thumbY = Number(value?.thumbY ?? value?.thumbOffsetY ?? 0);
+    const gameClassOrder = Number(value?.gameClassOrder ?? value?.displayOrder ?? NaN);
+    const exclusiveWith = Array.isArray(value?.exclusiveWith)
+      ? value.exclusiveWith.map((v)=> String(v||"").trim()).filter(Boolean)
+      : [];
+    const gameClass = String(value?.gameClass || value?.displayClass || "").trim();
+    const hideInGame = value?.hideInGame === true;
+    list.push({
+      key,
+      name,
+      imageCount,
+      layer1,
+      layer2,
+      thumbX,
+      thumbY,
+      exclusiveWith,
+      gameClass,
+      gameClassOrder,
+      hideInGame
+    });
+  }
+  list.sort((a,b)=> a.name.localeCompare(b.name, "ja"));
+  return list;
+}
+
+function refreshItemClassMap(list){
+  itemClassList = list || [];
+  itemClassMap = new Map(itemClassList.map((c)=> [c.name, c]));
+}
+
+function getItemClassConfig(itemClass){
+  const key = String(itemClass || "").trim();
+  return key ? itemClassMap.get(key) || null : null;
+}
+
+function getItemClassGameClass(itemClass){
+  const cfg = getItemClassConfig(itemClass);
+  const name = String(cfg?.gameClass || "").trim();
+  return name || String(itemClass || "").trim() || "unknown";
+}
+
+function getItemClassThumbOffset(itemClass){
+  const cfg = getItemClassConfig(itemClass);
+  const x = Number(cfg?.thumbX ?? 0);
+  const y = Number(cfg?.thumbY ?? 0);
+  return {
+    x: Number.isFinite(x) ? x : 0,
+    y: Number.isFinite(y) ? y : 0
+  };
+}
+
+
+function isItemClassHidden(itemClass){
+  const cfg = getItemClassConfig(itemClass);
+  return !!cfg?.hideInGame;
+}
+
+function getItemClassLayers(itemClass){
+  const cfg = getItemClassConfig(itemClass);
+  return {
+    layer1: Number.isFinite(cfg?.layer1) ? cfg.layer1 : DEFAULT_ITEM_LAYER_Z,
+    layer2: Number.isFinite(cfg?.layer2) ? cfg.layer2 : DEFAULT_ITEM_LAYER_2Z,
+    imageCount: Number(cfg?.imageCount || 1)
+  };
+}
+
+function itemClassesConflict(a, b){
+  const ca = String(a || "").trim();
+  const cb = String(b || "").trim();
+  if (!ca || !cb) return false;
+  if (ca === cb) return true;
+  const cfgA = getItemClassConfig(ca);
+  const cfgB = getItemClassConfig(cb);
+  const exA = new Set((cfgA?.exclusiveWith || []).map((v)=> String(v||"").trim()).filter(Boolean));
+  const exB = new Set((cfgB?.exclusiveWith || []).map((v)=> String(v||"").trim()).filter(Boolean));
+  return exA.has(cb) || exB.has(ca);
+}
+
+function getInventoryClassOrder(itemsByClass){
+  const configured = [];
+  const orderMap = new Map();
+  for (const cls of itemClassList){
+    const name = getItemClassGameClass(cls.name);
+    if (!configured.includes(name)) configured.push(name);
+    if (!orderMap.has(name) && Number.isFinite(cls.gameClassOrder)){
+      orderMap.set(name, cls.gameClassOrder);
+    }
+  }
+  const classNames = [...itemsByClass.keys()];
+  classNames.sort((a,b)=>{
+    const orderA = orderMap.has(a) ? orderMap.get(a) : Number.POSITIVE_INFINITY;
+    const orderB = orderMap.has(b) ? orderMap.get(b) : Number.POSITIVE_INFINITY;
+    if (orderA !== orderB) return orderA - orderB;
+    const idxA = configured.indexOf(a);
+    const idxB = configured.indexOf(b);
+    if (idxA !== -1 || idxB !== -1){
+      if (idxA === -1) return 1;
+      if (idxB === -1) return -1;
+      return idxA - idxB;
+    }
+    return String(a).localeCompare(String(b), "ja");
+  });
+  return classNames;
+}
+
+async function loadItemClasses(){
+  try{
+    const raw = await dbGet(P.itemClasses());
+    const list = normalizeItemClassList(raw);
+    refreshItemClassMap(list);
+  }catch(e){
+    refreshItemClassMap([]);
+  }
+}
+
 const INITIAL_ITEM_CLASS_BY_NAME = Object.fromEntries(
   Object.entries(INITIAL_ITEM_NAMES).map(([key, name])=> {
     const cls = key === "shoes" ? "shoes" : key;
@@ -1862,24 +1942,7 @@ const INITIAL_ITEM_CLASS_BY_NAME = Object.fromEntries(
   })
 );
 
-const ITEM_CLASS_LABELS = {
-  hat: "ぼうし",
-  neck: "くび",
-  hands: "て",
-  cloth: "ふく",
-  "cloth(special)": "ふく",
-  right: "みぎて",
-  left: "ひだりて",
-  pants: "ズボン",
-  "pants(special)": "ズボン",
-  shoes: "くつ",
-  accesary: "アクセサリー",
-  "accesary(glasses)": "アクセサリー",
-  "accesary(mask)": "アクセサリー",
-  "accesary(ring)": "アクセサリー",
-  "accesary(belt)": "アクセサリー",
-  unknown: "そのほか"
-};
+
 
 function getInitialPreviewItems(){
   return Object.values(initialItemMap || {}).filter(item=> item?.image);
@@ -1899,10 +1962,12 @@ function collectCharaImageSources(){
   }
   for (const item of Object.values(initialItemMap || {})){
     if (item?.image) sources.add(item.image);
+    if (item?.image2) sources.add(item.image2);
     if (item?.listImage) sources.add(item.listImage);
   }
   for (const item of getPlacedCharaItems()){
     if (item?.image) sources.add(item.image);
+    if (item?.image2) sources.add(item.image2);
     if (item?.listImage) sources.add(item.listImage);
   }
   return [...sources].filter(Boolean);
@@ -1977,6 +2042,7 @@ function buildInitialItemMap(groupKey, group){
       groupName,
       name,
       image: item?.image || "",
+      image2: item?.image2 || "",
       class: normalizeItemClass(item?.class || className),
       listImage: item?.listImage || ""
     };
@@ -2054,6 +2120,7 @@ async function ensureInitialItemsOwned(){
       const payload = {
         name: item.name || item.itemId,
         image: item.image || "",
+        image2: item.image2 || "",
         class: item.class || "",
         listImage: item.listImage || "",
         groupKey: item.groupKey,
@@ -2352,6 +2419,7 @@ async function prepareSessionReward(){
   const payload = {
     name: item?.name || itemId,
     image: item?.image || "",
+    image2: item?.image2 || "",
     class: item?.class || "",
     listImage: item?.listImage || "",
     groupKey,
@@ -2359,7 +2427,7 @@ async function prepareSessionReward(){
     acquiredAt: nowTs(),
   };
   SESSION.preparedReward = { itemId, groupKey, payload };
-  const sources = [payload.image, payload.listImage].filter(Boolean);
+  const sources = [payload.image, payload.image2, payload.listImage].filter(Boolean);
   if (sources.length) await preloadImages(sources);
 }
 
@@ -2383,6 +2451,7 @@ async function awardItemForSession(pct){
   const payload = {
     name: item?.name || itemId,
     image: item?.image || "",
+    image2: item?.image2 || "",
     class: item?.class || "",
     listImage: item?.listImage || "",
     groupKey,
@@ -2395,21 +2464,8 @@ async function awardItemForSession(pct){
   return payload;
 }
 
-const CHARA_LAYER_Z = {
-  pants: 25,
-  neck: 5,
-  hands: 29,
-  shoes: 20,
-  cloth: 30,
-  "pants(special)": 35,
-  "cloth(special)": 30,
-  base: 40,
-  left: 50,
-  right: 50,
-  hat: 49,
-  accesary: 70,
-  unknown: 35
-};
+const CHARA_BASE_LAYER_Z = BASE_LAYER_Z;
+
 let charaItemPlacements = {};
 let _charaItemCacheKey = "";
 let _charaItemRenderTick = null;
@@ -2458,6 +2514,7 @@ function normalizeCharaItemPlacement(raw){
     groupKey: raw?.groupKey || "",
     name: raw?.name || "",
     image: raw?.image || "",
+    image2: raw?.image2 || "",
     class: itemClass,
     listImage: raw?.listImage || ""
   };
@@ -2477,24 +2534,7 @@ function renderCharaItemsImmediate(){
 
 function normalizeItemClass(value){
   const raw = String(value || "").trim();
-  if (raw === "shoes") return "shoes";
-  if (ITEM_CLASSES.includes(raw)) return raw;
   return raw || "unknown";
-}
-function isAccessoryClass(itemClass){
-  return String(itemClass || "").trim().startsWith("accesary");
-}
-
-function isThumbListClass(itemClass){
-  const raw = String(itemClass || "").trim();
-  return raw === "shoes" || isAccessoryClass(raw);
-}
-
-function getItemClassDisplayGroup(itemClass){
-  return ITEM_CLASS_DISPLAY_GROUPS[itemClass] || itemClass;
-}
-function getItemClassExclusiveGroup(itemClass){
-  return ITEM_CLASS_EXCLUSIVE_GROUPS[itemClass] || itemClass;
 }
 
 function renderCharaStacksNow(){
@@ -2516,11 +2556,11 @@ function renderCharaPreviewImmediate(){
   renderCharaStacksNow();
 }
 
-function getCharaLayerZ(itemClass){
-  if (!itemClass) return CHARA_LAYER_Z.unknown;
-  if (itemClass === "shoes") return CHARA_LAYER_Z.shoes;
-  if (isAccessoryClass(itemClass)) return CHARA_LAYER_Z.accesary;
-  return CHARA_LAYER_Z[itemClass] ?? CHARA_LAYER_Z.unknown;
+function getCharaLayerZ(itemClass, imageIndex = 1){
+  if (!itemClass) return DEFAULT_ITEM_LAYER_Z;
+  const layers = getItemClassLayers(itemClass);
+  if (imageIndex === 2) return layers.layer2 ?? DEFAULT_ITEM_LAYER_2Z;
+  return layers.layer1 ?? DEFAULT_ITEM_LAYER_Z;
 }
 function getPlacedCharaItems(){
   return Object.values(charaItemPlacements || {}).map(normalizeCharaItemPlacement);
@@ -2581,7 +2621,27 @@ function getEffectiveCharaItems({ forceNeckBase = false, forceHandsBase = false 
     }
   }
 
-  return [...forcedItems, ...placedByClass.values(), ...extras, ...fallbackItems];
+  const selected = [...placedByClass.values()];
+  const filteredForced = [];
+  const filteredFallback = [];
+  const canAdd = (item)=>{
+    const cls = normalizeItemClass(item?.class);
+    if (!cls || cls === "unknown") return true;
+    return !selected.some((entry)=> itemClassesConflict(cls, normalizeItemClass(entry?.class)));
+  };
+
+  for (const item of forcedItems){
+    if (!canAdd(item)) continue;
+    filteredForced.push(item);
+    selected.push(item);
+  }
+  for (const item of fallbackItems){
+    if (!canAdd(item)) continue;
+    filteredFallback.push(item);
+    selected.push(item);
+  }
+
+  return [...filteredForced, ...placedByClass.values(), ...extras, ...filteredFallback];
 }
 function renderCharaStack(container, baseImage, items){
   if (!container) return;
@@ -2593,15 +2653,22 @@ function renderCharaStack(container, baseImage, items){
       layers.push({
         src: item.image,
         alt: item.name || "item",
-        z: getCharaLayerZ(item.class)
+        z: getCharaLayerZ(item.class, 1)
       });
+     if (item?.image2){
+        layers.push({
+          src: item.image2,
+          alt: `${item.name || "item"} (2)`,
+          z: getCharaLayerZ(item.class, 2)
+        });
+      }
     }
   }
   if (baseImage){
     layers.push({
       src: baseImage,
       alt: "chara",
-      z: CHARA_LAYER_Z.base
+      z: CHARA_BASE_LAYER_Z
     });
   }
   layers.sort((a,b)=> a.z - b.z);
@@ -2639,28 +2706,34 @@ function reorderInventoryItems(){
   });
 }
 
-function findPlacedItemKeyByClass(itemClass){
-  if (!itemClass) return null;
-  const targetGroup = getItemClassExclusiveGroup(itemClass);
+function findPlacedItemKeysByClass(itemClass){
+  if (!itemClass) return [];
+  const keys = [];
   for (const [key, placement] of Object.entries(charaItemPlacements || {})){
     const placedClass = normalizeItemClass(placement?.class);
-    if (getItemClassExclusiveGroup(placedClass) === targetGroup) return key;
- }
-  return null;
+    if (itemClassesConflict(itemClass, placedClass)) keys.push(key);
+  }
+  return keys;
+}
+function findPlacedItemKeyByClass(itemClass){
+  return findPlacedItemKeysByClass(itemClass)[0] || null;
 }
 async function ensureUniqueClassPlacements(){
-  const seen = new Set();
   const path = getCharaItemPath();
   const removals = [];
+  const kept = [];
   for (const [key, placement] of Object.entries(charaItemPlacements || {})){
     const cls = normalizeItemClass(placement?.class);
-    const group = getItemClassExclusiveGroup(cls);
-    if (group === "unknown") continue;
-    if (seen.has(group)){
+    if (!cls || cls === "unknown"){
+      kept.push({ key, cls });
+      continue;
+    }
+    const conflict = kept.find((entry)=> itemClassesConflict(cls, entry.cls));
+    if (conflict){
       delete charaItemPlacements[key];
       if (path) removals.push(dbSet(`${path}/${key}`, null));
     }else{
-      seen.add(group);
+      kept.push({ key, cls });
     }
   }
   if (removals.length) await Promise.all(removals);
@@ -2683,6 +2756,7 @@ async function ensureInitialClassPlacements({ render = true } = {}){
       groupKey: item.groupKey,
       name: item.name || item.itemId,
       image: item.image || "",
+      image2: item.image2 || "",
       class: cls,
       listImage: item.listImage || ""
     });
@@ -2858,8 +2932,8 @@ async function loadInventory(){
       for (const [itemId, item] of Object.entries(items)){
         const itemKey = `${groupKey}::${itemId}`;
         const itemClass = normalizeItemClass(item?.class);
-        const displayClass = getItemClassDisplayGroup(itemClass);
-        if (HIDDEN_INVENTORY_CLASSES.has(displayClass)) continue;
+       if (isItemClassHidden(itemClass)) continue;
+        const displayClass = getItemClassGameClass(itemClass);
         if (!itemsByClass.has(displayClass)) itemsByClass.set(displayClass, []);
         itemsByClass.get(displayClass).push({ groupKey, itemId, item, itemClass, displayClass });
         totalItems += 1;
@@ -2870,7 +2944,7 @@ async function loadInventory(){
       await removeAllCharaItemPlacements();
       return true;
     }
-    const classOrder = INVENTORY_CLASS_ORDER;
+    const classOrder = getInventoryClassOrder(itemsByClass);
     for (const itemClass of classOrder){
       const entries = itemsByClass.get(itemClass);
       if (!entries || !entries.length) continue;
@@ -2898,10 +2972,13 @@ async function loadInventory(){
         card.className = "inventoryItem";
         card.dataset.itemKey = itemKey;
         card.dataset.itemClass = displayClass;
-        if (isAccessoryClass(rawClass)){
+        const thumbOffset = getItemClassThumbOffset(rawClass);
+        card.style.setProperty("--thumb-x", `${thumbOffset.x}%`);
+        card.style.setProperty("--thumb-y", `${thumbOffset.y}%`);
+        if (listImage){
           card.dataset.thumb = "full";
         }
-        const thumbSrc = (isThumbListClass(rawClass) && listImage) ? listImage : image;
+        const thumbSrc = listImage || image;
         card.innerHTML = `
           <div class="inventoryItemThumb">
             <img src="${escapeHtml(thumbSrc)}" alt="${escapeHtml(name)}">
@@ -2914,6 +2991,7 @@ async function loadInventory(){
             groupKey,
             name,
             image,
+            image2: item?.image2 || "",
             class: rawClass,
             listImage
           };
@@ -2925,8 +3003,9 @@ async function loadInventory(){
             await ensureInitialClassPlacements();
             return;
           }
-          const existingKey = findPlacedItemKeyByClass(rawClass);
-          if (existingKey && existingKey !== itemKey){
+          const existingKeys = findPlacedItemKeysByClass(rawClass).filter((key)=> key !== itemKey);
+          for (const existingKey of existingKeys){
+
             delete charaItemPlacements[existingKey];
             persistCharaItemRemoval(existingKey);
           }
@@ -2938,8 +3017,7 @@ async function loadInventory(){
         });
         grid.appendChild(card);
       }
-      const label = ITEM_CLASS_LABELS[itemClass] || itemClass;
-      section.innerHTML = `<h4>${escapeHtml(label)}</h4>`;
+      section.innerHTML = `<h4>${escapeHtml(itemClass)}</h4>`;
       section.appendChild(grid);
       inventoryBody.appendChild(section);
     }
@@ -4845,21 +4923,25 @@ function openSessionResult(){
           const imgSrc = reward.image;
 
           const itemClass = normalizeItemClass(reward.class);
-          const displayClass = getItemClassDisplayGroup(itemClass);
-          const isAccessory = isAccessoryClass(itemClass);
+          const isHidden = isItemClassHidden(itemClass);
+          const displayClass = getItemClassGameClass(itemClass);
           const listImage = reward.listImage || "";
-          const thumbSrc = (isThumbListClass(itemClass) && listImage) ? listImage : imgSrc;
+          const thumbSrc = listImage || imgSrc;
           const itemClassAttr = displayClass ? ` data-item-class="${escapeHtml(displayClass)}"` : "";
-          const thumbAttr = isAccessory ? ' data-thumb="full"' : "";
-
-
-          sessionReward.innerHTML =
-            `<div class="sessionRewardItem"${itemClassAttr}${thumbAttr}>
-               <div class="sessionRewardThumb">
-                 <img src="${escapeHtml(thumbSrc)}" alt="${escapeHtml(name)}">
-               </div>
-               <div class="sessionRewardName">${escapeHtml(name)}</div>
-             </div>`;
+         const thumbAttr = listImage ? ' data-thumb="full"' : "";
+         const thumbOffset = getItemClassThumbOffset(itemClass);
+          const thumbStyle = ` style="--thumb-x:${thumbOffset.x}%;--thumb-y:${thumbOffset.y}%;"`;
+          if (isHidden){
+            sessionReward.textContent = `${reward.name || "アイテム"} をGET！`;
+          }else{
+            sessionReward.innerHTML =
+              `<div class="sessionRewardItem"${itemClassAttr}${thumbAttr}${thumbStyle}>
+                 <div class="sessionRewardThumb">
+                   <img src="${escapeHtml(thumbSrc)}" alt="${escapeHtml(name)}">
+                 </div>
+                 <div class="sessionRewardName">${escapeHtml(name)}</div>
+               </div>`;
+          }
 
         }else if (reward){
           // 画像なしだが名前はある場合
@@ -6773,6 +6855,7 @@ function renderQuizReviewBalls(lesson, animateFromPrev=false, prevCount=0){
 /* ========= 初期化 ========= */
 await loadGradeSettings();
 const initialLoads = [
+  loadItemClasses(),
   loadCharaSlots({ render:false }),
   loadInitialItems({ render:false })
 ];
