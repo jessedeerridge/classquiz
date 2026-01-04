@@ -1697,8 +1697,8 @@ const QUIZ_SESSION_RULES = {
   fastMs: 2000,
   masteredFastCount: 2,
   masteredCorrectCount: 3,
-  endMinShowsPerWord: 2,
-  endTotalWrongs: 10,
+  unachievedMaxShows: 5,
+  endTotalWrongs: 8,
 };
 
 const DEBUG_STAGE_RATES = false;
@@ -3317,18 +3317,29 @@ function makeOptionsForWord(w){
     ? w.wrongs.filter(text=>Boolean(text) && String(text) !== meaning)
     : [];
   const shuffled = wrongs.slice().sort(()=>Math.random()-0.5);
-  let opts = [meaning, ...shuffled.slice(0, 1)];
+  const targetCount = Math.max(2, Math.min(1 + wrongs.length, 3));
+  let opts = [meaning, ...shuffled.slice(0, Math.max(0, targetCount - 1))];
 
-  if (opts.length < 2 && STAGE_POOL && Array.isArray(STAGE_POOL.words)){
+  if (opts.length < targetCount && STAGE_POOL && Array.isArray(STAGE_POOL.words)){
     const others = STAGE_POOL.words
       .filter(x=>x.id!==w.id)
       .map(x=>x.meaning)
-      .filter(Boolean);
+      .filter(Boolean)
+      .filter(text=>!opts.includes(String(text)));
     others.sort(()=>Math.random()-0.5);
-    while (opts.length < 2 && others.length) opts.push(others.pop());
+    while (opts.length < targetCount && others.length) opts.push(others.pop());
   }
 
   opts = Array.from(new Set(opts.map(x=>String(x))));
+  if (opts.length < targetCount && STAGE_POOL && Array.isArray(STAGE_POOL.words)){
+    const fallback = STAGE_POOL.words
+      .filter(x=>x.id!==w.id)
+      .map(x=>x.meaning)
+      .filter(Boolean)
+      .filter(text=>!opts.includes(String(text)));
+    fallback.sort(()=>Math.random()-0.5);
+    while (opts.length < targetCount && fallback.length) opts.push(fallback.pop());
+  }
   opts.sort(()=>Math.random()-0.5);
   return opts;
 }
@@ -3471,7 +3482,7 @@ async function apiQuestion(name, grade, lesson, stage){
       ensureSessionWordStats();
       if (typeof canAskWordId === "function" && SESSION){
         const okc = candidates.filter(w=>canAskWordId(w.id));
-        if (okc.length) candidates = okc;
+        candidates = okc;
       }
     }catch(e){}
 
@@ -4740,8 +4751,7 @@ function endSessionIfNeeded(){
   if (allAchieved) return true;
 
   if (SESSION.totalWrongs >= QUIZ_SESSION_RULES.endTotalWrongs){
-    const allShownEnough = ids.every((id)=> (SESSION.wordStats.get(id)?.shown || 0) >= QUIZ_SESSION_RULES.endMinShowsPerWord);
-    if (allShownEnough) return true;
+    return true;
   }
   return false;
 }
@@ -4797,12 +4807,8 @@ function applyWordAnswerStats(wordId, isCorrect, isFast){
     if (isFast) stats.fast = (stats.fast || 0) + 1;
     stats.wrongStreak = 0;
   } else {
+    stats.fast = 0;
     stats.wrongStreak = (stats.wrongStreak || 0) + 1;
-    if (stats.wrongStreak >= 2){
-      stats.correct = 0;
-      stats.fast = 0;
-      stats.achieved = false;
-    }
   }
   if (stats.fast >= QUIZ_SESSION_RULES.masteredFastCount || stats.correct >= QUIZ_SESSION_RULES.masteredCorrectCount){
     stats.achieved = true;
@@ -5412,7 +5418,8 @@ function primeNextQuestion(){
 function canAskWordId(wordId){
   if (!SESSION) return true;
   const stats = getSessionWordStats(wordId);
-  return !stats || !stats.achieved;
+  if (!stats || stats.achieved) return false;
+  return (stats.shown || 0) < QUIZ_SESSION_RULES.unachievedMaxShows;
 }
 
 async function pickUniqueQuestion(forceFresh=false){
