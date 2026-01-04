@@ -693,6 +693,14 @@
       flex:0 0 16px;
       cursor:pointer;
     }
+    .itemImg.is-add{
+      border-style:dashed;
+      background:#fff;
+      color:var(--muted);
+      font-weight:950;
+      font-size:12px;
+    }
+
 
     .itemImgGroup{
       display:flex;
@@ -1965,9 +1973,10 @@
           const img2Html = item?.image2
             ? `<img src="${esc(item.image2)}" alt="${esc(item?.name ?? "")} 画像2">`
             : `<span class="small">-</span>`;
-          const listImgHtml = item?.listImage
+          const hasListImage = Boolean(item?.listImage);
+          const listImgHtml = hasListImage
             ? `<img src="${esc(item.listImage)}" alt="サム用 ${esc(item?.name ?? "")}">`
-            : `<span class="small">-</span>`;
+            : `<span>＋</span>`;
           const classOptions = buildItemClassOptions(itemClassRaw, "未設定");
 
 
@@ -1975,7 +1984,7 @@
             <div class="itemImgGroup">
               <div class="itemImg itemImgMain">${imgHtml}</div>
               ${showImage2 ? `<div class="itemImg itemImgSecondary">${img2Html}</div>` : ""}
-              ${item?.listImage ? `<div class="itemImg itemListImg" title="サム表示">${listImgHtml}</div>` : ""}
+              <div class="itemImg itemListImg ${hasListImage ? "" : "is-add"}" title="${hasListImage ? "サム画像（変更/削除）" : "サム画像を追加"}">${listImgHtml}</div>
             </div>
             <div class="itemName">${esc(item?.name ?? itemId)}</div>
             <select class="itemClassSelect">${classOptions}</select>
@@ -2032,6 +2041,51 @@
               if (!file) return;
               await replaceItemImage(group.key, itemId, item, file, group.name, "image2");
               img2Input.value = "";
+            };
+          }
+
+          const listWrap = card.querySelector(".itemListImg");
+          if (listWrap){
+            const listInput = document.createElement("input");
+            listInput.type = "file";
+            listInput.accept = "image/*";
+            listInput.style.display = "none";
+            listWrap.appendChild(listInput);
+            listWrap.addEventListener("click", async (e)=>{
+              e.stopPropagation();
+              const hasThumb = Boolean(item?.listImage);
+              if (hasThumb){
+                const wantsChange = confirm("サム画像を変更しますか？\nOK=変更 / キャンセル=削除");
+                if (wantsChange){
+                  const useUrl = confirm("サム画像をURLで変更しますか？\nOK=URL入力 / キャンセル=画像アップロード");
+                  if (useUrl){
+                    const url = prompt("サム画像のURLを入力してください");
+                    if (!url) return;
+                    await replaceItemListImageWithUrl(group.key, itemId, item, url, group.name);
+                    return;
+                  }
+                  listInput.click();
+                  return;
+                }
+                const ok = confirm("サム画像を削除しますか？");
+                if (!ok) return;
+                await updateItemListImage(group.key, itemId, item, "", group.name);
+                return;
+              }
+              const useUrl = confirm("サム画像をURLで追加しますか？\nOK=URL入力 / キャンセル=画像アップロード");
+              if (useUrl){
+                const url = prompt("サム画像のURLを入力してください");
+                if (!url) return;
+                await replaceItemListImageWithUrl(group.key, itemId, item, url, group.name);
+                return;
+              }
+              listInput.click();
+            });
+            listInput.onchange = async ()=>{
+              const file = listInput.files?.[0];
+              if (!file) return;
+              await replaceItemListImage(group.key, itemId, item, file, group.name);
+              listInput.value = "";
             };
           }
 
@@ -2982,6 +3036,30 @@
     await updateItemImage(key, id, item, image, groupName, imageField);
   }
 
+  async function replaceItemListImage(groupKey, itemId, item, file, groupName){
+    const key = String(groupKey || "").trim();
+    const id = String(itemId || "").trim();
+    if (!key || !id || !file) return;
+    setItemMsg("サム画像更新中…");
+    let image = "";
+    try{
+      image = await readFileAsDataUrl(file);
+    }catch(e){
+      setItemMsg("画像読込失敗", false);
+      return;
+    }
+    await updateItemListImage(key, id, item, image, groupName);
+  }
+
+  async function replaceItemListImageWithUrl(groupKey, itemId, item, imageUrl, groupName){
+    const key = String(groupKey || "").trim();
+    const id = String(itemId || "").trim();
+    const image = String(imageUrl || "").trim();
+    if (!key || !id || !image) return;
+    setItemMsg("サム画像更新中…");
+    await updateItemListImage(key, id, item, image, groupName);
+  }
+
   async function replaceItemImageWithUrl(groupKey, itemId, item, imageUrl, groupName, imageField){
     const key = String(groupKey || "").trim();
     const id = String(itemId || "").trim();
@@ -3040,6 +3118,58 @@
       setItemMsg("画像更新失敗（DBルール/ネット制限）", false);
     }
   }
+
+  async function updateItemListImage(groupKey, itemId, item, listImage, groupName){
+    const key = String(groupKey || "").trim();
+    const id = String(itemId || "").trim();
+    const nextListImage = String(listImage || "").trim();
+    if (!key || !id) return;
+    setItemMsg("サム画像更新中…");
+
+    const payload = {
+      name: String(item?.name || id),
+      image: String(item?.image || ""),
+      image2: String(item?.image2 || ""),
+      class: String(item?.class || ""),
+      createdAt: item?.createdAt || Date.now(),
+      updatedAt: Date.now()
+    };
+    const priceValue = normalizeItemPrice(item?.asaPrice);
+    if (priceValue !== null) payload.asaPrice = priceValue;
+    if (nextListImage) payload.listImage = nextListImage;
+    if (item?.disabled) payload.disabled = true;
+    try{
+      const updates = {
+        [`${P.itemGroupItems(key)}/${id}`]: payload
+      };
+      const ownedRoot = await dbGet(P.itemsOwnedRoot());
+      if (ownedRoot && typeof ownedRoot === "object"){
+        for (const [studentKey, groups] of Object.entries(ownedRoot)){
+          const groupItems = groups?.[key];
+          if (!groupItems || typeof groupItems !== "object") continue;
+          if (!(id in groupItems)) continue;
+          const ownedItem = groupItems[id] || {};
+          updates[P.itemsOwnedItem(studentKey, key, id)] = {
+            name: ownedItem?.name || payload.name,
+            image: payload.image || ownedItem?.image || "",
+            image2: payload.image2 || ownedItem?.image2 || "",
+            class: payload.class,
+            listImage: nextListImage || "",
+            groupKey: key,
+            groupName: ownedItem?.groupName || groupName || key,
+            acquiredAt: ownedItem?.acquiredAt || Date.now()
+          };
+        }
+      }
+      await dbMultiUpdate(updates);
+      await loadItemGroups();
+      await loadOwnedItems();
+      setItemMsg(nextListImage ? "サム画像更新OK" : "サム画像を削除しました");
+    }catch(e){
+      setItemMsg("サム画像更新失敗（DBルール/ネット制限）", false);
+    }
+  }
+
 
   async function updateItemClass(groupKey, itemId, item, nextClass, groupName){
     const key = String(groupKey || "").trim();
