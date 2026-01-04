@@ -957,12 +957,28 @@ font-size: var(--reviewWordMaxPx);
       flex-direction:column;
       gap:6px;
     }
-    .shopItem img{
+    .shopItemThumb{
+      position:relative;
       width:100%;
-      height:90px;
+      aspect-ratio:1/1;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.2);
+      background: rgba(0,0,0,.25);
+      overflow:hidden;
+    }
+    .shopItemThumb img{
+      position:absolute;
+      width:170%;
+      height:170%;
+      left:50%;
+      top:50%;
+      transform: translate(calc(-50% + var(--thumb-x, 0%)), calc(-50% + var(--thumb-y, 0%)));
       object-fit:contain;
-      border-radius:10px;
-      background: rgba(255,255,255,.05);
+    }
+    .shopItem[data-thumb="full"] .shopItemThumb img{
+      width:100%;
+      height:100%;
+      transform: translate(-50%, -50%);
     }
     .shopPrice{
       font-size:13px;
@@ -2715,9 +2731,17 @@ function renderShopItems(list){
     button.type = "button";
     button.className = "shopItem";
     const thumb = getShopThumb(item);
+    const thumbOffset = getItemClassThumbOffset(item?.class);
     const price = normalizeShopPrice(item.asaPrice);
+    if (item?.listImage){
+      button.dataset.thumb = "full";
+    }
+    button.style.setProperty("--thumb-x", `${thumbOffset.x}%`);
+    button.style.setProperty("--thumb-y", `${thumbOffset.y}%`);
     button.innerHTML = `
-      <img src="${escapeHtml(thumb)}" alt="${escapeHtml(item.name)}">
+      <div class="shopItemThumb">
+        <img src="${escapeHtml(thumb)}" alt="${escapeHtml(item.name)}">
+      </div>
       <div class="shopPrice">${price} ASA</div>
     `;
     button.onclick = ()=> openShopPurchase(item);
