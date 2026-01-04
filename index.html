@@ -901,6 +901,7 @@ font-size: var(--reviewWordMaxPx);
       z-index:1100;
     }
     .shopModal{
+      position:relative;
       width:calc(var(--shop-grid-width) + var(--shop-modal-extra));
       background:#111;
       color:#fff;
@@ -919,10 +920,11 @@ font-size: var(--reviewWordMaxPx);
       width:calc(var(--shop-grid-width) + 20px);
       gap:10px;
     }
-    .shopHead h3{
-      margin:0;
-      font-size:16px;
-      font-weight:900;
+    .shopHeadTitle{
+      width:32px;
+      height:32px;
+      display:block;
+      object-fit:contain;
     }
     .shopTimer{
       margin-left:auto;
@@ -935,6 +937,9 @@ font-size: var(--reviewWordMaxPx);
       letter-spacing:.2px;
     }
     .shopClose{
+      position:absolute;
+      top:8px;
+      right:8px;
       width:32px;
       height:32px;
       border-radius:999px;
@@ -943,7 +948,9 @@ font-size: var(--reviewWordMaxPx);
       color:#fff;
       cursor:pointer;
       font-size:18px;
-      line-height:1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
     }
     .shopGrid{
       display:grid;
@@ -1726,7 +1733,7 @@ font-size: var(--reviewWordMaxPx);
 <div class="shopBack" id="shopBack" aria-label="shop">
   <div class="shopModal" role="dialog" aria-modal="true">
     <div class="shopHead">
-      <h3>ショップ</h3>
+      <img class="shopHeadTitle" src="cart.png" alt="ショップ">
       <div class="shopTimer" id="shopTimer">お店の商品が変わるまで --:--</div>
       <button class="shopClose" id="shopClose" type="button">×</button>
     </div>
