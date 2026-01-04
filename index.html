@@ -12,6 +12,8 @@
 --reviewWordMaxPx: 30px;
       --inventory-row: 84px;
       --inventory-gap: 4px;
+      --shop-grid-width: calc(80px * 3 + 8px * 2);
+      --shop-modal-extra: 70px;
       /* ✅ しずく色（JSでバー色に同期） */
       --dropletFill: rgba(255,255,255,.85);
       --dropletAlpha: .78;
@@ -834,7 +836,7 @@ font-size: var(--reviewWordMaxPx);
     }
     .inventoryGrid{
       display:grid;
-      grid-template-columns: repeat(6, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       gap:var(--inventory-gap);
       grid-auto-rows: 1fr;
     }
@@ -899,7 +901,7 @@ font-size: var(--reviewWordMaxPx);
       z-index:1100;
     }
     .shopModal{
-      width:min(560px, 96vw);
+      width:calc(var(--shop-grid-width) + var(--shop-modal-extra));
       background:#111;
       color:#fff;
       border-radius:18px;
@@ -908,11 +910,13 @@ font-size: var(--reviewWordMaxPx);
       padding:14px;
       display:flex;
       flex-direction:column;
+      align-items:center;
       gap:12px;
     }
     .shopHead{
       display:flex;
       align-items:center;
+      width:calc(var(--shop-grid-width) + 20px);
       gap:10px;
     }
     .shopHead h3{
@@ -943,19 +947,20 @@ font-size: var(--reviewWordMaxPx);
     }
     .shopGrid{
       display:grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap:10px;
+      width:var(--shop-grid-width);
+      grid-template-columns: repeat(3, 80px);
+      gap:8px;
     }
     .shopItem{
       background: rgba(255,255,255,.08);
       border:1px solid rgba(255,255,255,.12);
-      border-radius:14px;
-      padding:10px;
+      border-radius:12px;
+      padding:6px;
       text-align:center;
       cursor:pointer;
       display:flex;
       flex-direction:column;
-      gap:6px;
+      gap:4px;
     }
     .shopItemThumb{
       position:relative;
