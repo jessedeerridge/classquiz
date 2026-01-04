@@ -5357,9 +5357,22 @@ function applySessionAnswerStats({ wordId, word, correctText, chosen, isCorrect,
     SESSION.correct += 1;
   } else {
     SESSION.totalWrongs += 1;
-    SESSION.wrongs.push({ word: word || "", meaning: String(correctText || "") });
+    SESSION.wrongs.push({ wordId: String(wordId || ""), word: word || "", meaning: String(correctText || "") });
   }
   applyWordAnswerStats(wordId, isCorrect, isFast);
+  if (isCorrect && SESSION.wrongs.length){
+    const stats = getSessionWordStats(wordId);
+    if (stats?.achieved){
+      const key = String(wordId || "");
+      const before = SESSION.wrongs.length;
+      SESSION.wrongs = SESSION.wrongs.filter(w=> (w.wordId || "") !== key);
+      const removed = before - SESSION.wrongs.length;
+      if (removed > 0){
+        SESSION.correct += removed;
+        SESSION.totalWrongs = Math.max(0, (SESSION.totalWrongs || 0) - removed);
+      }
+    }
+  }
 }
 
 function pickFallbackWordId(excludeId){
