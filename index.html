@@ -920,8 +920,17 @@ font-size: var(--reviewWordMaxPx);
       font-size:16px;
       font-weight:900;
     }
-    .shopClose{
+    .shopTimer{
       margin-left:auto;
+      font-size:12px;
+      font-weight:900;
+      padding:4px 10px;
+      border-radius:999px;
+      background: rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.25);
+      letter-spacing:.2px;
+    }
+    .shopClose{
       width:32px;
       height:32px;
       border-radius:999px;
@@ -1697,6 +1706,7 @@ font-size: var(--reviewWordMaxPx);
   <div class="shopModal" role="dialog" aria-modal="true">
     <div class="shopHead">
       <h3>ショップ</h3>
+      <div class="shopTimer" id="shopTimer">お店の商品が変わるまで --:--</div>
       <button class="shopClose" id="shopClose" type="button">×</button>
     </div>
     <div class="shopGrid" id="shopGrid"></div>
@@ -2383,6 +2393,7 @@ const shopPurchaseActions = document.getElementById("shopPurchaseActions");
 const shopPurchaseBtn = document.getElementById("shopPurchaseBtn");
 const shopCancelBtn = document.getElementById("shopCancelBtn");
 const shopPurchaseStatus = document.getElementById("shopPurchaseStatus");
+const shopTimer = document.getElementById("shopTimer");
 /* ✅ lowRateポップDOM */
 const lowRateBack = document.getElementById("lowRateBack");
 const lowRateTitle = document.getElementById("lowRateTitle");
@@ -2567,11 +2578,61 @@ let SHOP_STATE = {
   pool: [],
   current: [],
   lastRefresh: 0,
+  slot: null,
   timer: null,
   ownedByGroup: new Map(),
   loading: false
 };
 let currentShopItem = null;
+
+function hashStringToSeed(str){
+  let hash = 2166136261;
+  for (let i=0; i<str.length; i++){
+    hash ^= str.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function mulberry32(seed){
+  let t = seed >>> 0;
+  return function(){
+    t += 0x6D2B79F5;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function seededShuffle(list, rng){
+  for (let i=list.length - 1; i>0; i--){
+    const j = Math.floor(rng() * (i + 1));
+    [list[i], list[j]] = [list[j], list[i]];
+  }
+  return list;
+}
+
+function getShopSlot(now = Date.now()){
+  return Math.floor(now / SHOP_REFRESH_MS);
+}
+
+function getShopNextRefreshAt(now = Date.now()){
+  return (getShopSlot(now) + 1) * SHOP_REFRESH_MS;
+}
+
+function formatShopCountdown(ms){
+  const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function updateShopTimerDisplay(now = Date.now()){
+  if (!shopTimer) return;
+  const remain = getShopNextRefreshAt(now) - now;
+  shopTimer.textContent = `お店の商品が変わるまで ${formatShopCountdown(remain)}`;
+}
+
 
 function normalizeShopPrice(value){
   const num = Number(value);
@@ -2615,10 +2676,8 @@ async function loadShopPool(){
         const items = group?.items || {};
         const shopName = typeof shopEntry === "string" ? shopEntry : shopEntry?.name;
         const groupName = String(group?.name || shopName || groupKey);
-        const ownedSet = ownedByGroup.get(groupKey) || new Set();
         for (const [itemId, item] of Object.entries(items)){
           if (!item || item.disabled) continue;
-          if (ownedSet.has(itemId)) continue;
           pool.push({
             itemId,
             groupKey,
@@ -2672,24 +2731,40 @@ function refreshShopSelection(force = false){
     return;
   }
   const now = Date.now();
-  if (!force && SHOP_STATE.current.length && (now - SHOP_STATE.lastRefresh) < SHOP_REFRESH_MS){
+  const slot = getShopSlot(now);
+  if (!force && SHOP_STATE.current.length && SHOP_STATE.slot === slot){
     renderShopItems(SHOP_STATE.current);
+    updateShopTimerDisplay(now);
     return;
   }
-  const shuffled = SHOP_STATE.pool.slice();
-  shuffleInPlace(shuffled);
+  const sortedPool = SHOP_STATE.pool.slice().sort((a, b)=>{
+    const keyA = `${a.groupKey}::${a.itemId}`;
+    const keyB = `${b.groupKey}::${b.itemId}`;
+    return keyA.localeCompare(keyB);
+  });
+  const seed = hashStringToSeed(`shop:${slot}`);
+  const rng = mulberry32(seed);
+  const shuffled = seededShuffle(sortedPool, rng);
   SHOP_STATE.current = shuffled.slice(0, SHOP_ITEM_COUNT);
   SHOP_STATE.lastRefresh = now;
+  SHOP_STATE.slot = slot;
   renderShopItems(SHOP_STATE.current);
+  updateShopTimerDisplay(now);
 }
 
 function startShopRotation(){
   stopShopRotation();
+  updateShopTimerDisplay();
   SHOP_STATE.timer = setInterval(()=>{
+    const now = Date.now();
     if (shopBack && shopBack.style.display !== "none"){
-      refreshShopSelection(true);
+      const slot = getShopSlot(now);
+      updateShopTimerDisplay(now);
+      if (SHOP_STATE.slot !== slot){
+        refreshShopSelection(true);
+      }
     }
-  }, SHOP_REFRESH_MS);
+  }, 1000);
 }
 
 function stopShopRotation(){
@@ -2704,7 +2779,7 @@ async function openShop(){
   if (!STUDENT.studentKey) return;
   shopBack.style.display = "flex";
   await loadShopPool();
-  refreshShopSelection(true);
+  refreshShopSelection(false);
   startShopRotation();
 }
 
@@ -2731,7 +2806,7 @@ function openShopPurchase(item){
 
   const ownedSet = SHOP_STATE.ownedByGroup.get(item.groupKey) || new Set();
   if (ownedSet.has(item.itemId)){
-    if (shopPurchaseStatus) shopPurchaseStatus.textContent = "購入済みです";
+    if (shopPurchaseStatus) shopPurchaseStatus.textContent = "もう持っています。";
     if (shopPurchaseActions) shopPurchaseActions.style.display = "none";
   }else if (shopPurchaseBtn){
     shopPurchaseBtn.disabled = ASA_STATE.total < price;
