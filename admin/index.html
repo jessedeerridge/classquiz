@@ -304,6 +304,16 @@
       width:auto;
     }
 
+   .itemPriceInput{
+      width:80px;
+      padding:4px 6px;
+      border-radius:10px;
+      border:1px solid var(--line);
+      font-size:12px;
+      font-weight:900;
+      text-align:right;
+    }
+
     .itemClassEditor{
       display:grid;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -1242,6 +1252,8 @@
     charaSlot: (key)=> `charaSlots/${key}`,
     quizRewards: ()=> `quizRewards`,
     quizReward: (g, lesson, stage)=> `quizRewards/${g}/${lesson}/${stage}`,
+    shopGroups: ()=> `shopGroups`,
+    shopGroup: (groupKey)=> `shopGroups/${groupKey}`,
     itemsOwnedRoot: ()=> `itemsOwned`,
     itemsOwnedGroup: (studentKey, groupKey)=> `itemsOwned/${studentKey}/${groupKey}`,
     itemsOwnedItem: (studentKey, groupKey, itemId)=> `itemsOwned/${studentKey}/${groupKey}/${itemId}`,
@@ -1252,6 +1264,13 @@
     .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
     .replaceAll('"',"&quot;").replaceAll("'","&#39;");
   const clamp = (v,a,b)=> Math.max(a, Math.min(b, v));
+
+  function normalizeItemPrice(value){
+    const num = Number(value);
+    if (!Number.isFinite(num) || num < 0) return null;
+    return Math.trunc(num);
+  }
+
   function safeKey(s){
     return encodeURIComponent(String(s).trim())
       .replaceAll(".", "%2E")
@@ -1587,6 +1606,7 @@
 // ---------- Items ----------
   let _itemGroupsCache = null;
   let _quizRewardsCache = null;
+  let _shopGroupsCache = null;
   let _quizListCache = [];
   let _itemsLoadedOnce = false;
   let _ownedItemsLoadedOnce = false;
@@ -1933,6 +1953,8 @@
           if (item?.disabled) card.classList.add("is-disabled");
           const itemClassRaw = String(item?.class || "").trim();
           const itemClass = itemClassRaw || "未設定";
+         const priceValue = normalizeItemPrice(item?.asaPrice);
+          const priceText = priceValue === null ? "" : String(priceValue);
 
           const classConfig = getItemClassConfig(itemClassRaw);
           const showImage2 = Number(classConfig?.imageCount || 1) >= 2 || item?.image2;
@@ -1957,6 +1979,7 @@
             </div>
             <div class="itemName">${esc(item?.name ?? itemId)}</div>
             <select class="itemClassSelect">${classOptions}</select>
+            <input class="itemPriceInput" type="number" min="0" step="1" placeholder="ASA値段" value="${esc(priceText)}" />
           `;
 
           const imgWrap = card.querySelector(".itemImgMain");
@@ -2028,6 +2051,33 @@
               await updateItemClass(group.key, itemId, item, next, group.name);
             });
           }
+
+         const priceInput = card.querySelector(".itemPriceInput");
+          if (priceInput){
+            priceInput.dataset.current = priceText;
+            priceInput.addEventListener("change", async (e)=>{
+              e.stopPropagation();
+              const nextRaw = String(priceInput.value || "").trim();
+              if (!nextRaw){
+                if (priceInput.dataset.current === "") return;
+                await updateItemPrice(group.key, itemId, item, null, group.name);
+                priceInput.dataset.current = "";
+                return;
+              }
+              const nextValue = normalizeItemPrice(nextRaw);
+              if (nextValue === null){
+                setItemMsg("ASA値段は0以上の数字で入力して", false);
+                priceInput.value = priceInput.dataset.current;
+                return;
+              }
+              const nextText = String(nextValue);
+              if (nextText === priceInput.dataset.current) return;
+              await updateItemPrice(group.key, itemId, item, nextValue, group.name);
+              priceInput.dataset.current = nextText;
+              priceInput.value = nextText;
+            });
+          }
+
 
 
           const actions = document.createElement("div");
@@ -2161,8 +2211,24 @@
       `;
       const rewardList = rewardWrap.querySelector(".rewardList");
       const rewardStatus = rewardWrap.querySelector(".rewardStatus");
+
+      rewardList.innerHTML = "";
+
+      const shopLabel = document.createElement("label");
+      shopLabel.className = "rewardCheck";
+      shopLabel.innerHTML = `
+        <input type="checkbox" data-shop="1">
+        <span>ショップ</span>
+      `;
+      const shopInput = shopLabel.querySelector("input");
+      shopInput.checked = Boolean(_shopGroupsCache?.[group.key]);
+      rewardList.appendChild(shopLabel);
+
       if (!_quizListCache.length){
-        rewardList.innerHTML = `<div class="small">クイズがありません（words を追加してください）。</div>`;
+        const empty = document.createElement("div");
+        empty.className = "small";
+        empty.textContent = "クイズがありません（words を追加してください）。";
+        rewardList.appendChild(empty);
       }else{
         for (const quiz of _quizListCache){
           const entry = getRewardEntry(quiz.grade, quiz.lesson, quiz.stage);
@@ -2191,16 +2257,18 @@
         });
       };
       const rewardSaveBtn = rewardWrap.querySelector(".rewardSaveBtn");
-      rewardSaveBtn.onclick = async ()=>{
+      rewardSaveBtn.onclick = async ()=> {
         const inputs = Array.from(rewardList.querySelectorAll('input[type="checkbox"]'));
-        if (!inputs.length){
-          rewardStatus.textContent = "保存できるクイズがありません";
+        const quizInputs = inputs.filter((input)=> !input.dataset.shop);
+        const shopInput = inputs.find((input)=> input.dataset.shop === "1") || null;
+        if (!quizInputs.length && !shopInput){
+          rewardStatus.textContent = "保存できる設定がありません";
           return;
         }
         rewardStatus.textContent = "保存中…";
         const updates = {};
         const now = Date.now();
-        for (const input of inputs){
+        for (const input of quizInputs){
           const grade = String(input.dataset.grade || "").trim();
           const lesson = String(input.dataset.lesson || "").trim();
           const stage = String(input.dataset.stage || "").trim();
@@ -2227,9 +2295,24 @@
             updatedAt: now
           };
         }
+
+
+        if (shopInput){
+          const shopPath = P.shopGroup(group.key);
+          if (shopInput.checked){
+            updates[shopPath] = {
+              name: group.name || group.key,
+              updatedAt: now
+            };
+          }else{
+            updates[shopPath] = null;
+          }
+        }
+
         try{
           await dbMultiUpdate(updates);
           await loadQuizRewards();
+          await loadShopGroups();
           rewardStatus.textContent = "保存OK";
         }catch(e){
           rewardStatus.textContent = "保存失敗（DBルール/ネット制限）";
@@ -2809,7 +2892,10 @@
     if (!ok) return;
     setItemGroupMsg("削除中…");
     try{
-      await dbRemove(P.itemGroup(key));
+      await dbMultiUpdate({
+        [P.itemGroup(key)]: null,
+        [P.shopGroup(key)]: null
+      });
       await loadItemGroups();
       setItemGroupMsg("グループ削除OK");
     }catch(e){
@@ -2919,6 +3005,8 @@
       createdAt: item?.createdAt || Date.now(),
       updatedAt: Date.now()
     };
+    const priceValue = normalizeItemPrice(item?.asaPrice);
+    if (priceValue !== null) payload.asaPrice = priceValue;
     if (item?.listImage) payload.listImage = item.listImage;
     if (item?.disabled) payload.disabled = true;
     try{
@@ -2999,6 +3087,37 @@
       setItemMsg("クラス更新失敗（DBルール/ネット制限）", false);
     }
   }
+
+  async function updateItemPrice(groupKey, itemId, item, price, groupName){
+    const key = String(groupKey || "").trim();
+    const id = String(itemId || "").trim();
+    if (!key || !id) return;
+    const normalized = price === null ? null : normalizeItemPrice(price);
+    if (price !== null && normalized === null) return;
+
+    const payload = {
+      name: String(item?.name || id),
+      image: String(item?.image || ""),
+      image2: String(item?.image2 || ""),
+      class: String(item?.class || ""),
+      createdAt: item?.createdAt || Date.now(),
+      updatedAt: Date.now()
+    };
+    if (item?.listImage) payload.listImage = item.listImage;
+    if (item?.disabled) payload.disabled = true;
+    if (normalized !== null) payload.asaPrice = normalized;
+
+    try{
+      await dbMultiUpdate({
+        [`${P.itemGroupItems(key)}/${id}`]: payload
+      });
+      await loadItemGroups();
+      setItemMsg("ASA値段を更新しました");
+    }catch(e){
+      setItemMsg("ASA値段の更新失敗（DBルール/ネット制限）", false);
+    }
+  }
+
 
 
 
@@ -3133,12 +3252,17 @@
     _quizRewardsCache = await dbGet(P.quizRewards()) || {};
   }
 
+  async function loadShopGroups(){
+    _shopGroupsCache = await dbGet(P.shopGroups()) || {};
+  }
+
   async function ensureItemsLoaded(){
     if (_itemsLoadedOnce) return;
     _itemsLoadedOnce = true;
     try{
       await loadItemClasses();
       await loadQuizRewards();
+      await loadShopGroups();
       await loadAllQuizList();
       await loadItemGroups();
       await loadCharaSlots();
