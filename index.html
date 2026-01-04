@@ -240,7 +240,7 @@
       justify-content:flex-end;
       gap:8px;
       z-index:25;
-      pointer-events:none;
+      pointer-events:auto;
     }
 
 
@@ -251,6 +251,7 @@
       position:relative;
       transform: translateX(75px);
       z-index:26;
+      cursor:pointer;
     }
 
    .asaCircle{
@@ -266,6 +267,7 @@
       box-shadow: inset 0 0 0 1px rgba(255,255,255,.25);
       transform: translateX(92px);
       z-index:26;
+      cursor:pointer;
     }
 
    .asaPop{
@@ -885,6 +887,150 @@ font-size: var(--reviewWordMaxPx);
       height:100%;
       transform: translate(-50%, -50%);
     }
+
+ .shopBack{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+      background: rgba(0,0,0,.4);
+      z-index:1100;
+    }
+    .shopModal{
+      width:min(560px, 96vw);
+      background:#111;
+      color:#fff;
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.15);
+      box-shadow:0 22px 60px rgba(0,0,0,.45);
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .shopHead{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .shopHead h3{
+      margin:0;
+      font-size:16px;
+      font-weight:900;
+    }
+    .shopClose{
+      margin-left:auto;
+      width:32px;
+      height:32px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.2);
+      background: rgba(255,255,255,.08);
+      color:#fff;
+      cursor:pointer;
+      font-size:18px;
+      line-height:1;
+    }
+    .shopGrid{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap:10px;
+    }
+    .shopItem{
+      background: rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:14px;
+      padding:10px;
+      text-align:center;
+      cursor:pointer;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .shopItem img{
+      width:100%;
+      height:90px;
+      object-fit:contain;
+      border-radius:10px;
+      background: rgba(255,255,255,.05);
+    }
+    .shopPrice{
+      font-size:13px;
+      font-weight:900;
+    }
+    .shopEmpty{
+      text-align:center;
+      font-size:12px;
+      opacity:.75;
+    }
+    .shopPurchaseBack{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+      background: rgba(0,0,0,.55);
+      z-index:1200;
+    }
+    .shopPurchaseModal{
+      width:min(320px, 92vw);
+      background:#111;
+      color:#fff;
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.15);
+      box-shadow:0 24px 60px rgba(0,0,0,.5);
+      padding:16px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      text-align:center;
+    }
+    .shopPurchaseThumb{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .shopPurchaseThumb img{
+      width:140px;
+      height:140px;
+      object-fit:contain;
+      border-radius:16px;
+      background: rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.15);
+    }
+    .shopPurchasePrice{
+      font-weight:900;
+      font-size:14px;
+    }
+    .shopPurchaseActions{
+      display:flex;
+      gap:10px;
+      justify-content:center;
+    }
+    .shopPurchaseActions button{
+      flex:1;
+      padding:10px 12px;
+      border-radius:12px;
+      border:0;
+      font-weight:900;
+      cursor:pointer;
+    }
+    .shopPurchaseBuy{
+      background:#22c55e;
+      color:#0f172a;
+    }
+    .shopPurchaseCancel{
+      background:#fff;
+      color:#111;
+    }
+    .shopPurchaseStatus{
+      font-size:13px;
+      font-weight:900;
+      opacity:.9;
+    }
+
     .lesson-chara .chara-layer{
     }
 
@@ -1546,6 +1692,34 @@ font-size: var(--reviewWordMaxPx);
   </div>
 </div>
 
+
+<div class="shopBack" id="shopBack" aria-label="shop">
+  <div class="shopModal" role="dialog" aria-modal="true">
+    <div class="shopHead">
+      <h3>ショップ</h3>
+      <button class="shopClose" id="shopClose" type="button">×</button>
+    </div>
+    <div class="shopGrid" id="shopGrid"></div>
+    <div class="shopEmpty" id="shopEmpty">ショップに表示できるアイテムがありません。</div>
+  </div>
+</div>
+
+<div class="shopPurchaseBack" id="shopPurchaseBack" aria-label="shop purchase">
+  <div class="shopPurchaseModal" role="dialog" aria-modal="true">
+    <div class="shopPurchaseThumb">
+      <img id="shopPurchaseImg" alt="購入アイテム">
+    </div>
+    <div class="shopPurchasePrice" id="shopPurchasePrice"></div>
+    <div class="shopPurchaseActions" id="shopPurchaseActions">
+      <button class="shopPurchaseBuy" id="shopPurchaseBtn" type="button">購入する</button>
+      <button class="shopPurchaseCancel" id="shopCancelBtn" type="button">やめる</button>
+    </div>
+    <div class="shopPurchaseStatus" id="shopPurchaseStatus"></div>
+  </div>
+</div>
+
+
+
 <!-- ✅ 追加：lowRateポップ（外側クリックで閉じる / 閉じるボタンなし） -->
 <div class="modalBack" id="lowRateBack" aria-label="low rate hint">
   <div class="modal" role="dialog" aria-modal="true">
@@ -1659,6 +1833,7 @@ const P = {
   itemClasses: ()=> `itemClasses`,
   charaSlots: ()=> `charaSlots`,
   quizReward: (grade, lesson, stage)=> `quizRewards/${grade}/${lesson}/${stage}`,
+  shopGroups: ()=> `shopGroups`,
   itemsOwnedRoot: (studentKey)=> `itemsOwned/${studentKey}`,
   itemsOwned: (studentKey, groupKey)=> `itemsOwned/${studentKey}/${groupKey}`,
   charaItems: (studentKey)=> `charaItems/${studentKey}`,
@@ -2197,6 +2372,17 @@ const inventoryMsg = document.getElementById("inventoryMsg");
 const inventoryBody = document.getElementById("inventoryBody");
 const inventoryCharaStage = document.getElementById("inventoryCharaStage");
 const inventoryCharaStack = document.getElementById("inventoryCharaStack");
+const shopBack = document.getElementById("shopBack");
+const shopGrid = document.getElementById("shopGrid");
+const shopEmpty = document.getElementById("shopEmpty");
+const shopClose = document.getElementById("shopClose");
+const shopPurchaseBack = document.getElementById("shopPurchaseBack");
+const shopPurchaseImg = document.getElementById("shopPurchaseImg");
+const shopPurchasePrice = document.getElementById("shopPurchasePrice");
+const shopPurchaseActions = document.getElementById("shopPurchaseActions");
+const shopPurchaseBtn = document.getElementById("shopPurchaseBtn");
+const shopCancelBtn = document.getElementById("shopCancelBtn");
+const shopPurchaseStatus = document.getElementById("shopPurchaseStatus");
 /* ✅ lowRateポップDOM */
 const lowRateBack = document.getElementById("lowRateBack");
 const lowRateTitle = document.getElementById("lowRateTitle");
@@ -2374,6 +2560,245 @@ async function awardAsaForSession(pct){
   if (!pts) return;
   await addAsaPoints(pts);
 }
+
+const SHOP_REFRESH_MS = 120000;
+const SHOP_ITEM_COUNT = 9;
+let SHOP_STATE = {
+  pool: [],
+  current: [],
+  lastRefresh: 0,
+  timer: null,
+  ownedByGroup: new Map(),
+  loading: false
+};
+let currentShopItem = null;
+
+function normalizeShopPrice(value){
+  const num = Number(value);
+  if (!Number.isFinite(num) || num < 0) return 0;
+  return Math.trunc(num);
+}
+
+function getShopThumb(item){
+  return item?.listImage || item?.image || "";
+}
+
+function setShopEmptyMessage(message){
+  if (!shopEmpty) return;
+  shopEmpty.textContent = message;
+  shopEmpty.style.display = message ? "block" : "none";
+}
+
+async function loadShopPool(){
+  if (SHOP_STATE.loading) return;
+  SHOP_STATE.loading = true;
+  try{
+    const [groupRoot, shopGroups, ownedRoot] = await Promise.all([
+      dbGet(P.itemGroups()).catch(()=> null),
+      dbGet(P.shopGroups()).catch(()=> null),
+      dbGet(P.itemsOwnedRoot(STUDENT.studentKey)).catch(()=> null)
+    ]);
+
+    const ownedByGroup = new Map();
+    if (ownedRoot && typeof ownedRoot === "object"){
+      for (const [groupKey, items] of Object.entries(ownedRoot)){
+        if (!items || typeof items !== "object") continue;
+        ownedByGroup.set(groupKey, new Set(Object.keys(items)));
+      }
+    }
+
+    const pool = [];
+    if (groupRoot && shopGroups && typeof shopGroups === "object"){
+      for (const [groupKey, shopEntry] of Object.entries(shopGroups)){
+        const group = groupRoot[groupKey];
+        if (!group || typeof group !== "object") continue;
+        const items = group?.items || {};
+        const shopName = typeof shopEntry === "string" ? shopEntry : shopEntry?.name;
+        const groupName = String(group?.name || shopName || groupKey);
+        const ownedSet = ownedByGroup.get(groupKey) || new Set();
+        for (const [itemId, item] of Object.entries(items)){
+          if (!item || item.disabled) continue;
+          if (ownedSet.has(itemId)) continue;
+          pool.push({
+            itemId,
+            groupKey,
+            groupName,
+            name: String(item?.name || itemId),
+            image: item?.image || "",
+            image2: item?.image2 || "",
+            class: item?.class || "",
+            listImage: item?.listImage || "",
+            asaPrice: normalizeShopPrice(item?.asaPrice)
+          });
+        }
+      }
+    }
+
+    SHOP_STATE.pool = pool;
+    SHOP_STATE.ownedByGroup = ownedByGroup;
+  }catch(_){
+    SHOP_STATE.pool = [];
+  }finally{
+    SHOP_STATE.loading = false;
+  }
+}
+
+function renderShopItems(list){
+  if (!shopGrid) return;
+  shopGrid.innerHTML = "";
+  if (!list.length){
+    setShopEmptyMessage("ショップに表示できるアイテムがありません。");
+    return;
+  }
+  setShopEmptyMessage("");
+  for (const item of list){
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "shopItem";
+    const thumb = getShopThumb(item);
+    const price = normalizeShopPrice(item.asaPrice);
+    button.innerHTML = `
+      <img src="${escapeHtml(thumb)}" alt="${escapeHtml(item.name)}">
+      <div class="shopPrice">${price} ASA</div>
+    `;
+    button.onclick = ()=> openShopPurchase(item);
+    shopGrid.appendChild(button);
+  }
+}
+
+function refreshShopSelection(force = false){
+  if (!SHOP_STATE.pool.length){
+    renderShopItems([]);
+    return;
+  }
+  const now = Date.now();
+  if (!force && SHOP_STATE.current.length && (now - SHOP_STATE.lastRefresh) < SHOP_REFRESH_MS){
+    renderShopItems(SHOP_STATE.current);
+    return;
+  }
+  const shuffled = SHOP_STATE.pool.slice();
+  shuffleInPlace(shuffled);
+  SHOP_STATE.current = shuffled.slice(0, SHOP_ITEM_COUNT);
+  SHOP_STATE.lastRefresh = now;
+  renderShopItems(SHOP_STATE.current);
+}
+
+function startShopRotation(){
+  stopShopRotation();
+  SHOP_STATE.timer = setInterval(()=>{
+    if (shopBack && shopBack.style.display !== "none"){
+      refreshShopSelection(true);
+    }
+  }, SHOP_REFRESH_MS);
+}
+
+function stopShopRotation(){
+  if (SHOP_STATE.timer){
+    clearInterval(SHOP_STATE.timer);
+    SHOP_STATE.timer = null;
+  }
+}
+
+async function openShop(){
+  if (!shopBack) return;
+  if (!STUDENT.studentKey) return;
+  shopBack.style.display = "flex";
+  await loadShopPool();
+  refreshShopSelection(true);
+  startShopRotation();
+}
+
+function closeShop(){
+  if (!shopBack) return;
+  shopBack.style.display = "none";
+  stopShopRotation();
+  closeShopPurchase();
+}
+
+function openShopPurchase(item){
+  if (!shopPurchaseBack || !shopPurchaseImg) return;
+  currentShopItem = item;
+  const thumb = getShopThumb(item);
+  shopPurchaseImg.src = thumb || "";
+  shopPurchaseImg.alt = item?.name || "購入アイテム";
+  const price = normalizeShopPrice(item?.asaPrice);
+  if (shopPurchasePrice){
+    shopPurchasePrice.textContent = `${price} ASA`;
+  }
+  if (shopPurchaseStatus) shopPurchaseStatus.textContent = "";
+  if (shopPurchaseActions) shopPurchaseActions.style.display = "flex";
+  if (shopPurchaseBtn) shopPurchaseBtn.disabled = false;
+
+  const ownedSet = SHOP_STATE.ownedByGroup.get(item.groupKey) || new Set();
+  if (ownedSet.has(item.itemId)){
+    if (shopPurchaseStatus) shopPurchaseStatus.textContent = "購入済みです";
+    if (shopPurchaseActions) shopPurchaseActions.style.display = "none";
+  }else if (shopPurchaseBtn){
+    shopPurchaseBtn.disabled = ASA_STATE.total < price;
+    if (shopPurchaseBtn.disabled){
+      if (shopPurchaseStatus) shopPurchaseStatus.textContent = "ASAが足りません";
+    }
+  }
+
+  shopPurchaseBack.style.display = "flex";
+}
+
+function closeShopPurchase(){
+  if (!shopPurchaseBack) return;
+  shopPurchaseBack.style.display = "none";
+  currentShopItem = null;
+}
+
+async function purchaseShopItem(){
+  if (!currentShopItem || !STUDENT.studentKey) return;
+  const item = currentShopItem;
+  const price = normalizeShopPrice(item?.asaPrice);
+  let canBuy = false;
+  try{
+    await updateAsaViaTransaction((state)=>{
+      if (state.total < price) return state;
+      state.total -= price;
+      canBuy = true;
+      return state;
+    });
+  }catch(_){
+    canBuy = false;
+  }
+  if (!canBuy){
+    if (shopPurchaseStatus) shopPurchaseStatus.textContent = "ASAが足りません";
+    if (shopPurchaseBtn) shopPurchaseBtn.disabled = true;
+    return;
+  }
+
+  const payload = {
+    name: item?.name || item?.itemId || "アイテム",
+    image: item?.image || "",
+    image2: item?.image2 || "",
+    class: item?.class || "",
+    listImage: item?.listImage || "",
+    groupKey: item?.groupKey || "",
+    groupName: item?.groupName || item?.groupKey || "",
+    acquiredAt: nowTs()
+  };
+  try{
+    await dbSet(`${P.itemsOwned(STUDENT.studentKey, item.groupKey)}/${item.itemId}`, payload);
+    markInventoryNeedsLoad();
+    await loadInventoryIfNeeded({ force: true });
+  }catch(_){
+    if (shopPurchaseStatus) shopPurchaseStatus.textContent = "購入失敗（保存できません）";
+    return;
+  }
+
+  const ownedSet = SHOP_STATE.ownedByGroup.get(item.groupKey) || new Set();
+  ownedSet.add(item.itemId);
+  SHOP_STATE.ownedByGroup.set(item.groupKey, ownedSet);
+  SHOP_STATE.pool = SHOP_STATE.pool.filter((entry)=> !(entry.groupKey === item.groupKey && entry.itemId === item.itemId));
+  refreshShopSelection(true);
+
+  if (shopPurchaseActions) shopPurchaseActions.style.display = "none";
+  if (shopPurchaseStatus) shopPurchaseStatus.textContent = "購入しました";
+}
+
 
 async function getRewardCandidates(){
   if (!SESSION) return [];
@@ -5087,6 +5512,27 @@ inventoryBack?.querySelector(".inventoryModal")?.addEventListener("click", (e)=>
 lessonChara?.addEventListener("click", ()=>{
   openInventory();
 });
+
+asaCircle?.addEventListener("click", (e)=>{
+  e.stopPropagation();
+  openShop();
+});
+asaCoinCanvas?.addEventListener("click", (e)=>{
+  e.stopPropagation();
+  openShop();
+});
+shopClose?.addEventListener("click", closeShop);
+shopBack?.addEventListener("click", (e)=>{
+  if (e.target === shopBack) closeShop();
+});
+shopBack?.querySelector(".shopModal")?.addEventListener("click", (e)=> e.stopPropagation());
+shopPurchaseBtn?.addEventListener("click", purchaseShopItem);
+shopCancelBtn?.addEventListener("click", closeShopPurchase);
+shopPurchaseBack?.addEventListener("click", (e)=>{
+  if (e.target === shopPurchaseBack) closeShopPurchase();
+});
+shopPurchaseBack?.querySelector(".shopPurchaseModal")?.addEventListener("click", (e)=> e.stopPropagation());
+
 
 // ✅ （…）で囲まれた部分に正解を差し込み表示する（装飾付き）
 function fillAnswerIntoParensHtml(word, answer){
