@@ -45,12 +45,15 @@
     html, body{
       font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
       margin:0;
-      background:#f7f7fb url("shopkeeper.jpg") center center / cover no-repeat;
+      background:#f7f7fb;
       color:#111;
       transition: background .25s ease;
       touch-action: manipulation;
 
     }
+
+    /* ✅入室画面 */
+    body.name-bg{ background:#f7f7fb url("shopkeeper.jpg") center center / cover no-repeat; color:#111; }
 
     /* ✅課選択画面の「さらにその背景」 */
     body.lesson-bg{ background:#D16D46; color:#fff; }
@@ -4665,6 +4668,7 @@ function showNameScreen(){
   gradeFab.style.display = "none";
   qTimer.style.display = "none";
 
+  document.body.classList.add("name-bg");
   document.body.classList.remove("lesson-bg","quiz-bg");
   closeStagePop();
   closeSessionResult();
@@ -4696,7 +4700,7 @@ async function showLessonList(){
   qTimer.style.display = "none";
 
   document.body.classList.add("lesson-bg");
-  document.body.classList.remove("quiz-bg");
+  document.body.classList.remove("name-bg","quiz-bg");
 
   if (_lastLessonTiles.length){
     drawLessonTrapezoids(false);
@@ -4739,7 +4743,7 @@ function showQuiz(){
   qTimer.style.display = "";
 
   document.body.classList.add("quiz-bg");
-  document.body.classList.remove("lesson-bg");
+  document.body.classList.remove("name-bg","lesson-bg");
 
   closeStagePop();
   closeSessionResult();
