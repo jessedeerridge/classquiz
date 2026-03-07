@@ -1222,6 +1222,9 @@ font-size: var(--reviewWordMaxPx);
   background: #c7c7c7;
   border-radius: 0;
 }
+#flashBack .flashFurigana.flashMasked{
+  opacity:0;
+}
     .lrBtns{
       margin-top:12px;
       display:grid;
@@ -1321,6 +1324,20 @@ font-size: var(--reviewWordMaxPx);
   color:#111;
   opacity:.9;
   word-break:break-word;
+}
+#flashBack .flashWordWrap{
+  position:relative;
+  display:inline-block;
+}
+#flashBack .flashFurigana{
+  position:absolute;
+  left:0;
+  bottom:100%;
+  transform:translateY(-2px);
+  font-size:11px;
+  line-height:1.1;
+  color:#666;
+  white-space:nowrap;
 }
 #flashBack .flashPager{
   font-weight:900;
@@ -3571,18 +3588,48 @@ async function ensureStagePool(grade, lesson, stage){
   ]);
 
   const words = [];
+
+  function splitTextAndFurigana(raw){
+    const s = String(raw||"").trim();
+    if (!s) return { text:"", furigana:"" };
+    const m = s.match(/^(.*?)[（(]([^（）()]+)[）)]\s*$/);
+    if (!m) return { text:s, furigana:"" };
+    const text = String(m[1]||"").trim();
+    const furigana = String(m[2]||"").trim();
+    return { text: text || s, furigana };
+  }
+
+  function normalizeWrongsAndFurigana(wrongs, rawMap={}){
+    const map = (rawMap && typeof rawMap === "object") ? rawMap : {};
+    const outWrongs = [];
+    const outMap = {};
+    for (const item of (Array.isArray(wrongs) ? wrongs : [])){
+      const original = String(item||"").trim();
+      if (!original) continue;
+      const parsed = splitTextAndFurigana(original);
+      const text = parsed.text;
+      const furigana = parsed.furigana || String(map[original] || map[text] || "").trim();
+      if (!text) continue;
+      outWrongs.push(text);
+      if (furigana) outMap[text] = furigana;
+    }
+    return { wrongs: Array.from(new Set(outWrongs)), wrongFurigana: outMap };
+  }
+
   if (wordsObj && typeof wordsObj === "object"){
     for (const [wid, v] of Object.entries(wordsObj)){
       if (!v || typeof v !== "object") continue;
       const word = String(v.word ?? "").trim();
-      const meaning = String(v.meaning ?? "").trim();
+      const meaningParsed = splitTextAndFurigana(v.meaning);
+      const meaning = meaningParsed.text;
+      const meaningFurigana = String(v.meaningFurigana || meaningParsed.furigana || "").trim();
       const wrongsRaw = Array.isArray(v.wrongs) ? v.wrongs : [];
-      const wrongs = wrongsRaw
-        .map(x=>String(x||"").trim())
-        .filter(text=>Boolean(text) && text !== meaning);
+      const wrongNorm = normalizeWrongsAndFurigana(wrongsRaw, v.wrongFurigana);
+      const wrongs = wrongNorm.wrongs.filter(text=>Boolean(text) && text !== meaning);
+      const wrongFurigana = wrongNorm.wrongFurigana;
       if (!word || !meaning || wrongs.length < 1) continue;
 const example = String(v.example ?? "").trim();
-words.push({ id:String(wid), word, meaning, wrongs, example });
+words.push({ id:String(wid), word, meaning, meaningFurigana, wrongs, wrongFurigana, example });
     }
   }
 
@@ -3592,6 +3639,16 @@ words.push({ id:String(wid), word, meaning, wrongs, example });
     prog: (progObj && typeof progObj==="object") ? progObj : {}
   };
   return STAGE_POOL;
+}
+
+function optionDisplayForWord(w, optionText){
+  const meaning = String(w.meaning ?? "");
+  const meaningFurigana = String(w.meaningFurigana ?? "").trim();
+  const wrongFurigana = (w.wrongFurigana && typeof w.wrongFurigana === "object") ? w.wrongFurigana : {};
+  const t = String(optionText ?? "");
+  if (!t) return "";
+  if (t === meaning && meaningFurigana) return meaningFurigana;
+  return String(wrongFurigana[t] || t);
 }
 
 function makeOptionsForWord(w){
@@ -3624,7 +3681,7 @@ function makeOptionsForWord(w){
     while (opts.length < targetCount && fallback.length) opts.push(fallback.pop());
   }
   opts.sort(()=>Math.random()-0.5);
-  return opts;
+  return opts.map((text)=>({ text, display: optionDisplayForWord(w, text) }));
 }
 
 /* ========= API互換（Firebase実装） ========= */
@@ -3790,14 +3847,16 @@ async function apiQuestion(name, grade, lesson, stage){
     }
 
     const w = pickList[Math.floor(Math.random()*pickList.length)];
-    const options = makeOptionsForWord(w);
+    const optionsMeta = makeOptionsForWord(w);
+    const options = optionsMeta.map(x=>x.display);
+    const correctDisplay = (optionsMeta.find(x=>x.text === w.meaning)?.display) || w.meaning;
 
 return {
   ok:true,
   word_id: w.id,
   word: w.word,
   options,
-  correct: w.meaning,
+  correct: correctDisplay,
   example: w.example || ""
 };
   }catch(e){
@@ -3819,7 +3878,7 @@ async function apiAnswer(name, word_id, chosen){
       : null;
     if (!w) return { ok:false, error:"word_not_found" };
 
-    const correct = String(w.meaning ?? "");
+    const correct = optionDisplayForWord(w, String(w.meaning ?? ""));
     const c = String(chosen ?? "");
     const is_correct = (c === correct);
 
@@ -4065,9 +4124,11 @@ function applyFlashMasking(){
   const total = rows.length;
   rows.forEach((row, index)=>{
     const word = row.querySelector(".flashWord");
+    const furigana = row.querySelector(".flashFurigana");
     if (!word) return;
     const shouldMask = (FLASH.maskStep >= 0) && (index >= FLASH.maskStep) && (index < total);
     word.classList.toggle("flashMasked", shouldMask);
+    if (furigana) furigana.classList.toggle("flashMasked", shouldMask);
   });
 }
 
@@ -4149,6 +4210,10 @@ function renderFlashCard(){
       main.className = "flashMain";
       const meaning = document.createElement("div");
       meaning.className = "flashMeaning";
+      const wordWrap = document.createElement("div");
+      wordWrap.className = "flashWordWrap";
+      const furigana = document.createElement("div");
+      furigana.className = "flashFurigana";
       const word = document.createElement("div");
       word.className = "flashWord";
       const example = document.createElement("div");
@@ -4156,6 +4221,8 @@ function renderFlashCard(){
 
       if (entry){
         meaning.textContent = entry.meaning || "";
+        furigana.textContent = entry.meaningFurigana || "";
+        if (!furigana.textContent) furigana.classList.add("is-empty");
         word.textContent = entry.word || "";
         const ex = String(entry.example ?? "").trim();
         example.textContent = ex;
@@ -4165,13 +4232,17 @@ function renderFlashCard(){
       } else {
         row.classList.add("is-empty");
         meaning.textContent = "";
+        furigana.textContent = "";
         word.textContent = "";
         example.textContent = "";
+        furigana.classList.add("is-empty");
         example.classList.add("is-empty");
       }
 
       main.appendChild(meaning);
-      main.appendChild(word);
+      wordWrap.appendChild(furigana);
+      wordWrap.appendChild(word);
+      main.appendChild(wordWrap);
       row.appendChild(main);
       row.appendChild(example);
       flashList.appendChild(row);
@@ -4272,10 +4343,13 @@ requestAnimationFrame(fitFlashModalWidth);
       for (const [, v] of entries){
         if (!v || typeof v !== "object") continue;
         const word = String(v.word ?? "").trim();
-        const meaning = String(v.meaning ?? "").trim();
+        const meaningRaw = String(v.meaning ?? "").trim();
+        const m = meaningRaw.match(/^(.*?)[（(]([^（）()]+)[）)]\s*$/);
+        const meaning = (m ? String(m[1]||"") : meaningRaw).trim();
+        const meaningFurigana = String(v.meaningFurigana || (m ? String(m[2]||"") : "") || "").trim();
         if (!word || !meaning) continue;
 const example = String(v.example ?? "").trim(); // ✅追加（DBのexample）
-list.push({ word, meaning, example });
+list.push({ word, meaning, meaningFurigana, example });
       }
     }
   }catch(e){
