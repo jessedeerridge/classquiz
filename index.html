@@ -71,6 +71,17 @@
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     @media(max-width:800px){.grid2{grid-template-columns:1fr}}
 
+
+    .chara-select,
+    .lesson-chara,
+    .asaWrap,
+    .inventoryBack,
+    .shopBack,
+    .shopPurchaseBack,
+    #sessionTitle .sessionAsaGain{
+      display:none !important;
+    }
+
     .chara-select{
       display:none;
       position:absolute;
@@ -1603,9 +1614,6 @@ font-size: var(--reviewWordMaxPx);
     </div>
 
 
-    <div class="chara-select" id="charaSelect" aria-label="chara chooser"></div>
-
-
     <div class="student-top" id="studentTop">
       <div class="name-plate">
         <input id="stuName" placeholder="Enter name" />
@@ -1617,19 +1625,6 @@ font-size: var(--reviewWordMaxPx);
     <div id="lessonListBox" style="display:none">
       <div class="lesson-stage" id="lessonList">
         <svg class="lesson-svg" id="lessonSvg" aria-label="lesson menu"></svg>
-
-        <div class="lesson-chara" id="lessonChara" aria-hidden="true">
-          <div class="chara-stack" id="lessonCharaStack" aria-hidden="true"></div>
-        </div>
-
-        <div class="asaWrap">
-          <canvas class="asaCoinCanvas" id="asaCoinCanvas" aria-hidden="true"></canvas>
-          <div class="asaCircle" id="asaCircle" aria-hidden="true"></div>
-          <div class="asaPop" id="asaPop" aria-label="ASA points" title="ためたASA" style="display:none">
-            <span class="asaLabel">ASA</span>
-            <span class="asaValue" id="asaValue">0</span>
-          </div>
-        </div>
         <!-- ✅ 予習復習選択ポップ（縦並び） -->
         <div class="stagePop" id="stagePop" aria-label="stage chooser">
           <div class="title" id="stagePopTitle">課</div>
@@ -1697,11 +1692,6 @@ font-size: var(--reviewWordMaxPx);
       <div class="line2" id="sessionPct">--%</div>
 <div class="line3" id="sessionTitle">
   <span id="sessionTitleText">間違えたことば</span>
-  <span class="sessionAsaGain" id="sessionAsaGain">
-    <span class="sessionAsaSign">+</span>
-    <span class="sessionAsaValue" id="sessionAsaValue">0</span>
-    <canvas class="asaCoinCanvas sessionAsaCoin" id="sessionAsaCoin" aria-hidden="true"></canvas>
-  </span>
 </div>
 
       <div class="line4" id="sessionReward" style="display:none"></div>
@@ -1712,51 +1702,6 @@ font-size: var(--reviewWordMaxPx);
     <button id="btnSessionClose" class="sessionBackBtn" type="button">戻る</button>
   </div>
 </div>
-
-<!-- ✅ 所持アイテム確認ポップ -->
-<div class="inventoryBack" id="inventoryBack" aria-label="inventory">
-  <div class="inventoryModal" role="dialog" aria-modal="true">
-    <div class="inventoryHead">
-      <h3 aria-hidden="true"></h3>
-    </div>
-    <div class="inventoryShowcase">
-      <div class="inventoryCharaStage" id="inventoryCharaStage">
-        <div class="chara-stack" id="inventoryCharaStack" aria-hidden="true"></div>
-      </div>
-    </div>
-    <div class="small" id="inventoryMsg">読み込み中…</div>
-    <div id="inventoryBody"></div>
-  </div>
-</div>
-
-
-<div class="shopBack" id="shopBack" aria-label="shop">
-  <div class="shopModal" role="dialog" aria-modal="true">
-    <div class="shopHead">
-      <img class="shopHeadTitle" src="cart.png" alt="ショップ">
-      <div class="shopTimer" id="shopTimer">お店の商品が変わるまで --:--</div>
-      <button class="shopClose" id="shopClose" type="button">×</button>
-    </div>
-    <div class="shopGrid" id="shopGrid"></div>
-    <div class="shopEmpty" id="shopEmpty">ショップに表示できるアイテムがありません。</div>
-  </div>
-</div>
-
-<div class="shopPurchaseBack" id="shopPurchaseBack" aria-label="shop purchase">
-  <div class="shopPurchaseModal" role="dialog" aria-modal="true">
-    <div class="shopPurchaseThumb">
-      <img id="shopPurchaseImg" alt="購入アイテム">
-    </div>
-    <div class="shopPurchasePrice" id="shopPurchasePrice"></div>
-    <div class="shopPurchaseActions" id="shopPurchaseActions">
-      <button class="shopPurchaseBuy" id="shopPurchaseBtn" type="button">購入する</button>
-      <button class="shopPurchaseCancel" id="shopCancelBtn" type="button">やめる</button>
-    </div>
-    <div class="shopPurchaseStatus" id="shopPurchaseStatus"></div>
-  </div>
-</div>
-
-
 
 <!-- ✅ 追加：lowRateポップ（外側クリックで閉じる / 閉じるボタンなし） -->
 <div class="modalBack" id="lowRateBack" aria-label="low rate hint">
@@ -2570,26 +2515,10 @@ async function addAsaPoints(n){
     });
   }catch(_){}
 }
-async function recordFlashViews(n){
-  const delta = Number(n);
-  if (!Number.isFinite(delta) || delta <= 0) return;
-  try{
-    await updateAsaViaTransaction((state)=>{
-      state.flashRemainder += delta;
-      if (state.flashRemainder >= FLASH_VIEWS_FOR_ASA){
-        const bonus = Math.trunc(state.flashRemainder / FLASH_VIEWS_FOR_ASA);
-        state.flashRemainder = state.flashRemainder % FLASH_VIEWS_FOR_ASA;
-        state.total += bonus;
-      }
-      return state;
-    });
-  }catch(_){}
+async function recordFlashViews(_n){
+  return;
 }
-function calcAsaFromPct(pct){
-  if (!(pct >= 0)) return 0;
-  if (pct >= 100) return 3;
-  if (pct >= 90) return 2;
-  if (pct >= 80) return 1;
+function calcAsaFromPct(_pct){
   return 0;
 }
 async function awardAsaForSession(pct){
@@ -3638,6 +3567,7 @@ function hideTopLoading(){
 // ★TOP画面のキャラ画像がすべて読み終わったら、名前入力＆ボタンを出す
 function waitTopImagesThenShowUI(){
   if (!studentTop || !charaSelect){
+    if (studentTop) studentTop.classList.add("is-ready");
     hideTopLoading();
     return;
   }
@@ -4937,7 +4867,7 @@ function showNameScreen(){
   IN_ROOM = false;
 
   studentTop.style.display = "";
-  charaSelect.style.display = "flex";
+  if (charaSelect) charaSelect.style.display = "none";
   renderCharaSelect();
   lessonListBox.style.display = "none";
   quizBox.style.display = "none";
@@ -4970,7 +4900,7 @@ async function showLessonList(){
   IN_ROOM = true;
 
   studentTop.style.display = "none";
-  charaSelect.style.display = "none";
+  if (charaSelect) charaSelect.style.display = "none";
   lessonListBox.style.display = "";
   quizBox.style.display = "none";
   renderLessonChara();
@@ -5013,7 +4943,7 @@ function showQuiz(){
   IN_ROOM = true;
 
   studentTop.style.display = "none";
-  charaSelect.style.display = "none";
+  if (charaSelect) charaSelect.style.display = "none";
   lessonListBox.style.display = "none";
   quizBox.style.display = "";
   renderLessonChara();
@@ -5576,11 +5506,7 @@ inventoryBack?.addEventListener("click", (e)=>{
 });
 inventoryBack?.querySelector(".inventoryModal")?.addEventListener("click", (e)=> e.stopPropagation());
 
-lessonChara?.addEventListener("click", ()=>{
-  openInventory();
-});
-
-// ショップ機能は廃止
+// キャラクター/ショップ機能は廃止
 shopClose?.addEventListener("click", closeShop);
 shopBack?.addEventListener("click", (e)=>{
   if (e.target === shopBack) closeShop();
@@ -6255,8 +6181,6 @@ async function startFlow(){
     CURRENT.name = normName(j.name || name);
     await applyLastGradeFromMenu();
     prefetchLessons();
-    await loadAsa();
-    await loadCharaItemPlacements();
 
     setStuStatus("入室OK（課を押してね）", true);
     await showLessonList();
@@ -7361,20 +7285,7 @@ function renderQuizReviewBalls(lesson, animateFromPrev=false, prevCount=0){
 
 /* ========= 初期化 ========= */
 await loadGradeSettings();
-const initialLoads = [
-  loadItemClasses(),
-  loadCharaSlots({ render:false }),
-  loadInitialItems({ render:false })
-];
-if (savedName){
-  initialLoads.push(loadCharaItemPlacements());
-}
-await Promise.all(initialLoads);
-preloadCharaImages();
 preloadLessonAssets();
-renderCharaSelectButtons();
-renderCharaItems();
-updateCharaSelectPreview();
 showNameScreen();
 syncDropletColorToGauge();
 </script>
