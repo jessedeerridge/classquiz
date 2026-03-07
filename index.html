@@ -1314,6 +1314,24 @@ font-size: var(--reviewWordMaxPx);
   color:#111;
   word-break:break-word;
 }
+#flashBack .flashRuby{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:2px;
+}
+#flashBack .flashFurigana{
+  font-size:11px;
+  line-height:1;
+  color:rgba(17,17,17,.72);
+  font-weight:700;
+}
+#flashBack .flashBase{
+  font-size:inherit;
+  line-height:inherit;
+  font-weight:inherit;
+  color:inherit;
+}
 #flashBack .flashWord{
   font-weight:900;
   font-size:16px;
@@ -3627,6 +3645,43 @@ function makeOptionsForWord(w){
   return opts;
 }
 
+
+function splitWordAndFurigana(rawText){
+  const text = String(rawText ?? "").trim();
+  if (!text) return { base:"", furigana:"" };
+  const m = text.match(/^(.*?)[(（]([^()（）]+)[)）]\s*$/);
+  if (!m) return { base:text, furigana:"" };
+  const base = String(m[1] || "").trim();
+  const furigana = String(m[2] || "").trim();
+  if (!base || !furigana) return { base:text, furigana:"" };
+  return { base, furigana };
+}
+
+function furiganaOnlyOrRaw(rawText){
+  const p = splitWordAndFurigana(rawText);
+  return p.furigana || p.base || String(rawText ?? "");
+}
+
+function setMeaningWithFurigana(el, rawText){
+  if (!el) return;
+  const p = splitWordAndFurigana(rawText);
+  if (!p.furigana){
+    el.textContent = p.base;
+    return;
+  }
+  el.innerHTML = "";
+  const wrap = document.createElement("span");
+  wrap.className = "flashRuby";
+  const f = document.createElement("span");
+  f.className = "flashFurigana";
+  f.textContent = p.furigana;
+  const b = document.createElement("span");
+  b.className = "flashBase";
+  b.textContent = p.base;
+  wrap.appendChild(f);
+  wrap.appendChild(b);
+  el.appendChild(wrap);
+}
 /* ========= API互換（Firebase実装） ========= */
 async function apiEnter(name){
   try{ await enterStudent(String(name||"")); return { ok:true }; }
@@ -4155,7 +4210,7 @@ function renderFlashCard(){
       example.className = "flashExampleLine";
 
       if (entry){
-        meaning.textContent = entry.meaning || "";
+        setMeaningWithFurigana(meaning, entry.meaning || "");
         word.textContent = entry.word || "";
         const ex = String(entry.example ?? "").trim();
         example.textContent = ex;
@@ -5753,7 +5808,7 @@ function renderQuestionJson(j){
 const example = (j.example != null) ? String(j.example) : "";
 
 CURRENT.currentQ = { raw:j, word_id: wordId, word, correct, example };
-quizWord.textContent = word || "（no word）";
+quizWord.textContent = furiganaOnlyOrRaw(word || "") || "（no word）";
 markWordShown(wordId);
 if (SESSION) SESSION.lastWordId = wordId;
 
@@ -5767,18 +5822,21 @@ requestAnimationFrame(applyReviewPromptLayout);
   }
 
   options.forEach(text=>{
+    const rawText = String(text ?? "");
+    const displayText = furiganaOnlyOrRaw(rawText);
     const b = document.createElement("button");
     b.className = "optBtn";
     b.type = "button";
-    b.textContent = text;
+    b.textContent = displayText;
+    b.dataset.raw = rawText;
 
     b.addEventListener("pointerdown", (ev)=>{
       ev.preventDefault();
-      submitAnswer(text, b);
+      submitAnswer(rawText, b);
     }, { passive:false });
 
     b.addEventListener("click", ()=>{
-      submitAnswer(text, b);
+      submitAnswer(rawText, b);
     });
 
     optGrid.appendChild(b);
@@ -5829,7 +5887,7 @@ async function submitAnswer(text, chosenBtnEl){
 
     if (isCorrectLocal){
       btns.forEach(b=>{
-        if (b.textContent === correctLocal) b.classList.add("goodGreen");
+        if (String(b.dataset.raw || "") === correctLocal) b.classList.add("goodGreen");
       });
 
       // ✅ review中は💧を出さない（黒丸は「最後だけ落とす」）
@@ -5839,8 +5897,8 @@ async function submitAnswer(text, chosenBtnEl){
     } else {
       let chosenBtn = null;
       btns.forEach(b=>{
-        if (b.textContent === correctLocal) b.classList.add("goodGreen");
-        if (b.textContent === chosen){
+        if (String(b.dataset.raw || "") === correctLocal) b.classList.add("goodGreen");
+        if (String(b.dataset.raw || "") === chosen){
           b.classList.add("badRed");
           chosenBtn = b;
         }
