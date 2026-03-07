@@ -1323,14 +1323,18 @@ font-size: var(--reviewWordMaxPx);
   word-break:break-word;
 }
 #flashBack .flashWordWrap{
-  display:flex;
-  flex-direction:column;
-  gap:2px;
+  position:relative;
+  display:inline-block;
 }
 #flashBack .flashFurigana{
+  position:absolute;
+  left:0;
+  bottom:100%;
+  transform:translateY(-2px);
   font-size:11px;
   line-height:1.1;
   color:#666;
+  white-space:nowrap;
 }
 #flashBack .flashPager{
   font-weight:900;
