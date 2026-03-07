@@ -1222,6 +1222,9 @@ font-size: var(--reviewWordMaxPx);
   background: #c7c7c7;
   border-radius: 0;
 }
+#flashBack .flashFurigana.flashMasked{
+  opacity:0;
+}
     .lrBtns{
       margin-top:12px;
       display:grid;
@@ -4121,9 +4124,11 @@ function applyFlashMasking(){
   const total = rows.length;
   rows.forEach((row, index)=>{
     const word = row.querySelector(".flashWord");
+    const furigana = row.querySelector(".flashFurigana");
     if (!word) return;
     const shouldMask = (FLASH.maskStep >= 0) && (index >= FLASH.maskStep) && (index < total);
     word.classList.toggle("flashMasked", shouldMask);
+    if (furigana) furigana.classList.toggle("flashMasked", shouldMask);
   });
 }
 
