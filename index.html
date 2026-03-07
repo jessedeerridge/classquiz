@@ -72,11 +72,11 @@
     @media(max-width:800px){.grid2{grid-template-columns:1fr}}
 
     .chara-select{
+      display:none;
       position:absolute;
       left:50%;
       top:50%;
       transform:translate(-50%,-50%);
-      display:flex;
       gap:18px;
       align-items:center;
       justify-content:center;
@@ -3579,8 +3579,15 @@ function normalizeChara(value){
 }
 function getSavedChara(){
   const saved = normalizeChara(localStorage.getItem(CHARA_KEY) || "");
-  if (!saved) localStorage.removeItem(CHARA_KEY);
-  return saved;
+  if (saved) return saved;
+  const fallback = charaSlotList[0]?.key || DEFAULT_CHARA_LIST[0] || "";
+  const normalizedFallback = normalizeChara(fallback);
+  if (normalizedFallback){
+    localStorage.setItem(CHARA_KEY, normalizedFallback);
+    return normalizedFallback;
+  }
+  localStorage.removeItem(CHARA_KEY);
+  return "";
 }
 function renderLessonChara(){
   if (!lessonChara || !lessonCharaStack) return;
@@ -5413,7 +5420,6 @@ function openSessionResult(){
 
   const totalAsked = Math.max(1, SESSION.asked || 0);
   const pct = Math.round((SESSION.correct || 0) / totalAsked * 100);
-  const delayModalForReward = pct >= 100;
 
   // ✅ まず表示をリセット
   if (sessionReward){
@@ -5425,16 +5431,13 @@ function openSessionResult(){
     wrongList.style.display = "none";
   }
 
-  // ✅ タイトル（間違えたことば → GET！）
+  // ✅ タイトル（常に間違えたことば）
   if (sessionTitleText){
-    sessionTitleText.textContent = (pct >= 100) ? "おめでとう🎉" : "間違えたことば";
+    sessionTitleText.textContent = "間違えたことば";
   }else if (sessionTitle){
-
-    sessionTitle.textContent = (pct >= 100) ? "おめでとう🎉" : "間違えたことば";
+    sessionTitle.textContent = "間違えたことば";
   }
-  if (sessionTitle){
-    sessionTitle.classList.toggle("is-wrong", pct < 100);
-  }
+  if (sessionTitle) sessionTitle.classList.add("is-wrong");
   if (sessionAsaValue){
     const gained = calcAsaFromPct(pct);
     sessionAsaValue.textContent = String(gained);
@@ -5460,78 +5463,18 @@ function openSessionResult(){
   // ASA付与
   awardAsaForSession(pct).catch(()=>{});
 
-  // ✅ アイテム報酬 + 間違い一覧の描画
+  // ✅ クリア景品は廃止。間違い一覧のみ表示。
   (async ()=>{
-    if (delayModalForReward){
-      await prepareSessionReward().catch(()=>{});
-    }
-    let reward = null;
-    try{
-      reward = await awardItemForSession(pct);
-    }catch(_){}
-
-    if (pct >= 100){
-      // ------- 100% のとき：GET表示＋サムネ、間違いリスト非表示 -------
-      if (sessionReward){
-        if (reward && reward.image){
-          const name = reward.name || "アイテム";
-          const imgSrc = reward.image;
-
-          const itemClass = normalizeItemClass(reward.class);
-          const isHidden = isItemClassHidden(itemClass);
-          const displayClass = getItemClassGameClass(itemClass);
-          const listImage = reward.listImage || "";
-          const thumbSrc = listImage || imgSrc;
-          const itemClassAttr = displayClass ? ` data-item-class="${escapeHtml(displayClass)}"` : "";
-         const thumbAttr = listImage ? ' data-thumb="full"' : "";
-         const thumbOffset = getItemClassThumbOffset(itemClass);
-          const thumbStyle = ` style="--thumb-x:${thumbOffset.x}%;--thumb-y:${thumbOffset.y}%;"`;
-          if (isHidden){
-            sessionReward.textContent = `${reward.name || "アイテム"} をGET！`;
-          }else{
-            sessionReward.innerHTML =
-              `<div class="sessionRewardItem"${itemClassAttr}${thumbAttr}${thumbStyle}>
-                 <div class="sessionRewardThumb">
-                   <img src="${escapeHtml(thumbSrc)}" alt="${escapeHtml(name)}">
-                 </div>
-                 <div class="sessionRewardName">${escapeHtml(name)}</div>
-               </div>`;
-          }
-
-        }else if (reward){
-          // 画像なしだが名前はある場合
-          sessionReward.textContent = `${reward.name || "アイテム"} をGET！`;
-        }else{
-          // そもそも新規アイテムが無かった場合
-          sessionReward.textContent = "アイテムは全部集めました！";
-        }
-        sessionReward.style.display = "block";
-      }
-
-      // ✅ 間違いリストは消す（下線も消える）
-      if (wrongList){
-        wrongList.style.display = "none";
-      }
-    }else{
-      // ------- 100% 以外：通常どおり「間違えたことば」を表示 -------
-      renderSessionWrongList();
-    }
+    renderSessionWrongList();
 
     requestAnimationFrame(fitSessionModalWidth);
 
-
-    if (delayModalForReward){
-      sessionBack.style.display = "flex";
-      requestAnimationFrame(fitSessionModalWidth);
-    }
 
   })();
 
   // モーダル表示
-  if (!delayModalForReward){
-    sessionBack.style.display = "flex";
-    requestAnimationFrame(fitSessionModalWidth);
-  }
+  sessionBack.style.display = "flex";
+  requestAnimationFrame(fitSessionModalWidth);
 }
 
 /* ✅ 100%以外のときの「間違えたことば」リスト描画 */
@@ -5637,14 +5580,7 @@ lessonChara?.addEventListener("click", ()=>{
   openInventory();
 });
 
-asaCircle?.addEventListener("click", (e)=>{
-  e.stopPropagation();
-  openShop();
-});
-asaCoinCanvas?.addEventListener("click", (e)=>{
-  e.stopPropagation();
-  openShop();
-});
+// ショップ機能は廃止
 shopClose?.addEventListener("click", closeShop);
 shopBack?.addEventListener("click", (e)=>{
   if (e.target === shopBack) closeShop();
@@ -6089,10 +6025,6 @@ quizWord.textContent = word || "（no word）";
 markWordShown(wordId);
 if (SESSION) SESSION.lastWordId = wordId;
 
-if (SESSION && !SESSION.rewardPrepared && SESSION.asked === 1){
-  defer(()=>{ prepareSessionReward().catch(()=>{}); });
-}
-
 // ✅ reviewのとき：改行しない＆自動縮小＆例文表示
 requestAnimationFrame(applyReviewPromptLayout);
 
@@ -6305,8 +6237,6 @@ async function startFlow(){
   if (STARTING) return;
   STARTING = true;
   try{
-    const selectedChara = getSavedChara();
-    if (!selectedChara){ setStuStatus("キャラクターを選んでください。", false); return; }
     const name = normName(stuName.value);
     if (!name){ setStuStatus("名前を入力してください。", false); return; }
     localStorage.setItem(NAME_KEY, name);
