@@ -1604,10 +1604,6 @@ font-size: var(--reviewWordMaxPx);
       <div class="lesson-stage" id="lessonList">
         <svg class="lesson-svg" id="lessonSvg" aria-label="lesson menu"></svg>
 
-        <div class="lesson-chara" id="lessonChara" aria-hidden="true">
-          <div class="chara-stack" id="lessonCharaStack" aria-hidden="true"></div>
-        </div>
-
 
         <!-- ✅ 予習復習選択ポップ（縦並び） -->
         <div class="stagePop" id="stagePop" aria-label="stage chooser">
@@ -3476,37 +3472,6 @@ async function loadInventory(){
             <img src="${escapeHtml(thumbSrc)}" alt="${escapeHtml(name)}">
           </div>
         `;
-        card.addEventListener("click", async ()=>{
-          if (!image) return;
-          const payload = {
-            itemId,
-            groupKey,
-            name,
-            image,
-            image2: item?.image2 || "",
-            class: rawClass,
-            listImage
-          };
-          if (charaItemPlacements?.[itemKey]){
-            delete charaItemPlacements[itemKey];
-            renderCharaPreviewImmediate();
-            updateInventoryPlacedState();
-            persistCharaItemRemoval(itemKey);
-            await ensureInitialClassPlacements();
-            return;
-          }
-          const existingKeys = findPlacedItemKeysByClass(rawClass).filter((key)=> key !== itemKey);
-          for (const existingKey of existingKeys){
-
-            delete charaItemPlacements[existingKey];
-            persistCharaItemRemoval(existingKey);
-          }
-          const placement = normalizeCharaItemPlacement(payload);
-          charaItemPlacements[itemKey] = placement;
-          renderCharaPreviewImmediate();
-          updateInventoryPlacedState();
-          persistCharaItemPlacement(itemKey, placement);
-        });
         grid.appendChild(card);
       }
       section.innerHTML = `<h4>${escapeHtml(itemClass)}</h4>`;
@@ -3645,14 +3610,6 @@ function renderCharaSelectButtons(){
     stack.className = "chara-stack";
     renderCharaStack(stack, slot.image || getCharaImage(slot.key), getCharaSelectPreviewItems());
     btn.appendChild(stack);
-    btn.addEventListener("click", ()=>{
-      if (charaSelect.classList.contains("single")){
-        charaSelect.classList.remove("single");
-        return;
-      }
-      const value = btn.dataset.chara;
-      applyCharaSelection(value, { save:true, collapse:true });
-    });
     charaSelect.appendChild(btn);
     charaButtons.push(btn);
   }
@@ -5520,9 +5477,6 @@ inventoryBack?.addEventListener("click", (e)=>{
 });
 inventoryBack?.querySelector(".inventoryModal")?.addEventListener("click", (e)=> e.stopPropagation());
 
-lessonChara?.addEventListener("click", ()=>{
-  openInventory();
-});
 
 // ショップ機能は廃止
 shopClose?.addEventListener("click", closeShop);
