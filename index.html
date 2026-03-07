@@ -725,20 +725,6 @@ font-size: var(--reviewWordMaxPx);
       justify-content:flex-start;
       text-align:left;
     }
-    #sessionTitle .sessionAsaGain{
-      display:inline-flex;
-      align-items:center;
-      gap:0px;
-      font-weight:900;
-      white-space:nowrap;
-    }
-    #sessionTitle .sessionAsaCoin{
-      width:24px;
-      height:24px;
-      transform:none;
-      display:block;
-    }
-
     .sessionCenter .line4{
       font-size:14px;
       margin-top:8px;
@@ -1622,14 +1608,7 @@ font-size: var(--reviewWordMaxPx);
           <div class="chara-stack" id="lessonCharaStack" aria-hidden="true"></div>
         </div>
 
-        <div class="asaWrap">
-          <canvas class="asaCoinCanvas" id="asaCoinCanvas" aria-hidden="true"></canvas>
-          <div class="asaCircle" id="asaCircle" aria-hidden="true"></div>
-          <div class="asaPop" id="asaPop" aria-label="ASA points" title="ためたASA" style="display:none">
-            <span class="asaLabel">ASA</span>
-            <span class="asaValue" id="asaValue">0</span>
-          </div>
-        </div>
+
         <!-- ✅ 予習復習選択ポップ（縦並び） -->
         <div class="stagePop" id="stagePop" aria-label="stage chooser">
           <div class="title" id="stagePopTitle">課</div>
@@ -1697,11 +1676,6 @@ font-size: var(--reviewWordMaxPx);
       <div class="line2" id="sessionPct">--%</div>
 <div class="line3" id="sessionTitle">
   <span id="sessionTitleText">間違えたことば</span>
-  <span class="sessionAsaGain" id="sessionAsaGain">
-    <span class="sessionAsaSign">+</span>
-    <span class="sessionAsaValue" id="sessionAsaValue">0</span>
-    <canvas class="asaCoinCanvas sessionAsaCoin" id="sessionAsaCoin" aria-hidden="true"></canvas>
-  </span>
 </div>
 
       <div class="line4" id="sessionReward" style="display:none"></div>
@@ -2400,9 +2374,6 @@ const wrongList   = document.getElementById("wrongList");
 const btnSessionClose = document.getElementById("btnSessionClose");
 const sessionTitle = document.getElementById("sessionTitle");
 const sessionTitleText = document.getElementById("sessionTitleText");
-const sessionAsaGain = document.getElementById("sessionAsaGain");
-const sessionAsaValue = document.getElementById("sessionAsaValue");
-const sessionAsaCoin = document.getElementById("sessionAsaCoin");
 
 /* ✅ 所持アイテムDOM */
 const inventoryBack = document.getElementById("inventoryBack");
@@ -2585,21 +2556,6 @@ async function recordFlashViews(n){
     });
   }catch(_){}
 }
-function calcAsaFromPct(pct){
-  if (!(pct >= 0)) return 0;
-  if (pct >= 100) return 3;
-  if (pct >= 90) return 2;
-  if (pct >= 80) return 1;
-  return 0;
-}
-async function awardAsaForSession(pct){
-  if (!SESSION || SESSION.asaAwarded) return;
-  SESSION.asaAwarded = true;
-  const pts = calcAsaFromPct(pct);
-  if (!pts) return;
-  await addAsaPoints(pts);
-}
-
 const SHOP_REFRESH_MS = 120000;
 const SHOP_ITEM_COUNT = 9;
 let SHOP_STATE = {
@@ -5279,7 +5235,6 @@ function startSession(lesson, stage, meta){
     totalWrongs: 0,
     wordStats: new Map(),
     wordIds: [],
-    asaAwarded: false,
     itemAwarded: false,
     rewardPrepared: false,
     preparedReward: null,
@@ -5438,14 +5393,6 @@ function openSessionResult(){
     sessionTitle.textContent = "間違えたことば";
   }
   if (sessionTitle) sessionTitle.classList.add("is-wrong");
-  if (sessionAsaValue){
-    const gained = calcAsaFromPct(pct);
-    sessionAsaValue.textContent = String(gained);
-    if (sessionAsaGain){
-      sessionAsaGain.style.display = gained > 0 ? "inline-flex" : "none";
-    }
-  }
-  drawAsaCoinOn(sessionAsaCoin);
 
 
   // ✅ ベスト％をDBに保存（最大値だけ残す）
@@ -5459,9 +5406,6 @@ function openSessionResult(){
 
   // パーセンテージ表示
   sessionPct.textContent = `${pct}%`;
-
-  // ASA付与
-  awardAsaForSession(pct).catch(()=>{});
 
   // ✅ クリア景品は廃止。間違い一覧のみ表示。
   (async ()=>{
