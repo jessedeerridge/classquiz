@@ -561,6 +561,15 @@ font-size: var(--reviewWordMaxPx);
       gap:6px;
       white-space:nowrap;
     }
+    .sbtn .progress{
+      margin-left:auto;
+      min-width:52px;
+      text-align:right;
+      font-size:13px;
+      font-weight:900;
+      opacity:.75;
+      white-space:nowrap;
+    }
     .sbtn .icon{
       font-size:18px;
       line-height:1;
@@ -1527,11 +1536,11 @@ font-size: var(--reviewWordMaxPx);
           <div class="btnRow">
             <button class="sbtn pre1"   id="btnStagePre1"   type="button">
               <span class="label">単語1 <span class="icon">🥛</span></span>
-              <span></span>
+              <span class="progress" id="stagePre1Progress">--%</span>
             </button>
             <button class="sbtn pre2"   id="btnStagePre2"   type="button">
               <span class="label">単語2 <span class="icon">🥛</span></span>
-              <span></span>
+              <span class="progress" id="stagePre2Progress">--%</span>
             </button>
             <button class="sbtn review" id="btnStageReview" type="button">
               <span class="label">復習</span>
@@ -2247,6 +2256,8 @@ const stagePopTitle = document.getElementById("stagePopTitle");
 const btnStagePre1 = document.getElementById("btnStagePre1");
 const btnStagePre2 = document.getElementById("btnStagePre2");
 const btnStageReview = document.getElementById("btnStageReview");
+const stagePre1Progress = document.getElementById("stagePre1Progress");
+const stagePre2Progress = document.getElementById("stagePre2Progress");
 
 const quizBox = document.getElementById("quizBox");
 const lessonInfo = document.getElementById("lessonInfo");
@@ -3908,6 +3919,13 @@ function setStuStatus(text, ok=true){
   stuStatus.className = ok ? "muted ok" : "muted ng";
 }
 
+function formatStageProgressText(meta, stage){
+  const rate = meta?.stageStats?.[stage]?.rate;
+  const n = Number(rate);
+  if (!Number.isFinite(n)) return "--%";
+  return `${Math.round(clamp(n, 0, 1) * 100)}%`;
+}
+
 /* =========================
    ✅ 追加：pre1/pre2 40%未満なら lowRateポップ
 ========================= */
@@ -5458,6 +5476,9 @@ function openStagePop(lesson, meta, anchorX, anchorY){
   const hasInfo = !!(meta && meta.stageDone && (meta.stageDone.pre1 || meta.stageDone.pre2 || meta.stageDone.review));
   const pre1Done = hasInfo ? !!meta.stageDone.pre1 : null;
   const pre2Done = hasInfo ? !!meta.stageDone.pre2 : null;
+
+  if (stagePre1Progress) stagePre1Progress.textContent = formatStageProgressText(meta, "pre1");
+  if (stagePre2Progress) stagePre2Progress.textContent = formatStageProgressText(meta, "pre2");
 
   btnStagePre1.disabled = false;
   btnStagePre2.disabled = (hasInfo ? !pre1Done : false);
