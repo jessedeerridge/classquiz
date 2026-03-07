@@ -370,6 +370,12 @@ font-size: var(--reviewWordMaxPx);
       user-select:none;
       z-index:3;
     }
+    .quizCenterWord ruby{ ruby-position: over; }
+    .quizCenterWord rt{
+      font-size:.48em;
+      font-weight:800;
+      letter-spacing:.04em;
+    }
 /* =========================
    ✅ review問題：改行しない + 自動縮小（JSでfont-size調整）
 ========================= */
@@ -3575,6 +3581,7 @@ async function ensureStagePool(grade, lesson, stage){
     for (const [wid, v] of Object.entries(wordsObj)){
       if (!v || typeof v !== "object") continue;
       const word = String(v.word ?? "").trim();
+      const furigana = String(v.furigana ?? "").trim();
       const meaning = String(v.meaning ?? "").trim();
       const wrongsRaw = Array.isArray(v.wrongs) ? v.wrongs : [];
       const wrongs = wrongsRaw
@@ -3582,7 +3589,7 @@ async function ensureStagePool(grade, lesson, stage){
         .filter(text=>Boolean(text) && text !== meaning);
       if (!word || !meaning || wrongs.length < 1) continue;
 const example = String(v.example ?? "").trim();
-words.push({ id:String(wid), word, meaning, wrongs, example });
+words.push({ id:String(wid), word, furigana, meaning, wrongs, example });
     }
   }
 
@@ -3796,6 +3803,7 @@ return {
   ok:true,
   word_id: w.id,
   word: w.word,
+  furigana: w.furigana || "",
   options,
   correct: w.meaning,
   example: w.example || ""
@@ -5456,6 +5464,17 @@ function escapeHtml(s){
     .replaceAll("'","&#39;");
 }
 
+function renderWordWithFurigana(el, word, furigana){
+  if (!el) return;
+  const w = String(word ?? "");
+  const f = String(furigana ?? "").trim();
+  if (!f || f === w){
+    el.textContent = w;
+    return;
+  }
+  el.innerHTML = `<ruby>${escapeHtml(w)}<rt>${escapeHtml(f)}</rt></ruby>`;
+}
+
 /* ========= stageポップ ========= */
 let _pendingLesson = "";
 let _pendingLessonMeta = null;
@@ -5744,6 +5763,7 @@ function renderQuestionJson(j){
 
   const wordId = j.word_id ?? j.wordId ?? j.id;
   const word = j.word ?? j.question ?? "";
+  const furigana = (j.furigana != null) ? String(j.furigana) : "";
   let options = Array.isArray(j.options) ? j.options : (Array.isArray(j.choices) ? j.choices : []);
   const correct = (j.correct != null) ? String(j.correct) : null;
 
@@ -5752,8 +5772,8 @@ function renderQuestionJson(j){
 
 const example = (j.example != null) ? String(j.example) : "";
 
-CURRENT.currentQ = { raw:j, word_id: wordId, word, correct, example };
-quizWord.textContent = word || "（no word）";
+CURRENT.currentQ = { raw:j, word_id: wordId, word, furigana, correct, example };
+renderWordWithFurigana(quizWord, word || "（no word）", furigana);
 markWordShown(wordId);
 if (SESSION) SESSION.lastWordId = wordId;
 
