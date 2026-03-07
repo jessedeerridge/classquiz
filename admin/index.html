@@ -967,6 +967,7 @@
               <tr>
                 <th style="min-width:160px" class="left">単語</th>
                 <th style="min-width:240px" class="left">正解</th>
+                <th style="min-width:180px" class="left">フリガナ</th>
                 <th style="min-width:320px" class="left">誤選択肢</th>
                 <th style="min-width:320px" class="left">例文</th>
                 <th style="min-width:150px">操作</th>
@@ -998,7 +999,8 @@
 学生、学生、先生、図書館
 跑步、走る、食べる、寝る；例文も；でOK、ここは例文として丸ごと"></textarea>
           <div class="small" style="margin-top:6px">
-            形式：<span class="mono">問題、正解、誤答1（誤答は1個以上）</span>　※誤答は2個以上もOK<br>
+            形式：<span class="mono">問題、正解（フリガナ）、誤答1、誤答2...</span>　※誤答は1個以上<br>
+            （例：<span class="mono">走る（はしる）</span> のように右に()で追加）<br>
             例文：誤答のどれかに <span class="mono">誤答：例文</span>（<span class="mono">:</span>/<span class="mono">：</span>/<span class="mono">;</span>/<span class="mono">；</span>）を混ぜてもOK（区切りの後はカンマが入っても例文扱い）
           </div>
           <div class="row" style="margin-top:10px">
@@ -4221,6 +4223,33 @@
     return out;
   }
 
+  function splitTextAndFurigana(raw){
+    const s = String(raw||"").trim();
+    if (!s) return { text:"", furigana:"" };
+    const m = s.match(/^(.*?)[（(]([^（）()]+)[）)]\s*$/);
+    if (!m) return { text:s, furigana:"" };
+    const text = String(m[1]||"").trim();
+    const furigana = String(m[2]||"").trim();
+    return { text: text || s, furigana };
+  }
+
+  function normalizeWrongsAndFurigana(wrongs, rawMap={}){
+    const map = (rawMap && typeof rawMap === "object") ? rawMap : {};
+    const outWrongs = [];
+    const outMap = {};
+    for (const item of (Array.isArray(wrongs) ? wrongs : [])){
+      const original = String(item||"").trim();
+      if (!original) continue;
+      const parsed = splitTextAndFurigana(original);
+      const text = parsed.text;
+      const furigana = parsed.furigana || String(map[original] || map[text] || "").trim();
+      if (!text) continue;
+      outWrongs.push(text);
+      if (furigana) outMap[text] = furigana;
+    }
+    return { wrongs: uniqStrings(outWrongs), wrongFurigana: outMap };
+  }
+
   // ✅ token内の「誤答:例文 / 誤答；例文」対応（DB互換用）
   function splitWrongAndExample(token){
     const t = String(token||"").trim();
@@ -4298,9 +4327,13 @@
   }
 
   // ✅ DB保存用（example はある時だけ付与）
-  function buildWordPayload(word, meaning, wrongs, example){
+  function buildWordPayload(word, meaning, wrongs, example, meaningFurigana="", wrongFurigana={}){
     const payload = { word, meaning, wrongs };
     if (example) payload.example = example;
+    const mf = String(meaningFurigana||"").trim();
+    if (mf) payload.meaningFurigana = mf;
+    const wf = (wrongFurigana && typeof wrongFurigana === "object") ? wrongFurigana : {};
+    if (Object.keys(wf).length) payload.wrongFurigana = wf;
     return payload;
   }
 
@@ -4359,7 +4392,9 @@
     }
 
     const word = String(fields[0]||"").trim();
-    const meaning = String(fields[1]||"").trim();
+    const meaningParsed = splitTextAndFurigana(fields[1]);
+    const meaning = meaningParsed.text;
+    const meaningFurigana = meaningParsed.furigana;
 
     // 2) 残り（誤答〜）を解析（例文マークが来たら残り全部 example）
     let wrongs = [];
@@ -4404,7 +4439,9 @@
       if (w) wrongs.push(w);
     }
 
-    wrongs = uniqStrings(wrongs);
+    const wrongNorm = normalizeWrongsAndFurigana(wrongs);
+    wrongs = wrongNorm.wrongs;
+    const wrongFurigana = wrongNorm.wrongFurigana;
 
     // 正解と同じ誤答を除外
     wrongs = wrongs.filter(w => w.toLowerCase() !== String(meaning||"").toLowerCase());
@@ -4413,7 +4450,7 @@
       return { ok:false, reason:"問題/正解/誤答(1個以上) が必要", line };
     }
 
-    return { ok:true, word, meaning, wrongs, example, line };
+    return { ok:true, word, meaning, meaningFurigana, wrongs, wrongFurigana, example, line };
   }
   // ========= ここまで：区切り仕様対応 =========
 
@@ -4450,6 +4487,7 @@
                 <th style="min-width:60px">行</th>
                 <th class="left" style="min-width:180px">単語</th>
                 <th class="left" style="min-width:220px">正解</th>
+                <th class="left" style="min-width:160px">フリガナ</th>
                 <th class="left" style="min-width:240px">誤選択肢</th>
                 <th class="left" style="min-width:260px">例文</th>
               </tr>
@@ -4460,6 +4498,7 @@
                   <td class="mono">${x.idx}</td>
                   <td class="left">${esc(x.word)}</td>
                   <td class="left">${esc(x.meaning)}</td>
+                  <td class="left">${esc(x.meaningFurigana || "")}</td>
                   <td class="left">${esc(x.wrongs.join(" / "))}</td>
                   <td class="left">${x.example ? esc(x.example) : '<span class="muted"></span>'}</td>
                 </tr>
@@ -4546,7 +4585,7 @@
       const patch = {};
       for (const row of ok){
         const key = push(ref(db, p)).key;
-        patch[`${p}/${key}`] = buildWordPayload(row.word, row.meaning, row.wrongs, row.example);
+        patch[`${p}/${key}`] = buildWordPayload(row.word, row.meaning, row.wrongs, row.example, row.meaningFurigana, row.wrongFurigana);
       }
       await dbMultiUpdate(patch);
 
@@ -4627,19 +4666,24 @@
       for (const id of ids){
         const w = obj[id] || {};
         const word = String(w.word||"");
-        const meaning = String(w.meaning||"");
+        const meaningParsed = splitTextAndFurigana(String(w.meaning||""));
+        const meaning = meaningParsed.text;
+        const meaningFurigana = String(w.meaningFurigana || meaningParsed.furigana || "").trim();
         const wrongs0 = Array.isArray(w.wrongs) ? w.wrongs : [];
         const example0 = String(w.example||"").trim();
+        const wrongFurigana0 = (w.wrongFurigana && typeof w.wrongFurigana === "object") ? w.wrongFurigana : {};
 
         // ✅ 互換：wrongsに「誤答:例文 / 誤答；例文」が混在していたら吸い出す
         const norm = normalizeDbWrongsAndExample(wrongs0, example0);
-        const wrongs = norm.wrongs;
+        const wrongNorm = normalizeWrongsAndFurigana(norm.wrongs, wrongFurigana0);
+        const wrongs = wrongNorm.wrongs;
         const example = norm.example;
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td class="left"><input data-k="word" value="${esc(word)}"></td>
           <td class="left"><input data-k="meaning" value="${esc(meaning)}"></td>
+          <td class="left"><input data-k="meaningFurigana" value="${esc(meaningFurigana)}" placeholder="（任意）"></td>
           <td class="left"><input data-k="wrongs" value="${esc(wrongs.join(", "))}"></td>
           <td class="left"><input data-k="example" value="${esc(example)}" placeholder="（任意）"></td>
           <td>
@@ -4650,12 +4694,17 @@
 
         tr.querySelector('button[data-act="save"]').onclick = async ()=>{
           const w2 = tr.querySelector('input[data-k="word"]').value.trim();
-          const m2 = tr.querySelector('input[data-k="meaning"]').value.trim();
+          const meaningRaw = tr.querySelector('input[data-k="meaning"]').value.trim();
+          const mp = splitTextAndFurigana(meaningRaw);
+          const m2 = mp.text;
+          const mf2Input = tr.querySelector('input[data-k="meaningFurigana"]').value.trim();
+          const mf2 = mf2Input || mp.furigana;
 
           // ✅ wrongs欄に「誤答:例文 / 誤答；例文」を入れても動く
           //    （マーク後はカンマが入っても例文扱い）
           const parsed = parseWrongsAndExample(tr.querySelector('input[data-k="wrongs"]').value);
-          let ws = parsed.wrongs;
+          const wrongNorm2 = normalizeWrongsAndFurigana(parsed.wrongs);
+          let ws = wrongNorm2.wrongs;
 
           // 例文は「例文欄」を優先（空なら誤答マークから拾う）
           const exInput = tr.querySelector('input[data-k="example"]').value.trim();
@@ -4670,7 +4719,7 @@
           }
           wordsMsg.textContent = "保存中…";
           try{
-            await dbSet(p + "/" + id, buildWordPayload(w2, m2, ws, ex));
+            await dbSet(p + "/" + id, buildWordPayload(w2, m2, ws, ex, mf2, wrongNorm2.wrongFurigana));
             wordsMsg.textContent = "保存OK";
           }catch(e){
             wordsMsg.textContent = "保存失敗（DBルール/ネット制限）";
