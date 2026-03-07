@@ -966,6 +966,7 @@
             <thead>
               <tr>
                 <th style="min-width:160px" class="left">単語</th>
+                <th style="min-width:140px" class="left">フリガナ</th>
                 <th style="min-width:240px" class="left">正解</th>
                 <th style="min-width:320px" class="left">誤選択肢</th>
                 <th style="min-width:320px" class="left">例文</th>
@@ -1000,6 +1001,7 @@
           <div class="small" style="margin-top:6px">
             形式：<span class="mono">問題、正解、誤答1（誤答は1個以上）</span>　※誤答は2個以上もOK<br>
             例文：誤答のどれかに <span class="mono">誤答：例文</span>（<span class="mono">:</span>/<span class="mono">：</span>/<span class="mono">;</span>/<span class="mono">；</span>）を混ぜてもOK（区切りの後はカンマが入っても例文扱い）
+            <br>フリガナ：追加時に自動推定します（単語リストで手動修正できます）
           </div>
           <div class="row" style="margin-top:10px">
             <button class="btn secondary" id="btnBulkPreview" type="button">プレビュー</button>
@@ -4221,6 +4223,38 @@
     return out;
   }
 
+  function toHiragana(text){
+    return String(text||"").replace(/[\u30A1-\u30F6]/g, (ch)=>
+      String.fromCharCode(ch.charCodeAt(0) - 0x60)
+    );
+  }
+
+  function hasKanji(text){
+    return /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/.test(String(text||""));
+  }
+
+  function hasKana(text){
+    return /[\u3041-\u3096\u30A1-\u30FA]/.test(String(text||""));
+  }
+
+  // ✅ 自動フリガナ（推定）
+  // 1) 単語がかな系ならそのまま（カタカナ→ひらがな）
+  // 2) 正解がかなのみならそれを採用
+  // 3) 推定不能なら空欄（あとで管理画面で編集）
+  function suggestFurigana(word, meaning=""){
+    const w = String(word||"").trim();
+    const m = String(meaning||"").trim();
+    if (!w) return "";
+
+    const wH = toHiragana(w).trim();
+    if (hasKana(wH) && !hasKanji(wH)) return wH;
+
+    const mH = toHiragana(m).trim();
+    if (mH && hasKana(mH) && !hasKanji(mH)) return mH;
+
+    return "";
+  }
+
   // ✅ token内の「誤答:例文 / 誤答；例文」対応（DB互換用）
   function splitWrongAndExample(token){
     const t = String(token||"").trim();
@@ -4298,8 +4332,10 @@
   }
 
   // ✅ DB保存用（example はある時だけ付与）
-  function buildWordPayload(word, meaning, wrongs, example){
+  function buildWordPayload(word, furigana, meaning, wrongs, example){
     const payload = { word, meaning, wrongs };
+    const f = String(furigana||"").trim();
+    if (f) payload.furigana = f;
     if (example) payload.example = example;
     return payload;
   }
@@ -4413,7 +4449,8 @@
       return { ok:false, reason:"問題/正解/誤答(1個以上) が必要", line };
     }
 
-    return { ok:true, word, meaning, wrongs, example, line };
+    const furigana = suggestFurigana(word, meaning);
+    return { ok:true, word, furigana, meaning, wrongs, example, line };
   }
   // ========= ここまで：区切り仕様対応 =========
 
@@ -4449,6 +4486,7 @@
               <tr>
                 <th style="min-width:60px">行</th>
                 <th class="left" style="min-width:180px">単語</th>
+                <th class="left" style="min-width:160px">フリガナ（自動）</th>
                 <th class="left" style="min-width:220px">正解</th>
                 <th class="left" style="min-width:240px">誤選択肢</th>
                 <th class="left" style="min-width:260px">例文</th>
@@ -4459,6 +4497,7 @@
                 <tr>
                   <td class="mono">${x.idx}</td>
                   <td class="left">${esc(x.word)}</td>
+                  <td class="left">${esc(x.furigana || "")}</td>
                   <td class="left">${esc(x.meaning)}</td>
                   <td class="left">${esc(x.wrongs.join(" / "))}</td>
                   <td class="left">${x.example ? esc(x.example) : '<span class="muted"></span>'}</td>
@@ -4546,7 +4585,7 @@
       const patch = {};
       for (const row of ok){
         const key = push(ref(db, p)).key;
-        patch[`${p}/${key}`] = buildWordPayload(row.word, row.meaning, row.wrongs, row.example);
+        patch[`${p}/${key}`] = buildWordPayload(row.word, row.furigana, row.meaning, row.wrongs, row.example);
       }
       await dbMultiUpdate(patch);
 
@@ -4627,6 +4666,7 @@
       for (const id of ids){
         const w = obj[id] || {};
         const word = String(w.word||"");
+        const furigana = String(w.furigana||suggestFurigana(word, String(w.meaning||""))||"");
         const meaning = String(w.meaning||"");
         const wrongs0 = Array.isArray(w.wrongs) ? w.wrongs : [];
         const example0 = String(w.example||"").trim();
@@ -4639,6 +4679,7 @@
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td class="left"><input data-k="word" value="${esc(word)}"></td>
+          <td class="left"><input data-k="furigana" value="${esc(furigana)}" placeholder="自動入力（編集可）"></td>
           <td class="left"><input data-k="meaning" value="${esc(meaning)}"></td>
           <td class="left"><input data-k="wrongs" value="${esc(wrongs.join(", "))}"></td>
           <td class="left"><input data-k="example" value="${esc(example)}" placeholder="（任意）"></td>
@@ -4650,6 +4691,7 @@
 
         tr.querySelector('button[data-act="save"]').onclick = async ()=>{
           const w2 = tr.querySelector('input[data-k="word"]').value.trim();
+          const f2raw = tr.querySelector('input[data-k="furigana"]').value.trim();
           const m2 = tr.querySelector('input[data-k="meaning"]').value.trim();
 
           // ✅ wrongs欄に「誤答:例文 / 誤答；例文」を入れても動く
@@ -4668,9 +4710,10 @@
             wordsMsg.textContent = "保存NG：単語/正解 と 誤選択肢(1個以上) が必要（※正解と同じ誤答は除外）";
             return;
           }
+          const f2 = f2raw || suggestFurigana(w2, m2);
           wordsMsg.textContent = "保存中…";
           try{
-            await dbSet(p + "/" + id, buildWordPayload(w2, m2, ws, ex));
+            await dbSet(p + "/" + id, buildWordPayload(w2, f2, m2, ws, ex));
             wordsMsg.textContent = "保存OK";
           }catch(e){
             wordsMsg.textContent = "保存失敗（DBルール/ネット制限）";
