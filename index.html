@@ -379,6 +379,16 @@ font-size: var(--reviewWordMaxPx);
   text-overflow: ellipsis; /* 最低サイズでも収まらない時の保険 */
 }
 
+.quizCenterWord ruby{
+  ruby-position: over;
+}
+
+.quizCenterWord rt{
+  font-size:.42em;
+  font-weight:700;
+  letter-spacing:0;
+}
+
 /* ✅ review問題の下：例文を小さく表示 */
 .quizExample{
   position:absolute;
@@ -1321,6 +1331,15 @@ font-size: var(--reviewWordMaxPx);
   color:#111;
   opacity:.9;
   word-break:break-word;
+}
+
+#flashBack .flashWord ruby{
+  ruby-position: over;
+}
+
+#flashBack .flashWord rt{
+  font-size:.62em;
+  font-weight:700;
 }
 #flashBack .flashPager{
   font-weight:900;
@@ -4156,7 +4175,8 @@ function renderFlashCard(){
 
       if (entry){
         meaning.textContent = entry.meaning || "";
-        word.textContent = entry.word || "";
+        const parsedWord = parseWordReading(entry.word || "");
+        word.innerHTML = buildRubyHTML(parsedWord.reading, parsedWord.word || parsedWord.source || "");
         const ex = String(entry.example ?? "").trim();
         example.textContent = ex;
         if (!ex){
@@ -4835,6 +4855,27 @@ function defer(fn){
   setTimeout(fn, 0);
 }
 
+function parseWordReading(raw){
+  const src = String(raw ?? "").trim();
+  const m = src.match(/^\s*[（(]([^（）()]+)[）)]\s*(.+)$/);
+  if (!m){
+    return { reading:"", word:src, source:src };
+  }
+  return {
+    reading: String(m[1] || "").trim(),
+    word: String(m[2] || "").trim(),
+    source: src
+  };
+}
+
+function buildRubyHTML(reading, word){
+  const w = String(word ?? "").trim();
+  if (!w) return "";
+  const r = String(reading ?? "").trim();
+  if (!r) return escapeHtml(w);
+  return `<ruby>${escapeHtml(w)}<rt>${escapeHtml(r)}</rt></ruby>`;
+}
+
 /* =========================
    ✅ しずく色をバー色に同期
 ========================= */
@@ -5433,6 +5474,14 @@ function applyReviewPromptLayout(){
 
   // 例文
   const ex = String(CURRENT.currentQ?.example ?? "").trim();
+  const reviewWord = String(CURRENT.currentQ?.word ?? "").trim();
+  const reviewReading = String(CURRENT.currentQ?.reading ?? "").trim();
+  if (reviewWord && reviewReading){
+    quizWord.innerHTML = buildRubyHTML(reviewReading, reviewWord);
+  } else {
+    quizWord.textContent = reviewReading || reviewWord;
+  }
+
   if (quizExample){
     if (ex){
       quizExample.textContent = ex;
@@ -5734,7 +5783,9 @@ function renderQuestionJson(j){
 
   if (!j || !j.ok){
     if (j && j.error === "choices_not_configured"){
-      quizWord.textContent = j.word ? `（${j.word}）` : "";
+      const parsedMissing = parseWordReading(j.word || j.question || "");
+      const missingLabel = parsedMissing.reading || parsedMissing.word || parsedMissing.source;
+      quizWord.textContent = missingLabel ? `（${missingLabel}）` : "";
       setResult("この単語は選択肢が不足（正解+誤答1以上）です。", false);
       return;
     }
@@ -5743,7 +5794,9 @@ function renderQuestionJson(j){
   }
 
   const wordId = j.word_id ?? j.wordId ?? j.id;
-  const word = j.word ?? j.question ?? "";
+  const parsedPrompt = parseWordReading(j.word ?? j.question ?? "");
+  const word = parsedPrompt.word || parsedPrompt.source || "";
+  const promptReading = parsedPrompt.reading;
   let options = Array.isArray(j.options) ? j.options : (Array.isArray(j.choices) ? j.choices : []);
   const correct = (j.correct != null) ? String(j.correct) : null;
 
@@ -5752,8 +5805,8 @@ function renderQuestionJson(j){
 
 const example = (j.example != null) ? String(j.example) : "";
 
-CURRENT.currentQ = { raw:j, word_id: wordId, word, correct, example };
-quizWord.textContent = word || "（no word）";
+CURRENT.currentQ = { raw:j, word_id: wordId, word, reading:promptReading, correct, example };
+quizWord.textContent = promptReading || "（no word）";
 markWordShown(wordId);
 if (SESSION) SESSION.lastWordId = wordId;
 
