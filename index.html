@@ -1315,12 +1315,22 @@ font-size: var(--reviewWordMaxPx);
   word-break:break-word;
 }
 #flashBack .flashWord{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
   font-weight:900;
   font-size:16px;
   line-height:1.2;
   color:#111;
   opacity:.9;
   word-break:break-word;
+}
+#flashBack .flashWord .flashFurigana{
+  font-size:11px;
+  line-height:1.1;
+  opacity:.7;
+  font-weight:700;
+  margin-bottom:2px;
 }
 #flashBack .flashPager{
   font-weight:900;
@@ -3574,7 +3584,9 @@ async function ensureStagePool(grade, lesson, stage){
   if (wordsObj && typeof wordsObj === "object"){
     for (const [wid, v] of Object.entries(wordsObj)){
       if (!v || typeof v !== "object") continue;
-      const word = String(v.word ?? "").trim();
+      const wordRaw = String(v.word ?? "").trim();
+      const parsed = parseWordFurigana(wordRaw);
+      const word = parsed.surface || wordRaw;
       const meaning = String(v.meaning ?? "").trim();
       const wrongsRaw = Array.isArray(v.wrongs) ? v.wrongs : [];
       const wrongs = wrongsRaw
@@ -3582,7 +3594,7 @@ async function ensureStagePool(grade, lesson, stage){
         .filter(text=>Boolean(text) && text !== meaning);
       if (!word || !meaning || wrongs.length < 1) continue;
 const example = String(v.example ?? "").trim();
-words.push({ id:String(wid), word, meaning, wrongs, example });
+words.push({ id:String(wid), word, furigana:parsed.furigana, wordRaw, meaning, wrongs, example });
     }
   }
 
@@ -3795,7 +3807,9 @@ async function apiQuestion(name, grade, lesson, stage){
 return {
   ok:true,
   word_id: w.id,
-  word: w.word,
+  word: w.furigana || w.word,
+  word_raw: w.wordRaw || w.word,
+  furigana: w.furigana || "",
   options,
   correct: w.meaning,
   example: w.example || ""
@@ -3953,7 +3967,9 @@ async function fetchRandomExamples(grade, lesson, stage, n=3){
   if (obj && typeof obj === "object"){
     for (const v of Object.values(obj)){
       if (!v || typeof v !== "object") continue;
-      const word = String(v.word ?? "").trim();
+      const wordRaw = String(v.word ?? "").trim();
+      const parsed = parseWordFurigana(wordRaw);
+      const word = parsed.surface || wordRaw;
       const meaning = String(v.meaning ?? "").trim();
       if (!word || !meaning) continue;
       arr.push({ word, meaning });
@@ -4156,7 +4172,16 @@ function renderFlashCard(){
 
       if (entry){
         meaning.textContent = entry.meaning || "";
-        word.textContent = entry.word || "";
+        const furi = String(entry.furigana || "").trim();
+        if (furi){
+          const furiganaEl = document.createElement("div");
+          furiganaEl.className = "flashFurigana";
+          furiganaEl.textContent = furi;
+          word.appendChild(furiganaEl);
+        }
+        const surfaceEl = document.createElement("div");
+        surfaceEl.textContent = entry.word || "";
+        word.appendChild(surfaceEl);
         const ex = String(entry.example ?? "").trim();
         example.textContent = ex;
         if (!ex){
@@ -4271,11 +4296,13 @@ requestAnimationFrame(fitFlashModalWidth);
       entries.sort((a,b)=> String(a[0]).localeCompare(String(b[0]))); // 安定順
       for (const [, v] of entries){
         if (!v || typeof v !== "object") continue;
-        const word = String(v.word ?? "").trim();
+        const wordRaw = String(v.word ?? "").trim();
+        const parsed = parseWordFurigana(wordRaw);
+        const word = parsed.surface || wordRaw;
         const meaning = String(v.meaning ?? "").trim();
         if (!word || !meaning) continue;
 const example = String(v.example ?? "").trim(); // ✅追加（DBのexample）
-list.push({ word, meaning, example });
+list.push({ word, furigana: parsed.furigana, meaning, example });
       }
     }
   }catch(e){
@@ -5454,6 +5481,17 @@ function escapeHtml(s){
     .replaceAll(">","&gt;")
     .replaceAll('"',"&quot;")
     .replaceAll("'","&#39;");
+}
+
+function parseWordFurigana(raw){
+  const text = String(raw ?? "").trim();
+  if (!text) return { surface:"", furigana:"" };
+  const m = text.match(/^[（(]\s*([^（）()]+?)\s*[）)]\s*(.+)$/);
+  if (!m) return { surface:text, furigana:"" };
+  return {
+    furigana: String(m[1] ?? "").trim(),
+    surface: String(m[2] ?? "").trim()
+  };
 }
 
 /* ========= stageポップ ========= */
