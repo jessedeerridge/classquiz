@@ -71,72 +71,6 @@
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     @media(max-width:800px){.grid2{grid-template-columns:1fr}}
 
-    .chara-select{
-      display:none;
-      position:absolute;
-      left:50%;
-      top:50%;
-      transform:translate(-50%,-50%);
-      gap:18px;
-      align-items:center;
-      justify-content:center;
-      z-index:5;
-    }
-    .chara-select button{
-      background:none;
-      border:0;
-      padding:0;
-      cursor:pointer;
-      position:relative;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-    }
-    .chara-select .chara-stack{
-      width:110px;
-      height:110px;
-      display:block;
-      border-radius:16px;
-      overflow:hidden;
-    }
-    .chara-layer{
-      position:absolute;
-      inset:0;
-      width:100%;
-      height:100%;
-      object-fit:contain;
-      display:block;
-      pointer-events:none;
-      user-select:none;
-    }
-    .chara-stack{
-      position:relative;
-      width:100%;
-      height:100%;
-    }
-    .chara-select .chara-btn.is-selected::after{
-      content:"";
-      position:absolute;
-      inset:-6px;
-      background:
-        linear-gradient(#111,#111) left top / 16px 2px no-repeat,
-        linear-gradient(#111,#111) left top / 2px 16px no-repeat,
-        linear-gradient(#111,#111) right top / 16px 2px no-repeat,
-        linear-gradient(#111,#111) right top / 2px 16px no-repeat,
-        linear-gradient(#111,#111) left bottom / 16px 2px no-repeat,
-        linear-gradient(#111,#111) left bottom / 2px 16px no-repeat,
-        linear-gradient(#111,#111) right bottom / 16px 2px no-repeat,
-        linear-gradient(#111,#111) right bottom / 2px 16px no-repeat;
-      border-radius:16px;
-      pointer-events:none;
-    }
-    .chara-select.single .chara-btn{
-      display:none;
-    }
-    .chara-select.single .chara-btn.is-selected{
-      display:flex;
-    }
-
 
     .student-top{
       display:flex; flex-direction:column; gap:12px;
@@ -757,33 +691,6 @@ font-size: var(--reviewWordMaxPx);
       flex-direction:column;
       gap:10px;
     }
-    .inventoryShowcase{
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      gap:10px;
-      margin:0 0 12px;
-    }
-    .inventoryCharaStage{
-      position:relative;
-      width:min(300px, 82vw);
-      aspect-ratio:1/1;
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,.2);
-      background: rgba(255,255,255,.08);
-      overflow:hidden;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      margin-top:-6px;
-    }
-    .inventoryCharaStage .chara-stack{
-      width:100%;
-      height:100%;
-    }
-    .inventoryCharaStage .chara-layer{
-    }
-
 
     .inventoryHead{
       display:flex;
@@ -1589,9 +1496,6 @@ font-size: var(--reviewWordMaxPx);
     </div>
 
 
-    <div class="chara-select" id="charaSelect" aria-label="chara chooser"></div>
-
-
     <div class="student-top" id="studentTop">
       <div class="name-plate">
         <input id="stuName" placeholder="Enter name" />
@@ -1688,11 +1592,6 @@ font-size: var(--reviewWordMaxPx);
   <div class="inventoryModal" role="dialog" aria-modal="true">
     <div class="inventoryHead">
       <h3 aria-hidden="true"></h3>
-    </div>
-    <div class="inventoryShowcase">
-      <div class="inventoryCharaStage" id="inventoryCharaStage">
-        <div class="chara-stack" id="inventoryCharaStack" aria-hidden="true"></div>
-      </div>
     </div>
     <div class="small" id="inventoryMsg">読み込み中…</div>
     <div id="inventoryBody"></div>
@@ -1896,8 +1795,6 @@ const FLASH_VIEWS_FOR_ASA = 20;
 /* ========= localStorage ========= */
 const NAME_KEY  = "yuko_wordlog_name";
 const GRADE_KEY = "yuko_wordlog_grade";
-const CHARA_KEY = "yuko_wordlog_chara";
-const DEFAULT_CHARA_LIST = ["c1", "c2", "c3"];
 const INITIAL_ITEM_GROUP_NAME = "初期アイテム";
 const INITIAL_ITEM_NAMES = {
   hat: "hat1",
@@ -1987,8 +1884,8 @@ async function loadCharaSlots({ render = true } = {}){
       charaSlotMap = new Map(list.map(slot=> [slot.key, slot]));
     }
   }catch(e){
-    charaSlotList = DEFAULT_CHARA_LIST.map((key)=> ({ key, image: `${key}.png` }));
-    charaSlotMap = new Map(charaSlotList.map(slot=> [slot.key, slot]));
+    charaSlotList = [];
+    charaSlotMap = new Map();
   }
   if (render) renderCharaSelectButtons();
 }
@@ -2322,7 +2219,7 @@ const studentTop = document.getElementById("studentTop");
 const stuName = document.getElementById("stuName");
 const btnStart = document.getElementById("btnStart");
 const stuStatus = document.getElementById("stuStatus");
-const charaSelect = document.getElementById("charaSelect");
+const charaSelect = null;
 let charaButtons = [];
 const lessonListBox = document.getElementById("lessonListBox");
 const lessonList = document.getElementById("lessonList");
@@ -2375,8 +2272,8 @@ const sessionTitleText = document.getElementById("sessionTitleText");
 const inventoryBack = document.getElementById("inventoryBack");
 const inventoryMsg = document.getElementById("inventoryMsg");
 const inventoryBody = document.getElementById("inventoryBody");
-const inventoryCharaStage = document.getElementById("inventoryCharaStage");
-const inventoryCharaStack = document.getElementById("inventoryCharaStack");
+const inventoryCharaStage = null;
+const inventoryCharaStack = null;
 const shopBack = document.getElementById("shopBack");
 const shopGrid = document.getElementById("shopGrid");
 const shopEmpty = document.getElementById("shopEmpty");
@@ -2983,17 +2880,7 @@ function getCharaItemPath(){
   return P.charaItems(STUDENT.studentKey);
 }
 function renderInventoryChara(){
-  if (!inventoryCharaStack) return;
-  const saved = getSavedChara();
-  if (!saved){
-    inventoryCharaStack.innerHTML = "";
-    return;
-  }
-  renderCharaStack(
-    inventoryCharaStack,
-    getCharaImage(saved),
-    getEffectiveCharaItems({ forceNeckBase: true, forceHandsBase: true })
-  );
+  return;
 }
 function normalizeCharaItemPlacement(raw){
   const itemClass = normalizeItemClass(raw?.class);
@@ -3026,16 +2913,7 @@ function normalizeItemClass(value){
 }
 
 function renderCharaStacksNow(){
-  const saved = getSavedChara();
-  const baseImage = saved ? getCharaImage(saved) : "";
-  if (inventoryCharaStack){
-    const items = getEffectiveCharaItems({ forceNeckBase: true, forceHandsBase: true });
-    renderCharaStack(inventoryCharaStack, baseImage, items);
-  }
-  if (lessonCharaStack){
-    const items = getEffectiveCharaItems();
-    renderCharaStack(lessonCharaStack, baseImage, items);
-  }
+  return;
 }
 
 function renderCharaPreviewImmediate(){
@@ -3051,7 +2929,7 @@ function getCharaLayerZ(itemClass, imageIndex = 1){
   return layers.layer1 ?? DEFAULT_ITEM_LAYER_Z;
 }
 function getPlacedCharaItems(){
-  return Object.values(charaItemPlacements || {}).map(normalizeCharaItemPlacement);
+  return [];
 }
 function getInitialItemByClass(itemClass){
   const cls = normalizeItemClass(itemClass);
@@ -3261,42 +3139,9 @@ async function ensureInitialClassPlacements({ render = true } = {}){
 
 
 async function loadCharaItemPlacements(){
-  const key = getCharaItemCacheKey();
-  if (!key){
-    charaItemPlacements = {};
-    _charaItemCacheKey = "";
-    renderCharaPreviewImmediate();
-    updateInventoryPlacedState();
-    updateCharaSelectPreview();
-    return;
-  }
-  if (key === _charaItemCacheKey && Object.keys(charaItemPlacements).length){
-    scheduleCharaItemsRender();
-    updateInventoryPlacedState();
-    updateCharaSelectPreview();
-    return;
-  }
-  _charaItemCacheKey = key;
-  try{
-    const path = getCharaItemPath();
-    const data = path ? await dbGet(path) : null;
-    if (data && typeof data === "object"){
-      const next = {};
-      for (const [itemKey, raw] of Object.entries(data)){
-        next[itemKey] = normalizeCharaItemPlacement(raw);
-      }
-      charaItemPlacements = next;
-    } else {
-      charaItemPlacements = {};
-    }
-  }catch(e){
-    charaItemPlacements = {};
-  }
-  await ensureUniqueClassPlacements();
-  await ensureInitialClassPlacements({ render: false });
-  scheduleCharaItemsRender();
+  charaItemPlacements = {};
+  _charaItemCacheKey = "";
   updateInventoryPlacedState();
-  updateCharaSelectPreview();
 }
 async function saveCharaItemPlacement(itemKey, payload){
   const path = getCharaItemPath();
@@ -3496,18 +3341,9 @@ if (savedName){
 }
 /* ========= 初期：chara復元 ========= */
 function normalizeChara(value){
-  return charaSlotMap.has(value) ? value : "";
+  return "";
 }
 function getSavedChara(){
-  const saved = normalizeChara(localStorage.getItem(CHARA_KEY) || "");
-  if (saved) return saved;
-  const fallback = charaSlotList[0]?.key || DEFAULT_CHARA_LIST[0] || "";
-  const normalizedFallback = normalizeChara(fallback);
-  if (normalizedFallback){
-    localStorage.setItem(CHARA_KEY, normalizedFallback);
-    return normalizedFallback;
-  }
-  localStorage.removeItem(CHARA_KEY);
   return "";
 }
 function renderLessonChara(){
@@ -3524,13 +3360,6 @@ function renderLessonChara(){
 }
 
 function applyCharaSelection(value, { save=false, collapse=false } = {}){
-  const normalized = normalizeChara(value);
-  charaButtons.forEach((btn)=>{
-    const match = btn.dataset.chara === normalized;
-    btn.classList.toggle("is-selected", match);
-  });
-  if (save && normalized) localStorage.setItem(CHARA_KEY, normalized);
-  charaSelect.classList.toggle("single", collapse);
   renderLessonChara();
   renderInventoryChara();
   loadCharaItemPlacements().catch(()=>{});
@@ -3558,45 +3387,20 @@ function hideTopLoading(){
 
 // ★TOP画面のキャラ画像がすべて読み終わったら、名前入力＆ボタンを出す
 function waitTopImagesThenShowUI(){
-  if (!studentTop || !charaSelect){
+  if (!studentTop){
     hideTopLoading();
     return;
   }
-
-  const imgs = charaSelect.querySelectorAll("img");
-  if (!imgs.length){
-    // 画像がない場合はすぐに表示
-    studentTop.classList.add("is-ready");
-    hideTopLoading();
-    return;
-  }
-
-  let remaining = imgs.length;
-
-  const done = ()=>{
-    remaining--;
-    if (remaining <= 0){
-      // すべてのキャラ画像の load / error が終わった
-      studentTop.classList.add("is-ready");
-      hideTopLoading();
-    }
-  };
-
-  imgs.forEach(img=>{
-    // すでに読み込み済みのものは即カウント
-    if (img.complete){
-      done();
-    }else{
-      img.addEventListener("load",  done, { once:true });
-      img.addEventListener("error", done, { once:true });
-    }
-  });
+  studentTop.classList.add("is-ready");
+  hideTopLoading();
 }
 
 
-
 function renderCharaSelectButtons(){
-  if (!charaSelect) return;
+  if (!charaSelect){
+    waitTopImagesThenShowUI();
+    return;
+  }
   charaSelect.innerHTML = "";
   const slots = charaSlotList;
   charaButtons = [];
@@ -4850,8 +4654,6 @@ function showNameScreen(){
   IN_ROOM = false;
 
   studentTop.style.display = "";
-  charaSelect.style.display = "flex";
-  renderCharaSelect();
   lessonListBox.style.display = "none";
   quizBox.style.display = "none";
   renderLessonChara();
@@ -4883,7 +4685,6 @@ async function showLessonList(){
   IN_ROOM = true;
 
   studentTop.style.display = "none";
-  charaSelect.style.display = "none";
   lessonListBox.style.display = "";
   quizBox.style.display = "none";
   renderLessonChara();
@@ -4926,7 +4727,6 @@ function showQuiz(){
   IN_ROOM = true;
 
   studentTop.style.display = "none";
-  charaSelect.style.display = "none";
   lessonListBox.style.display = "none";
   quizBox.style.display = "";
   renderLessonChara();
