@@ -56,6 +56,20 @@
     /* ✅クイズ画面のbody.bg（指定どおり） */
     body.quiz-bg{ background:#D1C1BB; color:#111; }
 
+    /* ✅ 入室画面だけ店内写真を表示 */
+    body.name-bg{
+      background:
+        linear-gradient(to bottom, rgba(0,0,0,.1), rgba(0,0,0,.25)),
+        url("shopkeeper.jpg") center top / cover no-repeat fixed;
+      color:#fff;
+    }
+
+    body.name-bg main{
+      min-height:100dvh;
+      padding-bottom:max(90px, calc(env(safe-area-inset-bottom, 0px) + 90px));
+      box-sizing:border-box;
+    }
+
     main{max-width:960px;margin:0 auto;padding:16px}
 
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
@@ -75,7 +89,7 @@
     .student-top{
       display:flex; flex-direction:column; gap:12px;
       max-width:200px;
-      margin:60vh auto 0;
+      margin:clamp(260px, 54vh, 62vh) auto 0;
       padding:0;
       background:transparent;
       border:0;
@@ -4663,6 +4677,7 @@ function showNameScreen(){
   gradeFab.style.display = "none";
   qTimer.style.display = "none";
 
+  document.body.classList.add("name-bg");
   document.body.classList.remove("lesson-bg","quiz-bg");
   closeStagePop();
   closeSessionResult();
@@ -4694,7 +4709,7 @@ async function showLessonList(){
   qTimer.style.display = "none";
 
   document.body.classList.add("lesson-bg");
-  document.body.classList.remove("quiz-bg");
+  document.body.classList.remove("quiz-bg","name-bg");
 
   if (_lastLessonTiles.length){
     drawLessonTrapezoids(false);
@@ -4737,7 +4752,7 @@ function showQuiz(){
   qTimer.style.display = "";
 
   document.body.classList.add("quiz-bg");
-  document.body.classList.remove("lesson-bg");
+  document.body.classList.remove("lesson-bg","name-bg");
 
   closeStagePop();
   closeSessionResult();
