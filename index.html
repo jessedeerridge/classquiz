@@ -1222,6 +1222,11 @@ font-size: var(--reviewWordMaxPx);
   background: #c7c7c7;
   border-radius: 0;
 }
+#flashBack .flashMeaning.flashMasked{
+  color: transparent;
+  background: #c7c7c7;
+  border-radius: 0;
+}
 #flashBack .flashFurigana.flashMasked{
   opacity:0;
 }
@@ -1372,7 +1377,6 @@ font-size: var(--reviewWordMaxPx);
   box-shadow:0 10px 26px rgba(0,0,0,.14);
   transition: background .18s ease, color .18s ease, border-color .18s ease, transform .12s ease;
   cursor:pointer;
-  max-width:180px;
   min-height:50px;
 }
 .flashModeBtn:active{ transform:scale(.99); }
@@ -1698,8 +1702,11 @@ font-size: var(--reviewWordMaxPx);
     <div class="flashPager" id="flashPager">1/1</div>
 
     <div class="flashModeWrap" id="flashModeWrap">
-      <button class="flashModeBtn" type="button" id="flashModeUnified">
-        <div class="flashModeLabel">かくす</div>
+      <button class="flashModeBtn" type="button" id="flashModeJp">
+        <div class="flashModeLabel">日本語をかくす</div>
+      </button>
+      <button class="flashModeBtn" type="button" id="flashModeZh">
+        <div class="flashModeLabel">中国語をかくす</div>
       </button>
     </div>
 
@@ -2338,7 +2345,8 @@ const flashCard   = document.getElementById("flashCard");
 const flashList   = document.getElementById("flashList");
 const flashPager  = document.getElementById("flashPager");
 const flashModeWrap = document.getElementById("flashModeWrap");
-const flashModeUnified = document.getElementById("flashModeUnified");
+const flashModeJp = document.getElementById("flashModeJp");
+const flashModeZh = document.getElementById("flashModeZh");
 const topLoading = document.getElementById("topLoading");
 
 /* ========= ASA ========= */
@@ -4088,7 +4096,8 @@ const FLASH = {
   raf: 0,          // ✅追加：ドラッグ描画をrAFで間引く
   pendingDX: 0,    // ✅追加：次フレームに反映するdx
   lastCountedIndex: -1,
-  maskStep: -1,
+  jpMaskStep: -1,
+  zhMaskStep: -1,
 };
 const FLASH_PAGE_SIZE = 6;
 
@@ -4125,38 +4134,45 @@ function applyFlashMasking(){
   rows.forEach((row, index)=>{
     const word = row.querySelector(".flashWord");
     const furigana = row.querySelector(".flashFurigana");
-    if (!word) return;
-    const shouldMask = (FLASH.maskStep >= 0) && (index >= FLASH.maskStep) && (index < total);
-    word.classList.toggle("flashMasked", shouldMask);
-    if (furigana) furigana.classList.toggle("flashMasked", shouldMask);
+    const meaning = row.querySelector(".flashMeaning");
+    const shouldMaskJp = (FLASH.jpMaskStep >= 0) && (index >= FLASH.jpMaskStep) && (index < total);
+    const shouldMaskZh = (FLASH.zhMaskStep >= 0) && (index >= FLASH.zhMaskStep) && (index < total);
+    if (word) word.classList.toggle("flashMasked", shouldMaskJp);
+    if (furigana) furigana.classList.toggle("flashMasked", shouldMaskJp);
+    if (meaning) meaning.classList.toggle("flashMasked", shouldMaskZh);
   });
 }
 
-function updateFlashModeButton(){
-  if (!flashModeUnified) return;
-  const label = flashModeUnified.querySelector(".flashModeLabel");
+function updateSingleFlashModeButton(button, maskStep, hideLabel){
+  if (!button) return;
+  const label = button.querySelector(".flashModeLabel");
   const total = getFlashMaskRows().length;
-  const isAllOpen = total > 0 && FLASH.maskStep >= total;
-  const active = FLASH.maskStep >= 0;
-  flashModeUnified.classList.toggle("active", active);
+  const isAllOpen = total > 0 && maskStep >= total;
+  const active = maskStep >= 0;
+  button.classList.toggle("active", active);
   if (!label) return;
   if (isAllOpen){
-    label.textContent = "かくす";
+    label.textContent = hideLabel;
     return;
   }
-  label.textContent = active ? "次のことばを見る" : "かくす";
-
+  label.textContent = active ? "次のことばを見る" : hideLabel;
 }
 
-function cycleFlashMasking(){
+function updateFlashModeButton(){
+  updateSingleFlashModeButton(flashModeJp, FLASH.jpMaskStep, "日本語をかくす");
+  updateSingleFlashModeButton(flashModeZh, FLASH.zhMaskStep, "中国語をかくす");
+}
+
+function cycleFlashMasking(target){
   const total = getFlashMaskRows().length;
   if (!total) return;
-  if (FLASH.maskStep < 0){
-    FLASH.maskStep = 0;
+  const key = (target === "zh") ? "zhMaskStep" : "jpMaskStep";
+  if (FLASH[key] < 0){
+    FLASH[key] = 0;
   } else {
-    FLASH.maskStep += 1;
-    if (FLASH.maskStep > total){
-      FLASH.maskStep = 0;
+    FLASH[key] += 1;
+    if (FLASH[key] > total){
+      FLASH[key] = 0;
     }
   }
   applyFlashMasking();
@@ -4173,7 +4189,8 @@ function closeFlash(){
   FLASH.dragging = false;
   FLASH.suppressClick = false;
   FLASH.lastCountedIndex = -1;
-  FLASH.maskStep = -1;
+  FLASH.jpMaskStep = -1;
+  FLASH.zhMaskStep = -1;
 
   // ✅ 途中状態を完全リセット（カクつき防止）
   flashCard.classList.remove("flashInRight","flashOutLeft","flashOutRight","flashInLeft");
@@ -4332,7 +4349,8 @@ async function openFlashCards(grade, lesson, stage){
   flashPager.textContent = "--/--";
   flashBack.style.display = "flex";
 requestAnimationFrame(fitFlashModalWidth);
-  FLASH.maskStep = -1;
+  FLASH.jpMaskStep = -1;
+  FLASH.zhMaskStep = -1;
 
   let list = [];
   try{
@@ -4486,9 +4504,8 @@ flashCard.addEventListener("click", (e)=>{
   }
 });
 
-flashModeUnified?.addEventListener("click", ()=>{
-  cycleFlashMasking();
-});
+flashModeJp?.addEventListener("click", ()=> cycleFlashMasking("jp"));
+flashModeZh?.addEventListener("click", ()=> cycleFlashMasking("zh"));
 
 
 /* ✅ lowRateの「おぼえる👀」：その lesson/stage の全単語フラッシュカードを開く */
