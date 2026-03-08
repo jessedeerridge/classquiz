@@ -175,6 +175,25 @@
       box-shadow:0 18px 42px rgba(0,0,0,.55);
     }
 
+    .lesson-preparing-pop{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%, -50%);
+      z-index:40;
+      background:rgba(0,0,0,.74);
+      color:#fff;
+      font-weight:900;
+      letter-spacing:.02em;
+      border-radius:12px;
+      padding:10px 18px;
+      box-shadow:0 8px 22px rgba(0,0,0,.28);
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .16s ease;
+    }
+    .lesson-preparing-pop.show{ opacity:1; }
+
 
     .lesson-chara{
       position:absolute;
@@ -1575,6 +1594,7 @@ font-size: var(--reviewWordMaxPx);
     <div id="lessonListBox" style="display:none">
       <div class="lesson-stage" id="lessonList">
         <svg class="lesson-svg" id="lessonSvg" aria-label="lesson menu"></svg>
+        <div class="lesson-preparing-pop" id="lessonPreparingPop" aria-live="polite">準備中...</div>
 
 
         <!-- ✅ 予習復習選択ポップ（縦並び） -->
@@ -2303,6 +2323,7 @@ let charaButtons = [];
 const lessonListBox = document.getElementById("lessonListBox");
 const lessonList = document.getElementById("lessonList");
 const lessonSvg = document.getElementById("lessonSvg");
+const lessonPreparingPop = document.getElementById("lessonPreparingPop");
 const lessonChara = document.getElementById("lessonChara");
 const lessonCharaStack = document.getElementById("lessonCharaStack");
 const asaPop = document.getElementById("asaPop");
@@ -4056,6 +4077,30 @@ let IN_ROOM = false;
 function setStuStatus(text, ok=true){
   stuStatus.textContent = text;
   stuStatus.className = ok ? "muted ok" : "muted ng";
+}
+
+let _lessonPreparingTimer = null;
+function showLessonPreparingPop(){
+  if (!lessonPreparingPop) return;
+  if (_lessonPreparingTimer){
+    clearTimeout(_lessonPreparingTimer);
+    _lessonPreparingTimer = null;
+  }
+  lessonPreparingPop.classList.add("show");
+  _lessonPreparingTimer = setTimeout(()=>{
+    lessonPreparingPop.classList.remove("show");
+    _lessonPreparingTimer = null;
+  }, 1000);
+}
+
+function getRegisteredQuestionCount(meta){
+  const s = meta?.stageStats;
+  if (!s) return 0;
+  const totals = [s.pre1?.total, s.pre2?.total, s.review?.total];
+  return totals.reduce((sum, v)=>{
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 ? (sum + n) : sum;
+  }, 0);
 }
 
 function formatStageProgressText(meta, stage){
@@ -6859,6 +6904,13 @@ function drawLessonTrapezoids(animateLevels=true){
       hit.setAttribute("fill", "transparent");
       hit.style.cursor = "pointer";
       hit.addEventListener("click", (ev)=>{
+        const questionCount = getRegisteredQuestionCount(t);
+        if (questionCount > 0 && questionCount <= 5){
+          closeStagePop();
+          showLessonPreparingPop();
+          ev.stopPropagation();
+          return;
+        }
         const listRect = lessonList.getBoundingClientRect();
         const clientX = ev.clientX;
         const clientY = ev.clientY;
