@@ -5498,9 +5498,32 @@ function positionQuizExampleUnderWord(){
 
   const stageRect = quizStage.getBoundingClientRect();
   const wordRect  = quizWord.getBoundingClientRect();
+  const optionsRect = optGrid ? optGrid.getBoundingClientRect() : null;
 
-  const top = (wordRect.bottom - stageRect.top) + 10; // 10px下に
+  const desiredTop = (wordRect.bottom - stageRect.top) + 10;
+  const minTop = (wordRect.bottom - stageRect.top) + 4;
+  const exampleH = quizExample.offsetHeight || 0;
+  const safetyGap = 10;
+
+  let top = desiredTop;
+  quizExample.style.maxHeight = "";
+  quizExample.style.overflow = "";
+
+  if (optionsRect){
+    const maxTop = (optionsRect.top - stageRect.top) - exampleH - safetyGap;
+    top = Math.min(top, maxTop);
+  }
+
+  top = Math.max(minTop, top);
   quizExample.style.top = `${Math.round(top)}px`;
+
+  if (optionsRect){
+    const availableH = (optionsRect.top - stageRect.top) - top - safetyGap;
+    if (availableH > 0 && quizExample.scrollHeight > availableH + 1){
+      quizExample.style.maxHeight = `${Math.floor(availableH)}px`;
+      quizExample.style.overflow = "hidden";
+    }
+  }
 }
 
 function applyReviewPromptLayout(){
