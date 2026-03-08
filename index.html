@@ -5503,6 +5503,45 @@ function positionQuizExampleUnderWord(){
   quizExample.style.top = `${Math.round(top)}px`;
 }
 
+function adjustReviewVerticalLayout(){
+  if (!quizStage || !quizWord || !optGrid) return;
+  if (CURRENT.stage !== "review"){
+    quizWord.style.top = "";
+    return;
+  }
+
+  const stageRect = quizStage.getBoundingClientRect();
+  const optionRect = optGrid.getBoundingClientRect();
+  if (!stageRect.height || !optionRect.height) return;
+
+  const wordRect = quizWord.getBoundingClientRect();
+  const hasExample = !!(quizExample && quizExample.style.display !== "none");
+  const exampleRect = hasExample ? quizExample.getBoundingClientRect() : null;
+
+  const safeTop = 88;
+  const safeBottom = (optionRect.top - stageRect.top) - 12;
+  const currentCenterY = (wordRect.top - stageRect.top) + (wordRect.height / 2);
+
+  const afterWordNeed = hasExample
+    ? ((wordRect.height / 2) + 10 + (exampleRect?.height || 0))
+    : (wordRect.height / 2);
+  const maxCenterY = safeBottom - afterWordNeed;
+
+  const nextCenterY = Math.max(safeTop, Math.min(currentCenterY, maxCenterY));
+  quizWord.style.top = `${Math.round(nextCenterY)}px`;
+
+  if (hasExample){
+    positionQuizExampleUnderWord();
+    const updatedExampleRect = quizExample.getBoundingClientRect();
+    const exampleBottom = updatedExampleRect.bottom - stageRect.top;
+    const overlap = exampleBottom - safeBottom;
+    if (overlap > 0){
+      const curTop = Number.parseFloat(quizExample.style.top || "0");
+      quizExample.style.top = `${Math.max(0, Math.round(curTop - overlap - 2))}px`;
+    }
+  }
+}
+
 function applyReviewPromptLayout(){
   if (!quizWord) return;
 
@@ -5513,6 +5552,7 @@ function applyReviewPromptLayout(){
 
   if (!isReview){
     // 通常は元の見た目に戻す
+    quizWord.style.top = "";
     quizWord.style.fontSize = "";
     quizWord.style.whiteSpace = "";
     quizWord.style.overflow = "";
@@ -5549,10 +5589,14 @@ function applyReviewPromptLayout(){
       quizExample.textContent = ex;
       quizExample.style.display = "";
       // 問題のサイズが確定してから位置合わせ
-      requestAnimationFrame(positionQuizExampleUnderWord);
+      requestAnimationFrame(()=>{
+        positionQuizExampleUnderWord();
+        adjustReviewVerticalLayout();
+      });
     } else {
       quizExample.textContent = "";
       quizExample.style.display = "none";
+      requestAnimationFrame(adjustReviewVerticalLayout);
     }
   }
   applyReviewOptionLayout();
