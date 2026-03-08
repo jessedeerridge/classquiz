@@ -4124,6 +4124,15 @@ function clearFlashTimer(){
   }
 }
 
+function getMemorizeModeWordDisplay(word){
+  const raw = String(word ?? "");
+  return raw
+    .replace(/（[^）]*）/g, "")
+    .replace(/\([^)]*\)/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 function getFlashMaskRows(){
   if (!flashList) return [];
   return Array.from(flashList.querySelectorAll(".flashRow"))
@@ -4244,7 +4253,7 @@ function renderFlashCard(){
         meaning.textContent = entry.meaning || "";
         furigana.textContent = entry.meaningFurigana || "";
         if (!furigana.textContent) furigana.classList.add("is-empty");
-        word.textContent = entry.word || "";
+        word.textContent = getMemorizeModeWordDisplay(entry.word || "");
         const ex = String(entry.example ?? "").trim();
         example.textContent = ex;
         if (!ex){
