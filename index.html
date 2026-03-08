@@ -4221,7 +4221,7 @@ function renderFlashCard(){
 
       if (entry){
         meaning.textContent = entry.meaning || "";
-        furigana.textContent = entry.meaningFurigana || "";
+        furigana.textContent = entry.wordFurigana || "";
         if (!furigana.textContent) furigana.classList.add("is-empty");
         word.textContent = entry.word || "";
         const ex = String(entry.example ?? "").trim();
@@ -4342,14 +4342,16 @@ requestAnimationFrame(fitFlashModalWidth);
       entries.sort((a,b)=> String(a[0]).localeCompare(String(b[0]))); // 安定順
       for (const [, v] of entries){
         if (!v || typeof v !== "object") continue;
-        const word = String(v.word ?? "").trim();
+        const wordRaw = String(v.word ?? "").trim();
+        const wordMatch = wordRaw.match(/^(.*?)[（(]([^（）()]+)[）)]\s*$/);
+        const word = (wordMatch ? String(wordMatch[1] || "") : wordRaw).trim();
+        const wordFurigana = String(v.wordFurigana || (wordMatch ? String(wordMatch[2] || "") : "") || "").trim();
         const meaningRaw = String(v.meaning ?? "").trim();
         const m = meaningRaw.match(/^(.*?)[（(]([^（）()]+)[）)]\s*$/);
         const meaning = (m ? String(m[1]||"") : meaningRaw).trim();
-        const meaningFurigana = String(v.meaningFurigana || (m ? String(m[2]||"") : "") || "").trim();
         if (!word || !meaning) continue;
 const example = String(v.example ?? "").trim(); // ✅追加（DBのexample）
-list.push({ word, meaning, meaningFurigana, example });
+list.push({ word, wordFurigana, meaning, example });
       }
     }
   }catch(e){
