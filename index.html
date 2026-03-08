@@ -461,6 +461,13 @@ font-size: var(--reviewWordMaxPx);
       filter:none;
     }
 
+    .optBtn.timeoutMiss{
+      border-color: #cfd6e1;
+      background: linear-gradient(135deg, #f8fafe, #f1f4fa);
+      color: #97a3b8;
+      filter:none;
+    }
+
     @keyframes btnShakeFast{
       0%   { transform: translateX(0); }
       15%  { transform: translateX(-7px); }
@@ -5710,12 +5717,51 @@ function startQuestionTimer(ms){
     qTimerFg.style.strokeDashoffset = String(off);
     if (p >= 1){
       stopQuestionTimer();
-      if (!ANSWERING) nextQuestionFast(true);
+      if (!ANSWERING) handleQuestionTimeout();
       return;
     }
     _qtRAF = requestAnimationFrame(tick);
   };
   _qtRAF = requestAnimationFrame(tick);
+}
+
+function handleQuestionTimeout(){
+  if (ANSWERING) return;
+  if (!CURRENT.currentQ) {
+    nextQuestionFast(true);
+    return;
+  }
+
+  ANSWERING = true;
+
+  const btns = [...optGrid.querySelectorAll(".optBtn")];
+  const correctLocal = String(CURRENT.currentQ.correct ?? "");
+  btns.forEach((b)=>{
+    b.disabled = true;
+    b.classList.remove("pending", "goodGreen", "badRed", "timeoutMiss", "shake");
+
+    const isCorrectBtn = (correctLocal && b.textContent === correctLocal);
+    if (isCorrectBtn){
+      b.classList.add("goodGreen");
+      return;
+    }
+
+    b.classList.add("timeoutMiss");
+    b.classList.remove("shake");
+    void b.offsetWidth;
+    b.classList.add("shake");
+  });
+
+  if (correctLocal){
+    setResult(`時間切れ。正解：${correctLocal}`, false);
+  } else {
+    setResult("時間切れ。", false);
+  }
+
+  setTimeout(()=>{
+    ANSWERING = false;
+    nextQuestionFast(true);
+  }, 700);
 }
 
 function clearOptions(){
@@ -5917,7 +5963,7 @@ async function submitAnswer(text, chosenBtnEl){
   const btns = [...optGrid.querySelectorAll(".optBtn")];
   btns.forEach(b=>{
     b.disabled = true;
-    b.classList.remove("pending","goodGreen","badRed","shake");
+    b.classList.remove("pending","goodGreen","badRed","timeoutMiss","shake");
   });
 
   const correctLocal = (CURRENT.currentQ.correct != null) ? String(CURRENT.currentQ.correct) : null;
