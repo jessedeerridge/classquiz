@@ -375,8 +375,6 @@ font-size: var(--reviewWordMaxPx);
 ========================= */
 .quizCenterWord.oneLine{
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis; /* 最低サイズでも収まらない時の保険 */
 }
 
 /* ✅ review問題の下：例文を小さく表示 */
@@ -393,9 +391,12 @@ font-size: var(--reviewWordMaxPx);
   color: var(--quizTextColor);
   opacity:.70;
 
-  padding:8px 10px;
+  padding:8px 12px;
   border-radius:12px;
-  background: rgba(0,0,0,.05);
+  background: rgba(255,255,255,.18);
+  border:0;
+  box-shadow:none;
+  backdrop-filter: blur(1.5px);
 
   /* 例文は複数行OK */
   white-space: pre-wrap;
@@ -5450,7 +5451,7 @@ const REVIEW_WORD_BASE_PX = (()=> {
   return Number.isFinite(n) && n > 0 ? n : 30;
 })();
 
-const REVIEW_WORD_MIN_PX  = 18;
+const REVIEW_WORD_MIN_PX  = 1;
 
 const REVIEW_OPTION_MIN_PX = 12;
 
@@ -5527,8 +5528,8 @@ function applyReviewPromptLayout(){
 
   // review：1行固定＋縮小
   quizWord.style.whiteSpace = "nowrap";
-  quizWord.style.overflow = "hidden";
-  quizWord.style.textOverflow = "ellipsis";
+  quizWord.style.overflow = "visible";
+  quizWord.style.textOverflow = "clip";
 
   // まずベースサイズに戻してから測定
   let fs = REVIEW_WORD_BASE_PX;
