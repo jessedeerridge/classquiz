@@ -1330,7 +1330,7 @@ font-size: var(--reviewWordMaxPx);
   opacity:.9;
   word-break:break-word;
 }
-#flashBack .flashWordWrap{
+#flashBack .flashMeaningWrap{
   position:relative;
   display:inline-block;
 }
@@ -4137,9 +4137,9 @@ function applyFlashMasking(){
     const meaning = row.querySelector(".flashMeaning");
     const shouldMaskJp = (FLASH.jpMaskStep >= 0) && (index >= FLASH.jpMaskStep) && (index < total);
     const shouldMaskZh = (FLASH.zhMaskStep >= 0) && (index >= FLASH.zhMaskStep) && (index < total);
-    if (word) word.classList.toggle("flashMasked", shouldMaskJp);
+    if (meaning) meaning.classList.toggle("flashMasked", shouldMaskJp);
     if (furigana) furigana.classList.toggle("flashMasked", shouldMaskJp);
-    if (meaning) meaning.classList.toggle("flashMasked", shouldMaskZh);
+    if (word) word.classList.toggle("flashMasked", shouldMaskZh);
   });
 }
 
@@ -4167,6 +4167,8 @@ function cycleFlashMasking(target){
   const total = getFlashMaskRows().length;
   if (!total) return;
   const key = (target === "zh") ? "zhMaskStep" : "jpMaskStep";
+  const otherKey = (target === "zh") ? "jpMaskStep" : "zhMaskStep";
+  FLASH[otherKey] = -1;
   if (FLASH[key] < 0){
     FLASH[key] = 0;
   } else {
@@ -4225,12 +4227,12 @@ function renderFlashCard(){
       row.className = "flashRow";
       const main = document.createElement("div");
       main.className = "flashMain";
-      const meaning = document.createElement("div");
-      meaning.className = "flashMeaning";
-      const wordWrap = document.createElement("div");
-      wordWrap.className = "flashWordWrap";
+      const meaningWrap = document.createElement("div");
+      meaningWrap.className = "flashMeaningWrap";
       const furigana = document.createElement("div");
       furigana.className = "flashFurigana";
+      const meaning = document.createElement("div");
+      meaning.className = "flashMeaning";
       const word = document.createElement("div");
       word.className = "flashWord";
       const example = document.createElement("div");
@@ -4256,10 +4258,10 @@ function renderFlashCard(){
         example.classList.add("is-empty");
       }
 
-      main.appendChild(meaning);
-      wordWrap.appendChild(furigana);
-      wordWrap.appendChild(word);
-      main.appendChild(wordWrap);
+      meaningWrap.appendChild(furigana);
+      meaningWrap.appendChild(meaning);
+      main.appendChild(meaningWrap);
+      main.appendChild(word);
       row.appendChild(main);
       row.appendChild(example);
       flashList.appendChild(row);
