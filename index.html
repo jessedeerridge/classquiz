@@ -1837,6 +1837,12 @@ const QUIZ_SESSION_RULES = {
   endTotalWrongs: 8,
 };
 
+const REVIEW_SESSION_RULES = {
+  rounds: 2,
+  timerMs: 10000,
+  achievedCorrectCount: 2,
+};
+
 const DEBUG_STAGE_RATES = false;
 const DEFAULT_MAX_GRADE = 8;
 const GRADE_SETTINGS_PATH = "settings/gradeButtons";
@@ -3831,6 +3837,35 @@ async function apiQuestion(name, grade, lesson, stage){
       return { ok:false, error:"no_words" };
     }
 
+    const stageNorm = String(stage || "");
+    if (stageNorm === "review" && SESSION){
+      ensureSessionWordStats();
+      ensureReviewOrder();
+      const idx = Number(SESSION.reviewIndex || 0);
+      const order = Array.isArray(SESSION.reviewOrder) ? SESSION.reviewOrder : [];
+      if (idx >= order.length){
+        return { ok:false, error:"session_done" };
+      }
+      const nextId = String(order[idx] ?? "");
+      const w = STAGE_POOL.words.find(x=>String(x.id ?? "") === nextId);
+      if (!w){
+        SESSION.reviewIndex = idx + 1;
+        return await apiQuestion(name, grade, lesson, stageNorm);
+      }
+      SESSION.reviewIndex = idx + 1;
+      const optionsMeta = makeOptionsForWord(w);
+      const options = optionsMeta.map(x=>x.display);
+      const correctDisplay = (optionsMeta.find(x=>x.text === w.meaning)?.display) || w.meaning;
+      return {
+        ok:true,
+        word_id: w.id,
+        word: w.word,
+        options,
+        correct: correctDisplay,
+        example: w.example || ""
+      };
+    }
+
     // ✅ 常に全単語から候補
     let candidates = STAGE_POOL.words;
 
@@ -5137,10 +5172,40 @@ function startSession(lesson, stage, meta){
     itemAwarded: false,
     rewardPrepared: false,
     preparedReward: null,
+    reviewOrder: [],
+    reviewIndex: 0,
   };
 }
+
+function ensureReviewOrder(){
+  if (!SESSION || SESSION.stage !== "review") return;
+  if (Array.isArray(SESSION.reviewOrder) && SESSION.reviewOrder.length > 0) return;
+  ensureSessionWordStats();
+  const ids = Array.isArray(SESSION.wordIds) ? SESSION.wordIds.filter(Boolean) : [];
+  if (!ids.length){
+    SESSION.reviewOrder = [];
+    SESSION.reviewIndex = 0;
+    return;
+  }
+  const rounds = Math.max(1, REVIEW_SESSION_RULES.rounds | 0);
+  const order = [];
+  for (let r=0; r<rounds; r++){
+    const lap = ids.slice();
+    shuffleInPlace(lap);
+    order.push(...lap);
+  }
+  SESSION.reviewOrder = order;
+  SESSION.reviewIndex = 0;
+}
+
 function endSessionIfNeeded(){
   if (!SESSION) return false;
+  if (SESSION.stage === "review"){
+    ensureReviewOrder();
+    const idx = Number(SESSION.reviewIndex || 0);
+    const total = Array.isArray(SESSION.reviewOrder) ? SESSION.reviewOrder.length : 0;
+    return total > 0 && idx >= total;
+  }
   const ids = Array.isArray(SESSION.wordIds) ? SESSION.wordIds : [];
   if (!ids.length || !SESSION.wordStats) return false;
 
@@ -5206,6 +5271,12 @@ function applyWordAnswerStats(wordId, isCorrect, isFast){
   } else {
     stats.fast = 0;
     stats.wrongStreak = (stats.wrongStreak || 0) + 1;
+  }
+  if (SESSION?.stage === "review"){
+    if ((stats.correct || 0) >= REVIEW_SESSION_RULES.achievedCorrectCount){
+      stats.achieved = true;
+    }
+    return;
   }
   if (stats.fast >= QUIZ_SESSION_RULES.masteredFastCount || stats.correct >= QUIZ_SESSION_RULES.masteredCorrectCount){
     stats.achieved = true;
@@ -5730,6 +5801,7 @@ lessonListBox.addEventListener("pointerdown", (e)=>{
 
 /* ========= クイズ ========= */
 const QT_MS = 4000;
+const REVIEW_QT_MS = REVIEW_SESSION_RULES.timerMs;
 const ANSWER_FEEDBACK_MS = {
   correct: 260,
   incorrect: 1200,
@@ -5876,7 +5948,7 @@ async function pickUniqueQuestion(forceFresh=false){
       j = await _prefetch.promise;
       const nextId = j && (j.word_id ?? j.wordId ?? j.id);
       const curId  = CURRENT.currentQ && CURRENT.currentQ.word_id;
-      if (curId != null && nextId != null && String(nextId) === String(curId)){
+      if (CURRENT.stage !== "review" && curId != null && nextId != null && String(nextId) === String(curId)){
         j = await apiQuestion(CURRENT.name, SELECTED_GRADE, CURRENT.lesson, CURRENT.stage);
       }
     } else {
@@ -5892,7 +5964,7 @@ async function pickUniqueQuestion(forceFresh=false){
     const wordId = j.word_id ?? j.wordId ?? j.id;
     if (!SESSION) return j;
 
-    if (canAskWordId(wordId)){
+    if (CURRENT.stage === "review" || canAskWordId(wordId)){
       return j;
     }
     forceFresh = true;
@@ -5985,7 +6057,7 @@ requestAnimationFrame(applyReviewPromptLayout);
 
   requestAnimationFrame(applyReviewOptionLayout);
   _questionShownAt = performance.now();
-  startQuestionTimer(QT_MS);
+  startQuestionTimer(CURRENT.stage === "review" ? REVIEW_QT_MS : QT_MS);
 }
 
 async function loadQuestion(){
