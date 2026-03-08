@@ -5526,6 +5526,7 @@ const REVIEW_WORD_BASE_PX = (()=> {
 
 const REVIEW_WORD_MIN_PX  = 14;
 const REVIEW_WORD_MIN_SCALE_X = 0.72;
+const REVIEW_WORD_WRAP_PX = 12;
 
 const REVIEW_OPTION_MIN_PX = 12;
 
@@ -5629,6 +5630,8 @@ function applyReviewPromptLayout(){
     quizWord.style.top = "";
     quizWord.style.fontSize = "";
     quizWord.style.whiteSpace = "";
+    quizWord.style.wordBreak = "";
+    quizWord.style.overflowWrap = "";
     quizWord.style.overflow = "";
     quizWord.style.textOverflow = "";
     quizWord.style.removeProperty("--reviewWordScaleX");
@@ -5663,6 +5666,17 @@ function applyReviewPromptLayout(){
     const ratio = quizWord.clientWidth / Math.max(1, quizWord.scrollWidth);
     const nextScale = Math.max(REVIEW_WORD_MIN_SCALE_X, Math.min(1, ratio));
     quizWord.style.setProperty("--reviewWordScaleX", String(nextScale));
+  }
+
+  // それでもはみ出すほど長い問題文は、折り返し表示に切り替える
+  if (quizWord.scrollWidth > quizWord.clientWidth + 1){
+    const wrapFs = Math.max(REVIEW_WORD_WRAP_PX, fs - 1);
+    quizWord.style.setProperty("--reviewWordScaleX", "1");
+    quizWord.style.fontSize = `${wrapFs}px`;
+    quizWord.style.whiteSpace = "normal";
+    quizWord.style.wordBreak = "break-word";
+    quizWord.style.overflowWrap = "anywhere";
+    quizWord.style.textOverflow = "clip";
   }
 
   // 例文
