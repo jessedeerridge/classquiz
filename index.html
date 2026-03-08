@@ -356,9 +356,11 @@
     }
 
     .quizCenterWord{
+      --reviewWordScaleX: 1;
       position:absolute;
       left:50%; top:calc(70% - 15px);
-      transform:translate(-50%,-50%);
+      transform:translate(-50%,-50%) scaleX(var(--reviewWordScaleX));
+      transform-origin: center center;
       width: calc(100% - 40px);
       text-align:center;
       color: var(--quizTextColor);
@@ -5522,7 +5524,8 @@ const REVIEW_WORD_BASE_PX = (()=> {
   return Number.isFinite(n) && n > 0 ? n : 30;
 })();
 
-const REVIEW_WORD_MIN_PX  = 1;
+const REVIEW_WORD_MIN_PX  = 14;
+const REVIEW_WORD_MIN_SCALE_X = 0.72;
 
 const REVIEW_OPTION_MIN_PX = 12;
 
@@ -5628,6 +5631,7 @@ function applyReviewPromptLayout(){
     quizWord.style.whiteSpace = "";
     quizWord.style.overflow = "";
     quizWord.style.textOverflow = "";
+    quizWord.style.removeProperty("--reviewWordScaleX");
 
     if (quizExample){
       quizExample.textContent = "";
@@ -5644,6 +5648,7 @@ function applyReviewPromptLayout(){
 
   // まずベースサイズに戻してから測定
   let fs = REVIEW_WORD_BASE_PX;
+  quizWord.style.setProperty("--reviewWordScaleX", "1");
   quizWord.style.fontSize = `${fs}px`;
 
   // 収まるまで縮小（scrollWidth > clientWidth の間）
@@ -5651,6 +5656,13 @@ function applyReviewPromptLayout(){
   while (fs > REVIEW_WORD_MIN_PX && (quizWord.scrollWidth > quizWord.clientWidth + 1)){
     fs -= 1;
     quizWord.style.fontSize = `${fs}px`;
+  }
+
+  // 最小サイズでも収まらない場合は、横方向のみ軽く縮小して1行を維持
+  if (quizWord.scrollWidth > quizWord.clientWidth + 1){
+    const ratio = quizWord.clientWidth / Math.max(1, quizWord.scrollWidth);
+    const nextScale = Math.max(REVIEW_WORD_MIN_SCALE_X, Math.min(1, ratio));
+    quizWord.style.setProperty("--reviewWordScaleX", String(nextScale));
   }
 
   // 例文
