@@ -1310,6 +1310,10 @@ font-size: var(--reviewWordMaxPx);
   gap:20px;
   min-height:22px;
 }
+#flashBack .flashMeaningWrap{
+  position:relative;
+  display:inline-block;
+}
 #flashBack .flashMeaning{
   font-weight:950;
   font-size:18px;
@@ -4208,6 +4212,8 @@ function renderFlashCard(){
       row.className = "flashRow";
       const main = document.createElement("div");
       main.className = "flashMain";
+      const meaningWrap = document.createElement("div");
+      meaningWrap.className = "flashMeaningWrap";
       const meaning = document.createElement("div");
       meaning.className = "flashMeaning";
       const wordWrap = document.createElement("div");
@@ -4239,8 +4245,9 @@ function renderFlashCard(){
         example.classList.add("is-empty");
       }
 
-      main.appendChild(meaning);
-      wordWrap.appendChild(furigana);
+      meaningWrap.appendChild(furigana);
+      meaningWrap.appendChild(meaning);
+      main.appendChild(meaningWrap);
       wordWrap.appendChild(word);
       main.appendChild(wordWrap);
       row.appendChild(main);
