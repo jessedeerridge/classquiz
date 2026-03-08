@@ -1852,6 +1852,8 @@ const QUIZ_SESSION_RULES = {
   masteredCorrectCount: 3,
   unachievedMaxShows: 5,
   endTotalWrongs: 8,
+  prioritizeUnmasteredWhenTotalAtLeast: 31,
+  minimumQuestionPoolSize: 30,
 };
 
 const REVIEW_SESSION_RULES = {
@@ -3883,8 +3885,16 @@ async function apiQuestion(name, grade, lesson, stage){
       };
     }
 
-    // ✅ 常に全単語から候補
+    // ✅ セッション対象単語から候補
     let candidates = STAGE_POOL.words;
+
+    try{
+      ensureSessionWordStats();
+      if (SESSION && Array.isArray(SESSION.wordIds) && SESSION.wordIds.length){
+        const set = new Set(SESSION.wordIds.map(String));
+        candidates = candidates.filter(w=> set.has(String(w.id ?? "")));
+      }
+    }catch(e){}
 
     // ✅ このクイズで「達成済み」の単語は出題しない
     try{
@@ -3933,7 +3943,7 @@ return {
   }
 }
 
-async function apiAnswer(name, word_id, chosen){
+async function apiAnswer(name, word_id, chosen, opts={}){
   try{
     const sk = STUDENT.studentKey;
     const g = SELECTED_GRADE;
@@ -3960,7 +3970,8 @@ async function apiAnswer(name, word_id, chosen){
       if (is_correct) base.correctCount = (base.correctCount||0) + 1;
       else base.wrongCount = (base.wrongCount||0) + 1;
       base.lastAt = now;
-      if (is_correct) base.mastered = true;
+      const shouldMarkMastered = !!opts.markMastered;
+      if (shouldMarkMastered) base.mastered = true;
       base.lastChosen = c;
       base.lastCorrect = correct;
       return base;
@@ -3969,7 +3980,7 @@ async function apiAnswer(name, word_id, chosen){
     if (STAGE_POOL){
       STAGE_POOL.prog = STAGE_POOL.prog || {};
       const base = (STAGE_POOL.prog[wid] && typeof STAGE_POOL.prog[wid]==="object") ? STAGE_POOL.prog[wid] : {};
-      base.mastered = base.mastered || is_correct;
+      base.mastered = base.mastered || !!opts.markMastered;
       base.lastAt = nowTs();
       STAGE_POOL.prog[wid] = base;
     }
@@ -5191,7 +5202,42 @@ function startSession(lesson, stage, meta){
     preparedReward: null,
     reviewOrder: [],
     reviewIndex: 0,
+    selectedWordIds: null,
   };
+}
+
+function buildSessionWordIdsForStage(){
+  if (!STAGE_POOL || !Array.isArray(STAGE_POOL.words)) return [];
+
+  const allWords = STAGE_POOL.words;
+  const allIds = allWords.map(w=>String(w.id ?? "")).filter(Boolean);
+  if (CURRENT.stage === "review") return allIds;
+
+  const total = allWords.length;
+  const threshold = Math.max(1, Number(QUIZ_SESSION_RULES.prioritizeUnmasteredWhenTotalAtLeast) || 31);
+  if (total < threshold) return allIds;
+
+  const progress = (STAGE_POOL.prog && typeof STAGE_POOL.prog === "object") ? STAGE_POOL.prog : {};
+  const unmastered = [];
+  const mastered = [];
+
+  for (const w of allWords){
+    const id = String(w.id ?? "");
+    if (!id) continue;
+    const done = !!(progress[id] && progress[id].mastered);
+    if (done) mastered.push(id);
+    else unmastered.push(id);
+  }
+
+  const minPool = Math.max(1, Number(QUIZ_SESSION_RULES.minimumQuestionPoolSize) || 30);
+  if (unmastered.length >= minPool || !mastered.length){
+    return unmastered;
+  }
+
+  const fill = mastered.slice();
+  shuffleInPlace(fill);
+  const needed = Math.max(0, minPool - unmastered.length);
+  return unmastered.concat(fill.slice(0, needed));
 }
 
 function ensureReviewOrder(){
@@ -5239,7 +5285,10 @@ function endSessionIfNeeded(){
 function ensureSessionWordStats(){
   if (!SESSION || !STAGE_POOL || !Array.isArray(STAGE_POOL.words)) return;
   if (!SESSION.wordStats) SESSION.wordStats = new Map();
-  const ids = STAGE_POOL.words.map(w=>String(w.id ?? ""));
+  if (!Array.isArray(SESSION.selectedWordIds) || SESSION.selectedWordIds.length === 0){
+    SESSION.selectedWordIds = buildSessionWordIdsForStage();
+  }
+  const ids = Array.isArray(SESSION.selectedWordIds) ? SESSION.selectedWordIds : [];
   SESSION.wordIds = ids.filter(Boolean);
   SESSION.wordIds.forEach((id)=>{
     if (!SESSION.wordStats.has(id)){
@@ -6217,7 +6266,9 @@ async function submitAnswer(text, chosenBtnEl){
   // ✅ 4) DB保存 + 最新rate反映（裏）
   (async ()=>{
     try{
-      const j = await apiAnswer(snapshot.name, snapshot.word_id, snapshot.chosen);
+      const sessionStats = getSessionWordStats(snapshot.word_id);
+      const markMastered = !!(sessionStats && (sessionStats.correct || 0) >= QUIZ_SESSION_RULES.masteredCorrectCount);
+      const j = await apiAnswer(snapshot.name, snapshot.word_id, snapshot.chosen, { markMastered });
       if (!j || !j.ok){
         defer(()=> setResult(`保存失敗（背景処理）：${(j && j.error) || "unknown"}`, false));
         return;
