@@ -5685,6 +5685,11 @@ lessonListBox.addEventListener("pointerdown", (e)=>{
 
 /* ========= クイズ ========= */
 const QT_MS = 4000;
+const ANSWER_FEEDBACK_MS = {
+  correct: 260,
+  incorrect: 520,
+  timeout: 900,
+};
 let _qtRAF = null;
 let _qtStart = 0;
 let _qtActive = false;
@@ -5761,7 +5766,7 @@ function handleQuestionTimeout(){
   setTimeout(()=>{
     ANSWERING = false;
     nextQuestionFast(true);
-  }, 700);
+  }, ANSWER_FEEDBACK_MS.timeout);
 }
 
 function clearOptions(){
@@ -6034,6 +6039,10 @@ async function submitAnswer(text, chosenBtnEl){
   const doneNow = endSessionIfNeeded();
 
   // ✅ 3) 次へ（reviewの最終だけ特殊処理）
+  const feedbackDelayMs = (isCorrectLocal === false)
+    ? ANSWER_FEEDBACK_MS.incorrect
+    : ANSWER_FEEDBACK_MS.correct;
+
   setTimeout(()=>{
     ANSWERING = false;
     if (doneNow){
@@ -6045,7 +6054,7 @@ async function submitAnswer(text, chosenBtnEl){
     } else {
       nextQuestionFast(true);
     }
-  }, 260);
+  }, feedbackDelayMs);
 
   // ✅ 4) DB保存 + 最新rate反映（裏）
   (async ()=>{
