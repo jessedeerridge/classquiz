@@ -9,6 +9,8 @@
     :root{
       --gameW: 390px;
       --gameH: 700px;
+      --stageW: min(var(--gameW), calc(100vw - 32px));
+      --stageH: min(var(--gameH), calc(100dvh - 32px));
 --reviewWordMaxPx: 30px;
       --inventory-row: 84px;
       --inventory-gap: 4px;
@@ -73,8 +75,8 @@
 
     body.name-bg #studentSec{
       position:relative;
-      width:min(var(--gameW), calc(100vw - 32px));
-      height:min(var(--gameH), calc(100dvh - 32px));
+      width:var(--stageW);
+      height:var(--stageH);
       border-radius:18px;
       overflow:hidden;
       background:url("shopkeeper.jpg") center top / cover no-repeat;
@@ -162,8 +164,8 @@
 
     .lesson-stage{
       position:relative;
-      width: min(var(--gameW), calc(100vw - 32px));
-      height:min(var(--gameH), calc(100vh - 32px));
+      width: var(--stageW);
+      height:var(--stageH);
       margin: 0 auto;
 
       background:#FFCCCC;
@@ -331,8 +333,8 @@
 
     .quiz-stage{
       position:relative;
-      width: min(var(--gameW), calc(100vw - 32px));
-      height:min(var(--gameH), calc(100vh - 32px));
+      width: var(--stageW);
+      height:var(--stageH);
       margin: 0 auto;
 
       background:
