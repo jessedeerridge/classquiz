@@ -5638,6 +5638,7 @@ const REVIEW_WORD_MIN_SCALE_X = 0.72;
 const REVIEW_WORD_WRAP_PX = 12;
 
 const REVIEW_OPTION_MIN_PX = 12;
+const ONE_LINE_FIT_STAGES = new Set(["pre1", "pre2", "review"]);
 
 function applyReviewOptionLayout(){
   if (!optGrid) return;
@@ -5729,12 +5730,14 @@ function adjustReviewVerticalLayout(){
 function applyReviewPromptLayout(){
   if (!quizWord) return;
 
-  const isReview = (CURRENT.stage === "review");
+  const stage = String(CURRENT.stage || "");
+  const isReview = (stage === "review");
+  const shouldFitOneLine = ONE_LINE_FIT_STAGES.has(stage);
 
   // reset
-  quizWord.classList.toggle("oneLine", isReview);
+  quizWord.classList.toggle("oneLine", shouldFitOneLine);
 
-  if (!isReview){
+  if (!shouldFitOneLine){
     // 通常は元の見た目に戻す
     quizWord.style.top = "";
     quizWord.style.fontSize = "";
@@ -5753,7 +5756,7 @@ function applyReviewPromptLayout(){
     return;
   }
 
-  // review：1行固定＋縮小
+  // pre1/pre2/review：1行固定＋縮小
   quizWord.style.whiteSpace = "nowrap";
   quizWord.style.overflow = "visible";
   quizWord.style.textOverflow = "clip";
@@ -5788,10 +5791,10 @@ function applyReviewPromptLayout(){
     quizWord.style.textOverflow = "clip";
   }
 
-  // 例文
-  const ex = String(CURRENT.currentQ?.example ?? "").trim();
+  // 例文（reviewのみ表示）
+  const ex = isReview ? String(CURRENT.currentQ?.example ?? "").trim() : "";
   if (quizExample){
-    if (ex){
+    if (isReview && ex){
       quizExample.textContent = ex;
       quizExample.style.display = "";
       // 問題のサイズが確定してから位置合わせ
@@ -5802,7 +5805,7 @@ function applyReviewPromptLayout(){
     } else {
       quizExample.textContent = "";
       quizExample.style.display = "none";
-      requestAnimationFrame(adjustReviewVerticalLayout);
+      if (isReview) requestAnimationFrame(adjustReviewVerticalLayout);
     }
   }
   applyReviewOptionLayout();
@@ -6163,7 +6166,7 @@ quizWord.textContent = word || "（no word）";
 markWordShown(wordId);
 if (SESSION) SESSION.lastWordId = wordId;
 
-// ✅ reviewのとき：改行しない＆自動縮小＆例文表示
+// ✅ pre1/pre2/review：改行しない＆自動縮小（reviewのみ例文表示）
 requestAnimationFrame(applyReviewPromptLayout);
 
   const st = j.stage || CURRENT.stage;
