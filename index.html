@@ -5710,12 +5710,43 @@ function startQuestionTimer(ms){
     qTimerFg.style.strokeDashoffset = String(off);
     if (p >= 1){
       stopQuestionTimer();
-      if (!ANSWERING) nextQuestionFast(true);
+      if (!ANSWERING) handleQuestionTimeout();
       return;
     }
     _qtRAF = requestAnimationFrame(tick);
   };
   _qtRAF = requestAnimationFrame(tick);
+}
+
+function handleQuestionTimeout(){
+  if (ANSWERING) return;
+  if (!CURRENT.currentQ) {
+    nextQuestionFast(true);
+    return;
+  }
+
+  ANSWERING = true;
+
+  const btns = [...optGrid.querySelectorAll(".optBtn")];
+  const correctLocal = String(CURRENT.currentQ.correct ?? "");
+  btns.forEach((b)=>{
+    b.disabled = true;
+    b.classList.remove("pending", "goodGreen", "badRed", "shake");
+    if (correctLocal && b.textContent === correctLocal){
+      b.classList.add("goodGreen");
+    }
+  });
+
+  if (correctLocal){
+    setResult(`時間切れ。正解：${correctLocal}`, false);
+  } else {
+    setResult("時間切れ。", false);
+  }
+
+  setTimeout(()=>{
+    ANSWERING = false;
+    nextQuestionFast(true);
+  }, 700);
 }
 
 function clearOptions(){
