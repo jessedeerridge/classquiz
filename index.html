@@ -3800,6 +3800,13 @@ function calc(lesson, stage){
   const stageObj = (wG[lesson] && wG[lesson][stage] && typeof wG[lesson][stage]==="object") ? wG[lesson][stage] : {};
   const wordIds = Object.keys(stageObj);
   const total = wordIds.length;
+  const pStage = (pG[lesson] && pG[lesson][stage] && typeof pG[lesson][stage]==="object") ? pG[lesson][stage] : {};
+
+  // x/y表示用の「mastered語数」は、実際の単語進捗から数える
+  let masteredCount = 0;
+  for (const wid of wordIds){
+    if (pStage[wid] && pStage[wid].mastered) masteredCount++;
+  }
 
   // ✅ 1) ベスト％があればそれを採用（これが本命）
   const bStage = (bG[lesson] && bG[lesson][stage] && typeof bG[lesson][stage] === "object")
@@ -3815,19 +3822,16 @@ function calc(lesson, stage){
     return {
       total: totalCount,
       mastered: rateFromBest * totalCount,
+      masteredDisplay: masteredCount,
       rate: rateFromBest
     };
   }
 
   // ✅ 2) bestProgressがまだ無い古いデータ用フォールバック（旧：単語mastered計算）
 
-  const pStage = (pG[lesson] && pG[lesson][stage] && typeof pG[lesson][stage]==="object") ? pG[lesson][stage] : {};
-  let mastered = 0;
-  for (const wid of wordIds){
-    if (pStage[wid] && pStage[wid].mastered) mastered++;
-  }
+  const mastered = masteredCount;
   const rate = total>0 ? (mastered/total) : null;
-  return { total, mastered, rate };
+  return { total, mastered, masteredDisplay: mastered, rate };
 }
 
 
@@ -3857,9 +3861,9 @@ if (Number.isFinite(m1) && Number.isFinite(m2) && Number.isFinite(t1) && Number.
       };
 
       const stage_rates = {
-        pre1: { rate: pre1.rate, mastered: pre1.mastered, total: pre1.total },
-        pre2: { rate: pre2.rate, mastered: pre2.mastered, total: pre2.total },
-        review:{ rate: review.rate, mastered: review.mastered, total: review.total },
+        pre1: { rate: pre1.rate, mastered: pre1.mastered, masteredDisplay: pre1.masteredDisplay, total: pre1.total },
+        pre2: { rate: pre2.rate, mastered: pre2.mastered, masteredDisplay: pre2.masteredDisplay, total: pre2.total },
+        review:{ rate: review.rate, mastered: review.mastered, masteredDisplay: review.masteredDisplay, total: review.total },
       };
 
       return { lesson, achieveRate, stage_status, stage_rates };
@@ -4106,7 +4110,7 @@ function getRegisteredQuestionCount(meta){
 
 function formatStageProgressText(meta, stage){
   const stageStats = meta?.stageStats?.[stage];
-  const mastered = Number(stageStats?.mastered);
+  const mastered = Number(stageStats?.masteredDisplay ?? stageStats?.mastered);
   const total = Number(stageStats?.total);
   if (!Number.isFinite(mastered) || !Number.isFinite(total) || total <= 0){
     return " --/--語";
@@ -5070,9 +5074,9 @@ function syncDropletColorToGauge(){
 /* ========= ★デバッグ用：stage別の達成率 ========= */
 function readStageStats(x){
   const out = {
-    pre1:{ rate:null, mastered:null, total:null },
-    pre2:{ rate:null, mastered:null, total:null },
-    review:{ rate:null, mastered:null, total:null },
+    pre1:{ rate:null, mastered:null, masteredDisplay:null, total:null },
+    pre2:{ rate:null, mastered:null, masteredDisplay:null, total:null },
+    review:{ rate:null, mastered:null, masteredDisplay:null, total:null },
   };
 
   const sr = x.stage_rates || x.stageRates || x.stage_rate || x.stageRate || null;
@@ -5082,6 +5086,8 @@ function readStageStats(x){
       if (o && typeof o === "object"){
         if (out[s].rate == null && o.rate != null) out[s].rate = toRate01(o.rate);
         if (out[s].mastered == null && o.mastered != null) out[s].mastered = Number(o.mastered);
+        if (out[s].masteredDisplay == null && o.masteredDisplay != null) out[s].masteredDisplay = Number(o.masteredDisplay);
+        if (out[s].masteredDisplay == null && o.mastered_display != null) out[s].masteredDisplay = Number(o.mastered_display);
         if (out[s].total == null && o.total != null) out[s].total = Number(o.total);
         if (out[s].mastered == null && o.done != null) out[s].mastered = Number(o.done);
         if (out[s].total == null && o.all != null) out[s].total = Number(o.all);
