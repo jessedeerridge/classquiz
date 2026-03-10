@@ -1603,11 +1603,11 @@ font-size: var(--reviewWordMaxPx);
           <div class="btnRow">
             <button class="sbtn pre1"   id="btnStagePre1"   type="button">
               <span class="label">単語1 <span class="icon">🥛</span></span>
-              <span class="progress" id="stagePre1Progress">--%</span>
+              <span class="progress" id="stagePre1Progress">語数 --/--(語)</span>
             </button>
             <button class="sbtn pre2"   id="btnStagePre2"   type="button">
               <span class="label">単語2 <span class="icon">🥛</span></span>
-              <span class="progress" id="stagePre2Progress">--%</span>
+              <span class="progress" id="stagePre2Progress">語数 --/--(語)</span>
             </button>
             <button class="sbtn review" id="btnStageReview" type="button">
               <span class="label">復習</span>
@@ -4104,10 +4104,13 @@ function getRegisteredQuestionCount(meta){
 }
 
 function formatStageProgressText(meta, stage){
-  const rate = meta?.stageStats?.[stage]?.rate;
-  const n = Number(rate);
-  if (!Number.isFinite(n)) return "--%";
-  return `${Math.round(clamp(n, 0, 1) * 100)}%`;
+  const stageStats = meta?.stageStats?.[stage];
+  const mastered = Number(stageStats?.mastered);
+  const total = Number(stageStats?.total);
+  if (!Number.isFinite(mastered) || !Number.isFinite(total) || total <= 0){
+    return "語数 --/--(語)";
+  }
+  return `語数 ${Math.max(0, Math.round(mastered))}/${Math.round(total)}(語)`;
 }
 
 /* =========================
