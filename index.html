@@ -1874,6 +1874,7 @@ const QUIZ_SESSION_RULES = {
   endTotalWrongs: 8,
   prioritizeUnmasteredWhenTotalAtLeast: 31,
   minimumQuestionPoolSize: 30,
+  unmasteredOnlyCapWhenLarge: 35,
 };
 
 const REVIEW_SESSION_RULES = {
@@ -5278,6 +5279,16 @@ function buildSessionWordIdsForStage(){
   }
 
   const minPool = Math.max(1, Number(QUIZ_SESSION_RULES.minimumQuestionPoolSize) || 30);
+  const largeUnmasteredCap = Math.max(minPool, Number(QUIZ_SESSION_RULES.unmasteredOnlyCapWhenLarge) || 35);
+
+  // ✅ 総数31語以上かつ未達成語が35語以上なら、未達成語からランダム35語だけを今回の出題対象にする
+  if (unmastered.length >= largeUnmasteredCap){
+    const sampled = unmastered.slice();
+    shuffleInPlace(sampled);
+    return sampled.slice(0, largeUnmasteredCap);
+  }
+
+  // ✅ それ以外で未達成語が30語以上なら、未達成語を優先して出題する
   if (unmastered.length >= minPool || !mastered.length){
     return unmastered;
   }
