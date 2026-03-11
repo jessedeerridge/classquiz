@@ -392,7 +392,7 @@
     .quizCenterWord{
       --reviewWordScaleX: 1;
       position:absolute;
-      left:50%; top:calc(70% - 15px);
+      left:50%; top:calc(70% - 15px + var(--quizWordOffsetY, 0px));
       transform:translate(-50%,-50%) scaleX(var(--reviewWordScaleX));
       transform-origin: center center;
       width: calc(100% - 40px);
@@ -442,6 +442,32 @@ font-size: var(--reviewWordMaxPx);
   top: 52%;
   pointer-events:none;
   user-select:none;
+}
+
+.quizWordAdjuster{
+  position:absolute;
+  top:10px;
+  right:10px;
+  z-index:4;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.quizWordAdjustBtn{
+  width:24px;
+  height:18px;
+  border:1px solid rgba(0,0,0,.45);
+  border-radius:6px;
+  background:rgba(255,255,255,.85);
+  color:#111;
+  font-size:10px;
+  font-weight:900;
+  line-height:1;
+  cursor:pointer;
+  padding:0;
+}
+.quizWordAdjustBtn:active{
+  transform:translateY(1px);
 }
 
     .quizOptions{
@@ -1641,6 +1667,10 @@ font-size: var(--reviewWordMaxPx);
           <svg class="reviewBallSvg" id="reviewBallSvg" aria-hidden="true"></svg>
 
           <div class="dropletLayer" id="dropletLayer" aria-hidden="true"></div>
+          <div class="quizWordAdjuster" aria-label="問題位置調整">
+            <button type="button" class="quizWordAdjustBtn" id="btnQuizWordUp" aria-label="問題を上へ">▲</button>
+            <button type="button" class="quizWordAdjustBtn" id="btnQuizWordDown" aria-label="問題を下へ">▼</button>
+          </div>
           <div class="quizCenterWord" id="quizWord"></div>
 <div class="quizExample" id="quizExample" style="display:none"></div>
           <div class="quizOptions" id="optGrid"></div>
@@ -2352,6 +2382,8 @@ const btnNext = document.getElementById("btnNext");
 const btnLessonComplete = document.getElementById("btnLessonComplete");
 const btnBackLessons = document.getElementById("btnBackLessons");
 const quizExample = document.getElementById("quizExample");
+const btnQuizWordUp = document.getElementById("btnQuizWordUp");
+const btnQuizWordDown = document.getElementById("btnQuizWordDown");
 
 const quizStage = document.getElementById("quizStage");
 const quizProgressSvg = document.getElementById("quizProgressSvg");
@@ -5022,6 +5054,10 @@ function showQuiz(){
 }
 
 /* ✅ 右下↻の挙動：クイズ→課選択 / 課選択→名前 */
+btnQuizWordUp?.addEventListener("click", ()=> adjustQuizWordOffset(-QUIZ_WORD_OFFSET_STEP));
+btnQuizWordDown?.addEventListener("click", ()=> adjustQuizWordOffset(QUIZ_WORD_OFFSET_STEP));
+applyQuizWordOffset();
+
 backFab.onclick = async ()=>{
   if (inventoryBack && inventoryBack.style.display !== "none"){
     closeInventory();
@@ -5771,6 +5807,22 @@ const REVIEW_WORD_WRAP_PX = 12;
 
 const REVIEW_OPTION_MIN_PX = 12;
 const ONE_LINE_FIT_STAGES = new Set(["pre1", "pre2", "review"]);
+const QUIZ_WORD_OFFSET_LIMIT = 40;
+const QUIZ_WORD_OFFSET_STEP = 4;
+let QUIZ_WORD_OFFSET_Y = 0;
+
+function applyQuizWordOffset(){
+  document.documentElement.style.setProperty("--quizWordOffsetY", `${QUIZ_WORD_OFFSET_Y}px`);
+}
+
+function adjustQuizWordOffset(delta){
+  QUIZ_WORD_OFFSET_Y = clamp(QUIZ_WORD_OFFSET_Y + delta, -QUIZ_WORD_OFFSET_LIMIT, QUIZ_WORD_OFFSET_LIMIT);
+  applyQuizWordOffset();
+  requestAnimationFrame(()=>{
+    applyReviewPromptLayout();
+    if (CURRENT.stage === "review") adjustReviewVerticalLayout();
+  });
+}
 
 function applyReviewOptionLayout(){
   if (!optGrid) return;
@@ -5844,7 +5896,8 @@ function adjustReviewVerticalLayout(){
     : (wordRect.height / 2);
   const maxCenterY = safeBottom - afterWordNeed;
 
-  const nextCenterY = Math.max(safeTop, Math.min(currentCenterY, maxCenterY));
+  const baseCenterY = Math.max(safeTop, Math.min(currentCenterY, maxCenterY));
+  const nextCenterY = Math.max(safeTop, Math.min(baseCenterY + QUIZ_WORD_OFFSET_Y, maxCenterY));
   quizWord.style.top = `${Math.round(nextCenterY)}px`;
 
   if (hasExample){
