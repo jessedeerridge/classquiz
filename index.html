@@ -5377,7 +5377,8 @@ function ensureReviewOrder(){
   const order = [];
   for (let r=0; r<rounds; r++){
     const lap = ids.slice();
-    shuffleInPlace(lap);
+    // ✅ 1周目は登録順、2周目以降だけシャッフル
+    if (r > 0) shuffleInPlace(lap);
     order.push(...lap);
   }
   SESSION.reviewOrder = order;
@@ -5538,6 +5539,12 @@ function pickFallbackWordId(excludeId){
 
 function getSessionAchievedPct(){
   if (!SESSION) return 0;
+  if (SESSION.stage === "review"){
+    ensureReviewOrder();
+    const total = Math.max(1, Number(SESSION.reviewOrder?.length || 0));
+    const correct = Math.max(0, Number(SESSION.correct || 0));
+    return Math.round((correct / total) * 100);
+  }
   ensureSessionWordStats();
   const ids = Array.isArray(SESSION.wordIds) ? SESSION.wordIds.filter(Boolean) : [];
   const total = Math.max(1, ids.length);
