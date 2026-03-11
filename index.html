@@ -3850,7 +3850,8 @@ function calc(lesson, stage){
   const bestPct = bStage ? Number(bStage.bestPct) : null;
   const rateFromBest = (Number.isFinite(bestPct)) ? clamp(bestPct/100, 0, 1) : null;
 
-  if (isAllWordsMode && rateFromBest != null){
+  const shouldUseBestPct = (stage === "review") || isAllWordsMode;
+  if (shouldUseBestPct && rateFromBest != null){
     const totalCount = total > 0 ? total : 100;
     const bestAchievedCount = Math.round(rateFromBest * totalCount);
     const rateFromXY = totalCount > 0 ? (bestAchievedCount / totalCount) : 0;
@@ -4701,17 +4702,20 @@ function isReviewNow(){ return (CURRENT.stage === "review"); }
 
 function freezeReviewBallsStart(){
   if (!isReviewNow()) return;
-  QUIZ_REVIEW_BALLS_FROZEN = true;
+  QUIZ_REVIEW_BALLS_FROZEN = false;
   QUIZ_REVIEW_FINALIZING = false;
 
-  // 開始時の玉数を「今のDB反映済みlesson一覧」から計算
-  QUIZ_REVIEW_BALLS_START_COUNT = getReviewBallCountForLesson(CURRENT.lesson);
+  // ✅ reviewは毎回0個から開始（セッション内の正答率アップに応じて増やす）
+  QUIZ_REVIEW_BALLS_START_COUNT = 0;
+  if (SESSION && SESSION.stage === "review"){
+    SESSION.reviewLiveBestPct = 0;
+  }
 
   const key = `${CURRENT.name}|${SELECTED_GRADE}|${normLesson(CURRENT.lesson)}`;
   _quizReviewBallPrev.set(key, QUIZ_REVIEW_BALLS_START_COUNT);
 
   // まずは“静止表示”（落とさない）
-  renderQuizReviewBalls(CURRENT.lesson, false, QUIZ_REVIEW_BALLS_START_COUNT);
+  renderQuizReviewBalls(CURRENT.lesson, false, 0);
 }
 
 function fitLowRateModalWidth(){
@@ -4916,30 +4920,7 @@ function scheduleOpenSessionResultAfterReviewBalls(prevCount, nextCount){
 }
 
 async function finalizeReviewBallsAndShowResult(){
-  if (!isReviewNow()) { openSessionResult(); return; }
-  if (QUIZ_REVIEW_FINALIZING) return;
-  QUIZ_REVIEW_FINALIZING = true;
-
-  clearReviewResultWait();
-
-  // フリーズ解除（ここから先は更新OK）
-  QUIZ_REVIEW_BALLS_FROZEN = false;
-
-  const prev = QUIZ_REVIEW_BALLS_START_COUNT;
-  const lesson = CURRENT.lesson;
-
-  // 「最後の問題が終わった瞬間」に達成率を再取得して玉数決定
-  try{
-    await refreshLessons(); // DBの最新を読み、review%を確定
-  }catch(e){}
-
-  const next = getReviewBallCountForLesson(lesson);
-
-  // 増えた分だけ落下させる（減ったら単に描画が減る）
-  renderQuizReviewBalls(lesson, (next > prev), prev);
-
-  // ✅ 落下が全部終わってから2秒後に結果表示
-  scheduleOpenSessionResultAfterReviewBalls(prev, next);
+  openSessionResult();
 }
 
 /* ========= 画面表示 ========= */
@@ -5314,6 +5295,8 @@ function startSession(lesson, stage, meta){
     isAllWordsMode,
     shouldDeferMastered,
     pendingMasteredIds: new Set(),
+    reviewLiveBestPct: 0,
+    reviewRawCorrect: 0,
   };
 }
 
@@ -5549,6 +5532,23 @@ function getSessionAchievedPct(){
   return Math.round((achieved / total) * 100);
 }
 
+function getSessionAnswerAccuracyPct(){
+  if (!SESSION) return 0;
+  const asked = Math.max(0, Number(SESSION.asked) || 0);
+  if (asked <= 0) return 0;
+  const correct = clamp(Number(SESSION.correct) || 0, 0, asked);
+  return Math.round((correct / asked) * 100);
+}
+
+function getReviewBallProgressPct(){
+  if (!SESSION || SESSION.stage !== "review") return 0;
+  ensureSessionWordStats();
+  const total = Array.isArray(SESSION.wordIds) ? SESSION.wordIds.length : 0;
+  if (total <= 0) return 0;
+  const correct = Math.max(0, Number(SESSION.reviewRawCorrect) || 0);
+  return Math.round((correct / total) * 100);
+}
+
 function getCurrentStageMasteredPct(){
   if (!STAGE_POOL || !Array.isArray(STAGE_POOL.words) || !SESSION || SESSION.stage === "review") return 0;
   const total = STAGE_POOL.words.length;
@@ -5563,7 +5563,8 @@ function getCurrentStageMasteredPct(){
 }
 
 function getSessionResultPct({ achievedPct, masteredPct }){
-  if (!SESSION || SESSION.stage === "review") return achievedPct;
+  if (!SESSION) return achievedPct;
+  if (SESSION.stage === "review") return getSessionAnswerAccuracyPct();
   if (SESSION.isAllWordsMode) return achievedPct;
   if (SESSION.shouldDeferMastered) return achievedPct;
   return masteredPct;
@@ -5636,7 +5637,9 @@ function openSessionResult(){
     try{
       await commitDeferredMasteredIfNeeded(achievedPct);
       if (!shouldSkipProgressUpdateForDeferredMode(achievedPct)){
-        const savePct = (SESSION.stage === "review" || SESSION.isAllWordsMode)
+        const savePct = (SESSION.stage === "review")
+          ? getSessionAnswerAccuracyPct()
+          : (SESSION.isAllWordsMode)
           ? achievedPct
           : getCurrentStageMasteredPct();
         await apiSaveBestStage(CURRENT.name, SELECTED_GRADE, SESSION.lesson, SESSION.stage, savePct);
@@ -6334,9 +6337,9 @@ function renderQuestionJson(j){
 
     stopQuestionTimer();
 
-    // ✅ reviewは「最後の瞬間に達成率→玉落下」してから、落下完了+2秒で結果
+    // ✅ reviewもそのまま結果へ（黒丸は回答ごとにリアルタイム更新済み）
     if (CURRENT.stage === "review"){
-      finalizeReviewBallsAndShowResult();
+      openSessionResult();
       return;
     }
 
@@ -6471,6 +6474,9 @@ async function submitAnswer(text, chosenBtnEl){
   if (SESSION){
     SESSION.asked += 1;
     if (isCorrectLocal != null){
+      if (CURRENT.stage === "review" && isCorrectLocal){
+        SESSION.reviewRawCorrect = (Number(SESSION.reviewRawCorrect) || 0) + 1;
+      }
       applySessionAnswerStats({
         wordId: CURRENT.currentQ.word_id,
         word: CURRENT.currentQ.word || "",
@@ -6479,6 +6485,9 @@ async function submitAnswer(text, chosenBtnEl){
         isCorrect: isCorrectLocal,
         isFast: isCorrectLocal ? isFastAnswer : false,
       });
+      if (CURRENT.stage === "review"){
+        updateReviewBallsRealtimeOnAnswer();
+      }
     }
   }
 
@@ -6504,11 +6513,7 @@ async function submitAnswer(text, chosenBtnEl){
   setTimeout(()=>{
     ANSWERING = false;
     if (doneNow){
-      if (CURRENT.stage === "review"){
-        finalizeReviewBallsAndShowResult();
-      } else {
-        openSessionResult();
-      }
+      openSessionResult();
     } else {
       nextQuestionFast(true);
     }
@@ -7614,8 +7619,31 @@ function getReviewRate01ForLesson(lesson){
   return (r != null) ? clamp(Number(r), 0, 1) : 0;
 }
 function getReviewBallCountForLesson(lesson){
+  if (
+    SESSION && SESSION.stage === "review" &&
+    CURRENT.stage === "review" &&
+    normLesson(SESSION.lesson) === normLesson(lesson)
+  ){
+    const bestPct = clamp(Number(SESSION.reviewLiveBestPct) || 0, 0, 100);
+    return clamp(Math.floor(bestPct / 10 + 1e-9), 0, 10);
+  }
   const r = getReviewRate01ForLesson(lesson);
   return clamp(Math.floor(r * 10 + 1e-9), 0, 10);
+}
+
+function updateReviewBallsRealtimeOnAnswer(){
+  if (!SESSION || SESSION.stage !== "review") return;
+  if (CURRENT.stage !== "review") return;
+
+  const key = `${CURRENT.name}|${SELECTED_GRADE}|${normLesson(CURRENT.lesson)}`;
+  const prev = _quizReviewBallPrev.get(key) ?? 0;
+
+  const progressPct = getReviewBallProgressPct();
+  const bestPct = Math.max(Number(SESSION.reviewLiveBestPct) || 0, progressPct);
+  SESSION.reviewLiveBestPct = bestPct;
+
+  const next = clamp(Math.floor(bestPct / 10 + 1e-9), 0, 10);
+  renderQuizReviewBalls(CURRENT.lesson, (next > prev), prev);
 }
 function setReviewVisualMode(){
   const isReview = (CURRENT.stage === "review");
