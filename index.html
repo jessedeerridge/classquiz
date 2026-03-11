@@ -5820,23 +5820,28 @@ function positionQuizExampleUnderWord(){
   quizExample.style.top = `${Math.round(top)}px`;
 }
 
-function adjustReviewVerticalLayout(){
+function adjustQuizPromptVerticalLayout(){
   if (!quizStage || !quizWord || !optGrid) return;
-  if (CURRENT.stage !== "review"){
+  const stage = String(CURRENT.stage || "");
+  const needsGuard = (stage === "pre1" || stage === "pre2" || stage === "review");
+  if (!needsGuard){
     quizWord.style.top = "";
     return;
   }
 
   const stageRect = quizStage.getBoundingClientRect();
-  const optionRect = optGrid.getBoundingClientRect();
-  if (!stageRect.height || !optionRect.height) return;
+  const firstOption = optGrid.querySelector(".optBtn");
+  if (!firstOption) return;
+
+  const firstOptionRect = firstOption.getBoundingClientRect();
+  if (!stageRect.height || !firstOptionRect.height) return;
 
   const wordRect = quizWord.getBoundingClientRect();
-  const hasExample = !!(quizExample && quizExample.style.display !== "none");
+  const hasExample = (stage === "review") && !!(quizExample && quizExample.style.display !== "none");
   const exampleRect = hasExample ? quizExample.getBoundingClientRect() : null;
 
   const safeTop = 88;
-  const safeBottom = (optionRect.top - stageRect.top) - 12;
+  const safeBottom = (firstOptionRect.top - stageRect.top) - 14;
   const currentCenterY = (wordRect.top - stageRect.top) + (wordRect.height / 2);
 
   const afterWordNeed = hasExample
@@ -5932,14 +5937,15 @@ function applyReviewPromptLayout(){
       // 問題のサイズが確定してから位置合わせ
       requestAnimationFrame(()=>{
         positionQuizExampleUnderWord();
-        adjustReviewVerticalLayout();
+        adjustQuizPromptVerticalLayout();
       });
     } else {
       quizExample.textContent = "";
       quizExample.style.display = "none";
-      if (isReview) requestAnimationFrame(adjustReviewVerticalLayout);
+      requestAnimationFrame(adjustQuizPromptVerticalLayout);
     }
   }
+  if (!isReview) requestAnimationFrame(adjustQuizPromptVerticalLayout);
   applyReviewOptionLayout();
 }
 
