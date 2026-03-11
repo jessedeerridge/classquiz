@@ -5436,11 +5436,15 @@ function applyWordAnswerStats(wordId, isCorrect, isFast){
     }
     return;
   }
-  if (SESSION?.shouldDeferMastered && (stats.correct || 0) >= QUIZ_SESSION_RULES.masteredCorrectCount){
+  const reachedMasteredInSession =
+    (stats.fast || 0) >= QUIZ_SESSION_RULES.masteredFastCount ||
+    (stats.correct || 0) >= QUIZ_SESSION_RULES.masteredCorrectCount;
+
+  if (SESSION?.shouldDeferMastered && reachedMasteredInSession){
     if (!(SESSION.pendingMasteredIds instanceof Set)) SESSION.pendingMasteredIds = new Set();
     SESSION.pendingMasteredIds.add(String(wordId || ""));
   }
-  if (stats.fast >= QUIZ_SESSION_RULES.masteredFastCount || stats.correct >= QUIZ_SESSION_RULES.masteredCorrectCount){
+  if (reachedMasteredInSession){
     stats.achieved = true;
   }
 }
@@ -6443,7 +6447,10 @@ async function submitAnswer(text, chosenBtnEl){
       const sessionStats = getSessionWordStats(snapshot.word_id);
       const markMastered = !!(
         sessionStats &&
-        (sessionStats.correct || 0) >= QUIZ_SESSION_RULES.masteredCorrectCount &&
+        (
+          (sessionStats.fast || 0) >= QUIZ_SESSION_RULES.masteredFastCount ||
+          (sessionStats.correct || 0) >= QUIZ_SESSION_RULES.masteredCorrectCount
+        ) &&
         !SESSION?.shouldDeferMastered
       );
       const j = await apiAnswer(snapshot.name, snapshot.word_id, snapshot.chosen, { markMastered });
