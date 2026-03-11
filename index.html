@@ -5542,10 +5542,10 @@ function getSessionAnswerAccuracyPct(){
 
 function getReviewBallProgressPct(){
   if (!SESSION || SESSION.stage !== "review") return 0;
-  ensureReviewOrder();
-  const total = Array.isArray(SESSION.reviewOrder) ? SESSION.reviewOrder.length : 0;
+  ensureSessionWordStats();
+  const total = Array.isArray(SESSION.wordIds) ? SESSION.wordIds.length : 0;
   if (total <= 0) return 0;
-  const correct = clamp(Number(SESSION.reviewRawCorrect) || 0, 0, total);
+  const correct = Math.max(0, Number(SESSION.reviewRawCorrect) || 0);
   return Math.round((correct / total) * 100);
 }
 
