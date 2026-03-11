@@ -3850,7 +3850,8 @@ function calc(lesson, stage){
   const bestPct = bStage ? Number(bStage.bestPct) : null;
   const rateFromBest = (Number.isFinite(bestPct)) ? clamp(bestPct/100, 0, 1) : null;
 
-  if (isAllWordsMode && rateFromBest != null){
+  const shouldUseBestPct = (stage === "review") || isAllWordsMode;
+  if (shouldUseBestPct && rateFromBest != null){
     const totalCount = total > 0 ? total : 100;
     const bestAchievedCount = Math.round(rateFromBest * totalCount);
     const rateFromXY = totalCount > 0 ? (bestAchievedCount / totalCount) : 0;
@@ -5549,6 +5550,14 @@ function getSessionAchievedPct(){
   return Math.round((achieved / total) * 100);
 }
 
+function getSessionAnswerAccuracyPct(){
+  if (!SESSION) return 0;
+  const asked = Math.max(0, Number(SESSION.asked) || 0);
+  if (asked <= 0) return 0;
+  const correct = clamp(Number(SESSION.correct) || 0, 0, asked);
+  return Math.round((correct / asked) * 100);
+}
+
 function getCurrentStageMasteredPct(){
   if (!STAGE_POOL || !Array.isArray(STAGE_POOL.words) || !SESSION || SESSION.stage === "review") return 0;
   const total = STAGE_POOL.words.length;
@@ -5636,7 +5645,9 @@ function openSessionResult(){
     try{
       await commitDeferredMasteredIfNeeded(achievedPct);
       if (!shouldSkipProgressUpdateForDeferredMode(achievedPct)){
-        const savePct = (SESSION.stage === "review" || SESSION.isAllWordsMode)
+        const savePct = (SESSION.stage === "review")
+          ? getSessionAnswerAccuracyPct()
+          : (SESSION.isAllWordsMode)
           ? achievedPct
           : getCurrentStageMasteredPct();
         await apiSaveBestStage(CURRENT.name, SELECTED_GRADE, SESSION.lesson, SESSION.stage, savePct);
