@@ -5296,6 +5296,7 @@ function startSession(lesson, stage, meta){
     shouldDeferMastered,
     pendingMasteredIds: new Set(),
     reviewLiveBestPct: 0,
+    reviewRawCorrect: 0,
   };
 }
 
@@ -5544,7 +5545,7 @@ function getReviewBallProgressPct(){
   ensureReviewOrder();
   const total = Array.isArray(SESSION.reviewOrder) ? SESSION.reviewOrder.length : 0;
   if (total <= 0) return 0;
-  const correct = clamp(Number(SESSION.correct) || 0, 0, total);
+  const correct = clamp(Number(SESSION.reviewRawCorrect) || 0, 0, total);
   return Math.round((correct / total) * 100);
 }
 
@@ -6473,6 +6474,9 @@ async function submitAnswer(text, chosenBtnEl){
   if (SESSION){
     SESSION.asked += 1;
     if (isCorrectLocal != null){
+      if (CURRENT.stage === "review" && isCorrectLocal){
+        SESSION.reviewRawCorrect = (Number(SESSION.reviewRawCorrect) || 0) + 1;
+      }
       applySessionAnswerStats({
         wordId: CURRENT.currentQ.word_id,
         word: CURRENT.currentQ.word || "",
