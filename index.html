@@ -1876,7 +1876,7 @@ const QUIZ_SESSION_RULES = {
   minimumQuestionPoolSize: 30,
   deferredMasteredMinUnmastered: 1,
   deferredMasteredMaxUnmastered: 29,
-  deferredMasteredRequiredAchievedRate: 0.80,
+  deferredMasteredRequiredAchievedRate: 0.70,
 };
 
 const REVIEW_SESSION_RULES = {
@@ -3824,12 +3824,13 @@ function calc(lesson, stage){
   if (isAllWordsMode && rateFromBest != null){
     const totalCount = total > 0 ? total : 100;
     const bestAchievedCount = Math.round(rateFromBest * totalCount);
+    const rateFromXY = totalCount > 0 ? (bestAchievedCount / totalCount) : 0;
 
     return {
       total: totalCount,
-      mastered: rateFromBest * totalCount,
+      mastered: bestAchievedCount,
       masteredDisplay: bestAchievedCount,
-      rate: rateFromBest
+      rate: clamp(rateFromXY, 0, 1)
     };
   }
 
