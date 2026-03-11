@@ -466,6 +466,9 @@ font-size: var(--reviewWordMaxPx);
       font-weight:900;
       font-size: var(--reviewWordMaxPx);
       line-height:1.15;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:clip;
       pointer-events:none;
       box-shadow:none;
       user-select:none;
@@ -5885,6 +5888,18 @@ function adjustReviewVerticalLayout(){
   }
 }
 
+function fitQuizPromptButtonOneLine(){
+  if (!quizPromptBtn || quizPromptBtn.style.display === "none") return;
+
+  let fs = REVIEW_WORD_BASE_PX;
+  quizPromptBtn.style.fontSize = `${fs}px`;
+
+  while (fs > REVIEW_WORD_MIN_PX && (quizPromptBtn.scrollWidth > quizPromptBtn.clientWidth + 1)){
+    fs -= 1;
+    quizPromptBtn.style.fontSize = `${fs}px`;
+  }
+}
+
 function applyReviewPromptLayout(){
   if (!quizWord) return;
 
@@ -5897,16 +5912,28 @@ function applyReviewPromptLayout(){
     if (isPreStage){
       quizPromptBtn.textContent = quizWord.textContent || "";
       quizPromptBtn.style.display = "block";
+      quizPromptBtn.style.fontSize = "";
+      requestAnimationFrame(fitQuizPromptButtonOneLine);
       quizWord.style.display = "none";
     } else {
       quizPromptBtn.textContent = "";
       quizPromptBtn.style.display = "none";
+      quizPromptBtn.style.fontSize = "";
       quizWord.style.display = "";
     }
   }
 
   // reset
   quizWord.classList.toggle("oneLine", shouldFitOneLine);
+
+  if (isPreStage){
+    if (quizExample){
+      quizExample.textContent = "";
+      quizExample.style.display = "none";
+      quizExample.style.top = "";
+    }
+    return;
+  }
 
   if (!shouldFitOneLine){
     // 通常は元の見た目に戻す
@@ -6293,6 +6320,7 @@ function renderQuestionJson(j){
   if (quizPromptBtn){
     quizPromptBtn.textContent = "";
     quizPromptBtn.style.display = "none";
+    quizPromptBtn.style.fontSize = "";
   }
   stopQuestionTimer();
   _questionShownAt = 0;
