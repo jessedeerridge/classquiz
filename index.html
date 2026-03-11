@@ -5539,6 +5539,15 @@ function getSessionAnswerAccuracyPct(){
   return Math.round((correct / asked) * 100);
 }
 
+function getReviewLiveAccuracyPct(){
+  if (!SESSION || SESSION.stage !== "review") return 0;
+  ensureReviewOrder();
+  const total = Array.isArray(SESSION.reviewOrder) ? SESSION.reviewOrder.length : 0;
+  if (total <= 0) return 0;
+  const correct = clamp(Number(SESSION.correct) || 0, 0, total);
+  return Math.round((correct / total) * 100);
+}
+
 function getCurrentStageMasteredPct(){
   if (!STAGE_POOL || !Array.isArray(STAGE_POOL.words) || !SESSION || SESSION.stage === "review") return 0;
   const total = STAGE_POOL.words.length;
@@ -7625,7 +7634,7 @@ function updateReviewBallsRealtimeOnAnswer(){
   const key = `${CURRENT.name}|${SELECTED_GRADE}|${normLesson(CURRENT.lesson)}`;
   const prev = _quizReviewBallPrev.get(key) ?? 0;
 
-  const accPct = getSessionAnswerAccuracyPct();
+  const accPct = getReviewLiveAccuracyPct();
   const bestPct = Math.max(Number(SESSION.reviewLiveBestPct) || 0, accPct);
   SESSION.reviewLiveBestPct = bestPct;
 
