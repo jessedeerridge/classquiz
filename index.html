@@ -1872,9 +1872,11 @@ const QUIZ_SESSION_RULES = {
   masteredCorrectCount: 3,
   unachievedMaxShows: 6,
   endTotalWrongs: 8,
-  prioritizeUnmasteredWhenTotalAtLeast: 31,
+  allWordsModeMaxTotal: 35,
   minimumQuestionPoolSize: 30,
-  unmasteredOnlyCapWhenLarge: 35,
+  deferredMasteredMinUnmastered: 1,
+  deferredMasteredMaxUnmastered: 29,
+  deferredMasteredRequiredAchievedRate: 0.80,
 };
 
 const REVIEW_SESSION_RULES = {
@@ -3800,6 +3802,8 @@ function calc(lesson, stage){
   const stageObj = (wG[lesson] && wG[lesson][stage] && typeof wG[lesson][stage]==="object") ? wG[lesson][stage] : {};
   const wordIds = Object.keys(stageObj);
   const total = wordIds.length;
+  const allWordsModeMax = Math.max(1, Number(QUIZ_SESSION_RULES.allWordsModeMaxTotal) || 35);
+  const isAllWordsMode = total > 0 && total <= allWordsModeMax;
   const pStage = (pG[lesson] && pG[lesson][stage] && typeof pG[lesson][stage]==="object") ? pG[lesson][stage] : {};
 
   // x/y表示用の「mastered語数」は、実際の単語進捗から数える
@@ -3818,11 +3822,12 @@ function calc(lesson, stage){
 
   if (rateFromBest != null){
     const totalCount = total > 0 ? total : 100;
+    const bestAchievedCount = Math.round(rateFromBest * totalCount);
 
     return {
       total: totalCount,
       mastered: rateFromBest * totalCount,
-      masteredDisplay: masteredCount,
+      masteredDisplay: isAllWordsMode ? bestAchievedCount : masteredCount,
       rate: rateFromBest
     };
   }
@@ -5243,6 +5248,23 @@ function computePlannedCount(meta, stage){
   return Math.min(total, Math.trunc(n)) * Math.max(1, QUIZ_RULES.repeatPerWord|0);
 }
 function startSession(lesson, stage, meta){
+  const total = (STAGE_POOL && Array.isArray(STAGE_POOL.words)) ? STAGE_POOL.words.length : 0;
+  const allWordsModeMax = Math.max(1, Number(QUIZ_SESSION_RULES.allWordsModeMaxTotal) || 35);
+  const isAllWordsMode = (stage !== "review") && total <= allWordsModeMax;
+  const progress = (STAGE_POOL && STAGE_POOL.prog && typeof STAGE_POOL.prog === "object") ? STAGE_POOL.prog : {};
+  let unmasteredCount = 0;
+  if (stage !== "review"){
+    const words = (STAGE_POOL && Array.isArray(STAGE_POOL.words)) ? STAGE_POOL.words : [];
+    for (const w of words){
+      const id = String(w.id ?? "");
+      if (!id) continue;
+      if (!(progress[id] && progress[id].mastered)) unmasteredCount++;
+    }
+  }
+  const deferMin = Math.max(0, Number(QUIZ_SESSION_RULES.deferredMasteredMinUnmastered) || 1);
+  const deferMax = Math.max(deferMin, Number(QUIZ_SESSION_RULES.deferredMasteredMaxUnmastered) || 29);
+  const shouldDeferMastered = !isAllWordsMode && stage !== "review" && unmasteredCount >= deferMin && unmasteredCount <= deferMax;
+
   SESSION = {
     key: `${CURRENT.name}|${SELECTED_GRADE}|${lesson}|${stage}|${Date.now()}`,
     lesson, stage,
@@ -5258,6 +5280,9 @@ function startSession(lesson, stage, meta){
     reviewOrder: [],
     reviewIndex: 0,
     selectedWordIds: null,
+    isAllWordsMode,
+    shouldDeferMastered,
+    pendingMasteredIds: new Set(),
   };
 }
 
@@ -5269,8 +5294,8 @@ function buildSessionWordIdsForStage(){
   if (CURRENT.stage === "review") return allIds;
 
   const total = allWords.length;
-  const threshold = Math.max(1, Number(QUIZ_SESSION_RULES.prioritizeUnmasteredWhenTotalAtLeast) || 31);
-  if (total < threshold) return allIds;
+  const allWordsModeMax = Math.max(1, Number(QUIZ_SESSION_RULES.allWordsModeMaxTotal) || 35);
+  if (total <= allWordsModeMax) return allIds;
 
   const progress = (STAGE_POOL.prog && typeof STAGE_POOL.prog === "object") ? STAGE_POOL.prog : {};
   const unmastered = [];
@@ -5285,17 +5310,19 @@ function buildSessionWordIdsForStage(){
   }
 
   const minPool = Math.max(1, Number(QUIZ_SESSION_RULES.minimumQuestionPoolSize) || 30);
-  const largeUnmasteredCap = Math.max(minPool, Number(QUIZ_SESSION_RULES.unmasteredOnlyCapWhenLarge) || 35);
 
-  // ✅ 総数31語以上かつ未達成語が35語以上なら、未達成語からランダム35語だけを今回の出題対象にする
-  if (unmastered.length >= largeUnmasteredCap){
+  if (unmastered.length >= minPool){
     const sampled = unmastered.slice();
     shuffleInPlace(sampled);
-    return sampled.slice(0, largeUnmasteredCap);
+    return sampled.slice(0, minPool);
   }
 
-  // ✅ それ以外で未達成語が30語以上なら、未達成語を優先して出題する
-  if (unmastered.length >= minPool || !mastered.length){
+  if (!unmastered.length){
+    const sampledMastered = mastered.slice();
+    shuffleInPlace(sampledMastered);
+    return sampledMastered.slice(0, minPool);
+  }
+  if (!mastered.length){
     return unmastered;
   }
 
@@ -5409,6 +5436,10 @@ function applyWordAnswerStats(wordId, isCorrect, isFast){
     }
     return;
   }
+  if (SESSION?.shouldDeferMastered && (stats.correct || 0) >= QUIZ_SESSION_RULES.masteredCorrectCount){
+    if (!(SESSION.pendingMasteredIds instanceof Set)) SESSION.pendingMasteredIds = new Set();
+    SESSION.pendingMasteredIds.add(String(wordId || ""));
+  }
   if (stats.fast >= QUIZ_SESSION_RULES.masteredFastCount || stats.correct >= QUIZ_SESSION_RULES.masteredCorrectCount){
     stats.achieved = true;
   }
@@ -5470,12 +5501,81 @@ function pickFallbackWordId(excludeId){
   return candidates[0]?.id || null;
 }
 
+function getSessionAchievedPct(){
+  if (!SESSION) return 0;
+  ensureSessionWordStats();
+  const ids = Array.isArray(SESSION.wordIds) ? SESSION.wordIds.filter(Boolean) : [];
+  const total = Math.max(1, ids.length);
+  let achieved = 0;
+  ids.forEach((id)=>{
+    const s = SESSION.wordStats?.get(String(id));
+    if (s?.achieved) achieved++;
+  });
+  return Math.round((achieved / total) * 100);
+}
+
+function getCurrentStageMasteredPct(){
+  if (!STAGE_POOL || !Array.isArray(STAGE_POOL.words) || !SESSION || SESSION.stage === "review") return 0;
+  const total = STAGE_POOL.words.length;
+  if (total <= 0) return 0;
+  const prog = (STAGE_POOL.prog && typeof STAGE_POOL.prog === "object") ? STAGE_POOL.prog : {};
+  let mastered = 0;
+  STAGE_POOL.words.forEach((w)=>{
+    const id = String(w.id ?? "");
+    if (id && prog[id] && prog[id].mastered) mastered++;
+  });
+  return Math.round((mastered / total) * 100);
+}
+
+function getSessionResultPct({ achievedPct, masteredPct }){
+  if (!SESSION || SESSION.stage === "review") return achievedPct;
+  if (SESSION.isAllWordsMode) return achievedPct;
+  if (SESSION.shouldDeferMastered) return achievedPct;
+  return masteredPct;
+}
+
+function shouldSkipProgressUpdateForDeferredMode(achievedPct){
+  if (!SESSION || !SESSION.shouldDeferMastered || SESSION.stage === "review") return false;
+  const threshold = Math.round((Number(QUIZ_SESSION_RULES.deferredMasteredRequiredAchievedRate) || 0.80) * 100);
+  return achievedPct < threshold;
+}
+
+async function commitDeferredMasteredIfNeeded(achievedPct){
+  if (!SESSION || !SESSION.shouldDeferMastered || SESSION.stage === "review") return;
+  if (shouldSkipProgressUpdateForDeferredMode(achievedPct)) return;
+  const pending = Array.from(SESSION.pendingMasteredIds || []);
+  if (!pending.length) return;
+  const sk = STUDENT?.studentKey;
+  if (!sk) return;
+  const g = SELECTED_GRADE;
+  const lesson = CURRENT.lesson;
+  const stage = CURRENT.stage;
+  for (const wid of pending){
+    const path = P.progressWord(sk, g, lesson, stage, wid);
+    await runTransaction(ref(db, path), (cur)=>{
+      const now = nowTs();
+      const base = (cur && typeof cur === "object") ? cur : { correctCount:0, wrongCount:0, mastered:false, lastAt:0 };
+      base.mastered = true;
+      base.lastAt = now;
+      return base;
+    });
+    if (STAGE_POOL){
+      STAGE_POOL.prog = STAGE_POOL.prog || {};
+      const cur = (STAGE_POOL.prog[wid] && typeof STAGE_POOL.prog[wid] === "object") ? STAGE_POOL.prog[wid] : {};
+      cur.mastered = true;
+      cur.lastAt = nowTs();
+      STAGE_POOL.prog[wid] = cur;
+    }
+  }
+}
+
 
 function openSessionResult(){
   if (!SESSION) return;
 
-  const totalAsked = Math.max(1, SESSION.asked || 0);
-  const pct = Math.round((SESSION.correct || 0) / totalAsked * 100);
+  const achievedPct = getSessionAchievedPct();
+  const masteredPct = getCurrentStageMasteredPct();
+  const pct = getSessionResultPct({ achievedPct, masteredPct });
 
   // ✅ まず表示をリセット
   if (sessionReward){
@@ -5499,7 +5599,13 @@ function openSessionResult(){
   // ✅ ベスト％をDBに保存（最大値だけ残す）
   (async ()=>{
     try{
-      await apiSaveBestStage(CURRENT.name, SELECTED_GRADE, SESSION.lesson, SESSION.stage, pct);
+      await commitDeferredMasteredIfNeeded(achievedPct);
+      if (!shouldSkipProgressUpdateForDeferredMode(achievedPct)){
+        const savePct = (SESSION.stage === "review" || SESSION.isAllWordsMode)
+          ? achievedPct
+          : getCurrentStageMasteredPct();
+        await apiSaveBestStage(CURRENT.name, SELECTED_GRADE, SESSION.lesson, SESSION.stage, savePct);
+      }
       // ベスト更新があり得るので、一覧側の表示も追従
       defer(()=> refreshLessons().catch(()=>{}));
     }catch(_){}
@@ -6335,7 +6441,11 @@ async function submitAnswer(text, chosenBtnEl){
   (async ()=>{
     try{
       const sessionStats = getSessionWordStats(snapshot.word_id);
-      const markMastered = !!(sessionStats && (sessionStats.correct || 0) >= QUIZ_SESSION_RULES.masteredCorrectCount);
+      const markMastered = !!(
+        sessionStats &&
+        (sessionStats.correct || 0) >= QUIZ_SESSION_RULES.masteredCorrectCount &&
+        !SESSION?.shouldDeferMastered
+      );
       const j = await apiAnswer(snapshot.name, snapshot.word_id, snapshot.chosen, { markMastered });
       if (!j || !j.ok){
         defer(()=> setResult(`保存失敗（背景処理）：${(j && j.error) || "unknown"}`, false));
