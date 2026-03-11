@@ -5859,6 +5859,26 @@ function adjustReviewVerticalLayout(){
   }
 }
 
+function positionPromptAboveFirstOption(){
+  if (!quizStage || !quizWord || !optGrid) return;
+
+  const firstOption = optGrid.querySelector(".optBtn");
+  if (!firstOption) return;
+
+  const stageRect = quizStage.getBoundingClientRect();
+  const firstOptionRect = firstOption.getBoundingClientRect();
+  const wordRect = quizWord.getBoundingClientRect();
+  if (!stageRect.height || !firstOptionRect.height || !wordRect.height) return;
+
+  const topPadding = 88;
+  const gap = 12;
+  const safeBottom = (firstOptionRect.top - stageRect.top) - gap;
+  const desiredCenterY = safeBottom - (wordRect.height / 2);
+  const nextCenterY = Math.max(topPadding, desiredCenterY);
+
+  quizWord.style.top = `${Math.round(nextCenterY)}px`;
+}
+
 function applyReviewPromptLayout(){
   if (!quizWord) return;
 
@@ -5921,6 +5941,11 @@ function applyReviewPromptLayout(){
     quizWord.style.wordBreak = "break-word";
     quizWord.style.overflowWrap = "anywhere";
     quizWord.style.textOverflow = "clip";
+  }
+
+  // pre1/pre2は「1つ目の選択肢の上辺」を基準に問題文を配置
+  if (!isReview){
+    requestAnimationFrame(positionPromptAboveFirstOption);
   }
 
   // 例文（reviewのみ表示）
