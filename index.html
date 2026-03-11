@@ -5859,6 +5859,28 @@ function adjustReviewVerticalLayout(){
   }
 }
 
+function positionPromptAboveThirdOption(){
+  if (!quizStage || !quizWord || !optGrid) return;
+
+  const stage = String(CURRENT.stage || "");
+  if (stage !== "pre1" && stage !== "pre2") return;
+
+  const optionButtons = [...optGrid.querySelectorAll(".optBtn")];
+  if (optionButtons.length < 3) return;
+
+  const stageRect = quizStage.getBoundingClientRect();
+  const thirdRect = optionButtons[2].getBoundingClientRect();
+  const wordRect = quizWord.getBoundingClientRect();
+  if (!stageRect.height || !thirdRect.height || !wordRect.height) return;
+
+  const gap = 12;
+  const safeTopCenter = 84 + (wordRect.height / 2);
+  const maxCenterByOption = (thirdRect.top - stageRect.top) - gap - (wordRect.height / 2);
+  const nextCenter = Math.max(safeTopCenter, maxCenterByOption);
+
+  quizWord.style.top = `${Math.round(nextCenter)}px`;
+}
+
 function applyReviewPromptLayout(){
   if (!quizWord) return;
 
@@ -5940,6 +5962,11 @@ function applyReviewPromptLayout(){
       if (isReview) requestAnimationFrame(adjustReviewVerticalLayout);
     }
   }
+
+  if (stage === "pre1" || stage === "pre2"){
+    requestAnimationFrame(positionPromptAboveThirdOption);
+  }
+
   applyReviewOptionLayout();
 }
 
@@ -6325,7 +6352,10 @@ requestAnimationFrame(applyReviewPromptLayout);
     optGrid.appendChild(b);
   });
 
-  requestAnimationFrame(applyReviewOptionLayout);
+  requestAnimationFrame(()=>{
+    applyReviewOptionLayout();
+    applyReviewPromptLayout();
+  });
   _questionShownAt = performance.now();
   startQuestionTimer(CURRENT.stage === "review" ? REVIEW_QT_MS : QT_MS);
 }
