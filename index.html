@@ -455,6 +455,31 @@ font-size: var(--reviewWordMaxPx);
       z-index:3;
     }
 
+    .quizPromptBtn{
+      width:100%;
+      padding:0;
+      border:0;
+      border-radius:0;
+      background:transparent;
+      color: var(--quizTextColor);
+      text-align:center;
+      font-weight:900;
+      font-size: var(--reviewWordMaxPx);
+      line-height:1.15;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:clip;
+      pointer-events:none;
+      box-shadow:none;
+      user-select:none;
+    }
+
+    .optGrid{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
     .optBtn{
       width:100%;
       padding:14px 14px;
@@ -1643,7 +1668,10 @@ font-size: var(--reviewWordMaxPx);
           <div class="dropletLayer" id="dropletLayer" aria-hidden="true"></div>
           <div class="quizCenterWord" id="quizWord"></div>
 <div class="quizExample" id="quizExample" style="display:none"></div>
-          <div class="quizOptions" id="optGrid"></div>
+          <div class="quizOptions" id="quizOptions">
+            <button class="quizPromptBtn" id="quizPromptBtn" type="button" style="display:none"></button>
+            <div class="optGrid" id="optGrid"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -2346,6 +2374,7 @@ const lessonInfo = document.getElementById("lessonInfo");
 const stageBadge = document.getElementById("stageBadge");
 const hint = document.getElementById("hint");
 const quizWord = document.getElementById("quizWord");
+const quizPromptBtn = document.getElementById("quizPromptBtn");
 const optGrid = document.getElementById("optGrid");
 const quizResult = document.getElementById("quizResult");
 const btnNext = document.getElementById("btnNext");
@@ -5859,15 +5888,52 @@ function adjustReviewVerticalLayout(){
   }
 }
 
+function fitQuizPromptButtonOneLine(){
+  if (!quizPromptBtn || quizPromptBtn.style.display === "none") return;
+
+  let fs = REVIEW_WORD_BASE_PX;
+  quizPromptBtn.style.fontSize = `${fs}px`;
+
+  while (fs > REVIEW_WORD_MIN_PX && (quizPromptBtn.scrollWidth > quizPromptBtn.clientWidth + 1)){
+    fs -= 1;
+    quizPromptBtn.style.fontSize = `${fs}px`;
+  }
+}
+
 function applyReviewPromptLayout(){
   if (!quizWord) return;
 
   const stage = String(CURRENT.stage || "");
   const isReview = (stage === "review");
+  const isPreStage = (stage === "pre1" || stage === "pre2");
   const shouldFitOneLine = ONE_LINE_FIT_STAGES.has(stage);
+
+  if (quizPromptBtn){
+    if (isPreStage){
+      quizPromptBtn.textContent = quizWord.textContent || "";
+      quizPromptBtn.style.display = "block";
+      quizPromptBtn.style.fontSize = "";
+      requestAnimationFrame(fitQuizPromptButtonOneLine);
+      quizWord.style.display = "none";
+    } else {
+      quizPromptBtn.textContent = "";
+      quizPromptBtn.style.display = "none";
+      quizPromptBtn.style.fontSize = "";
+      quizWord.style.display = "";
+    }
+  }
 
   // reset
   quizWord.classList.toggle("oneLine", shouldFitOneLine);
+
+  if (isPreStage){
+    if (quizExample){
+      quizExample.textContent = "";
+      quizExample.style.display = "none";
+      quizExample.style.top = "";
+    }
+    return;
+  }
 
   if (!shouldFitOneLine){
     // 通常は元の見た目に戻す
@@ -6251,6 +6317,11 @@ async function nextQuestionFast(forceFresh=false){
 function renderQuestionJson(j){
   clearOptions();
   quizWord.textContent = "";
+  if (quizPromptBtn){
+    quizPromptBtn.textContent = "";
+    quizPromptBtn.style.display = "none";
+    quizPromptBtn.style.fontSize = "";
+  }
   stopQuestionTimer();
   _questionShownAt = 0;
   syncDropletColorToGauge();
