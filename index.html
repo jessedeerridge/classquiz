@@ -3812,7 +3812,8 @@ function calc(lesson, stage){
     if (pStage[wid] && pStage[wid].mastered) masteredCount++;
   }
 
-  // ✅ 1) ベスト％があればそれを採用（これが本命）
+  // ✅ all-wordsモードだけはベスト％を優先（achieved運用）
+  //    大語彙(>=36語)ではmastered実数で達成率を出す
   const bStage = (bG[lesson] && bG[lesson][stage] && typeof bG[lesson][stage] === "object")
     ? bG[lesson][stage]
     : null;
@@ -3820,14 +3821,14 @@ function calc(lesson, stage){
   const bestPct = bStage ? Number(bStage.bestPct) : null;
   const rateFromBest = (Number.isFinite(bestPct)) ? clamp(bestPct/100, 0, 1) : null;
 
-  if (rateFromBest != null){
+  if (isAllWordsMode && rateFromBest != null){
     const totalCount = total > 0 ? total : 100;
     const bestAchievedCount = Math.round(rateFromBest * totalCount);
 
     return {
       total: totalCount,
       mastered: rateFromBest * totalCount,
-      masteredDisplay: isAllWordsMode ? bestAchievedCount : masteredCount,
+      masteredDisplay: bestAchievedCount,
       rate: rateFromBest
     };
   }
