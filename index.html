@@ -5822,7 +5822,9 @@ function positionQuizExampleUnderWord(){
 
 function adjustReviewVerticalLayout(){
   if (!quizStage || !quizWord || !optGrid) return;
-  if (CURRENT.stage !== "review"){
+  const isReview = (CURRENT.stage === "review");
+  const isPre = (CURRENT.stage === "pre1" || CURRENT.stage === "pre2");
+  if (!isReview && !isPre){
     quizWord.style.top = "";
     return;
   }
@@ -5836,7 +5838,12 @@ function adjustReviewVerticalLayout(){
   const exampleRect = hasExample ? quizExample.getBoundingClientRect() : null;
 
   const safeTop = 88;
-  const safeBottom = (optionRect.top - stageRect.top) - 12;
+  const optionButtons = [...optGrid.querySelectorAll(".optBtn")];
+  const thirdButton = optionButtons[2]?.getBoundingClientRect?.();
+  const avoidRectTop = (isPre && thirdButton)
+    ? thirdButton.top
+    : optionRect.top;
+  const safeBottom = (avoidRectTop - stageRect.top) - 12;
   const currentCenterY = (wordRect.top - stageRect.top) + (wordRect.height / 2);
 
   const afterWordNeed = hasExample
