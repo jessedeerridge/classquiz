@@ -5812,6 +5812,7 @@ function applyReviewOptionLayout(){
   if (!btns.length) return;
 
   if (!isReview){
+    optGrid.style.bottom = "";
     btns.forEach((btn)=>{
       btn.style.whiteSpace = "";
       btn.style.overflow = "";
@@ -5839,16 +5840,23 @@ function applyReviewOptionLayout(){
       btn.style.fontSize = `${fs}px`;
     }
   });
+
+  // reviewで選択肢が3個のときは少し上げて、例文と重なりにくくする
+  optGrid.style.bottom = (btns.length === 3) ? "28px" : "";
 }
 
 function positionQuizExampleUnderWord(){
-  if (!quizStage || !quizWord || !quizExample) return;
+  if (!quizStage || !quizWord || !quizExample || !optGrid) return;
   if (quizExample.style.display === "none") return;
 
   const stageRect = quizStage.getBoundingClientRect();
   const wordRect  = quizWord.getBoundingClientRect();
+  const optRect   = optGrid.getBoundingClientRect();
 
-  const top = (wordRect.bottom - stageRect.top) + 10; // 10px下に
+  const desiredTop = (wordRect.bottom - stageRect.top) + 10; // 10px下に
+  const exampleHeight = quizExample.offsetHeight;
+  const maxTop = (optRect.top - stageRect.top) - exampleHeight - 12;
+  const top = Math.max(0, Math.min(desiredTop, maxTop));
   quizExample.style.top = `${Math.round(top)}px`;
 }
 
