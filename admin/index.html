@@ -888,7 +888,7 @@
           <div class="space"></div>
           <div class="muted" id="stuMsg">読み込み待ち…</div>
         </div>
-        <div class="small" id="progressExportMsg" style="margin-bottom:10px">選択した学年の全学生を、pre1・pre2の総達成度が高い順にテキストで保存します。</div>
+        <div class="small" id="progressExportMsg" style="margin-bottom:10px">選択した学年の全学生について、各課のpre1・pre2達成度を総達成度が高い順にテキストで保存します。</div>
 
         <div style="overflow:auto">
           <table>
@@ -3757,15 +3757,20 @@
     return { total, mastered, rate };
   }
 
-  function formatProgressExport(grade, classLabel, rows){
+  function formatProgressExport(grade, classLabel, lessons, rows){
     const heading = `${classLabel}（学年${grade}）`;
-    const header = "名前・pre1達成度・pre2達成度・総達成度";
-    const lines = rows.map(row => [
-      row.name || "(no name)",
-      pctText01(row.pre1.rate),
-      pctText01(row.pre2.rate),
-      pctText01(row.total.rate)
-    ].join("・"));
+    const lessonHeaders = lessons.flatMap(lesson => [
+      `${lessonExportLabel(lesson)}pre1`,
+      `${lessonExportLabel(lesson)}pre2`
+    ]);
+    const header = ["名前", ...lessonHeaders, "総達成度"].join("・");
+    const lines = rows.map(row => {
+      const lessonRates = lessons.flatMap(lesson => [
+        pctText01(row.perLesson[lesson].pre1.rate),
+        pctText01(row.perLesson[lesson].pre2.rate)
+      ]);
+      return [row.name || "(no name)", ...lessonRates, pctText01(row.total.rate)].join("・");
+    });
     return [heading, header, ...lines].join("\n");
   }
 
@@ -3801,8 +3806,16 @@
       const rows = await Promise.all(students.map(async student => {
         let progress = {};
         try{ progress = await dbGet(P.progressGrade(student.studentKey, grade)) || {}; }catch(e){}
+        const perLesson = {};
+        for (const lesson of lessons){
+          perLesson[lesson] = {
+            pre1: stageStats(wordsGradeObj, progress, lesson, "pre1"),
+            pre2: stageStats(wordsGradeObj, progress, lesson, "pre2")
+          };
+        }
         return {
           ...student,
+          perLesson,
           pre1: sumStageAllLessons(wordsGradeObj, progress, lessons, "pre1"),
           pre2: sumStageAllLessons(wordsGradeObj, progress, lessons, "pre2"),
           total: sumStagesAllLessons(wordsGradeObj, progress, lessons, ["pre1", "pre2"])
@@ -3816,7 +3829,7 @@
         (b.lastSeenAt - a.lastSeenAt)
       );
 
-      const text = formatProgressExport(grade, classLabel, rows);
+      const text = formatProgressExport(grade, classLabel, lessons, rows);
       const safeLabel = classLabel.replace(/[\\/:*?"<>|]/g, "_");
       downloadTextFile(`${safeLabel}_達成度一覧.txt`, text);
       progressExportMsg.textContent = `${classLabel}の学生${rows.length}人を、総達成度が高い順にエクスポートしました。`;
