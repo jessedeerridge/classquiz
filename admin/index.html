@@ -76,6 +76,30 @@
     button{padding:10px 14px;border:0;border-radius:12px;background:#111;color:#fff;cursor:pointer}
     button.secondary{background:#5b6472}
     button.ghost{background:#fff;color:#111;border:1px solid #ccc}
+    .firebase-control{
+      position:fixed;
+      top:max(8px, env(safe-area-inset-top, 0px));
+      left:max(8px, env(safe-area-inset-left, 0px));
+      z-index:10000;
+      display:flex;
+      align-items:center;
+      gap:7px;
+      padding:4px 8px 4px 4px;
+      border-radius:10px;
+      background:rgba(255,255,255,.92);
+      box-shadow:0 2px 10px rgba(0,0,0,.22);
+      color:#111;
+      font-size:13px;
+      font-weight:700;
+    }
+    .firebase-control button{
+      width:32px;
+      height:32px;
+      padding:0;
+      border-radius:8px;
+      font-weight:900;
+    }
+    .firebase-control button:disabled{ opacity:.55; cursor:default; }
     .card{background:#fff;border:1px solid #eee;border-radius:14px;padding:14px;margin:12px 0}
     .muted{opacity:.7;font-size:13px}
     .ok{color:#0a7a2f}
@@ -1530,6 +1554,10 @@ font-size: var(--reviewWordMaxPx);
 </head>
 
 <body>
+<div class="firebase-control" aria-label="Firebase接続状態">
+  <button id="firebaseDisconnect" type="button" aria-describedby="firebaseConnectionStatus">D</button>
+  <span id="firebaseConnectionStatus" role="status" aria-live="polite">接続中</span>
+</div>
 <main>
   <section id="studentSec">
 
@@ -1724,7 +1752,7 @@ font-size: var(--reviewWordMaxPx);
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getDatabase, ref, get, set, update, runTransaction } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+import { getDatabase, ref, get, set, update, runTransaction, goOffline } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
 /* =========================
    ✅ Firebase（Realtime Database）
@@ -1741,6 +1769,15 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+
+const firebaseDisconnect = document.getElementById("firebaseDisconnect");
+const firebaseConnectionStatus = document.getElementById("firebaseConnectionStatus");
+firebaseDisconnect.addEventListener("click", ()=>{
+  goOffline(db);
+  firebaseConnectionStatus.textContent = "遮断中";
+  firebaseDisconnect.disabled = true;
+  firebaseDisconnect.setAttribute("aria-pressed", "true");
+});
 
 function delay(ms){
   return new Promise(resolve => setTimeout(resolve, ms));
