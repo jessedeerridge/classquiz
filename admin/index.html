@@ -877,6 +877,7 @@
         <h2>学生管理</h2>
         <div class="space"></div>
 
+        <button class="btn" id="btnExportProgress" type="button">達成度をエクスポート</button>
         <button class="btn secondary" id="btnMode" type="button">review表示</button>
         <button class="btn secondary" id="btnRefreshStudents" type="button">更新</button>
       </div>
@@ -887,6 +888,7 @@
           <div class="space"></div>
           <div class="muted" id="stuMsg">読み込み待ち…</div>
         </div>
+        <div class="small" id="progressExportMsg" style="margin-bottom:10px">選択した学年の全学生について、各課のpre1・pre2達成度を総達成度が高い順にテキストで保存します。</div>
 
         <div style="overflow:auto">
           <table>
@@ -915,10 +917,15 @@
       <div class="cardHead">
         <h2>登録リスト</h2>
         <div class="space"></div>
+        <div style="min-width:140px">
+          <select id="exportGradeSel" aria-label="エクスポートするクラス"></select>
+        </div>
+        <button class="btn" id="btnExportWords" type="button">クラス一括エクスポート</button>
         <button class="btn secondary" id="btnReloadWordCatalog" type="button">更新</button>
       </div>
       <div class="cardBody">
         <div class="small" id="wordCatalogMsg">学年を開いて、課とクイズを順に確認できます。</div>
+        <div class="small" id="wordExportMsg" style="margin-top:6px">選択したクラスの全課（pre1・pre2）をテキストで保存します。</div>
         <div class="wordCatalog" style="margin-top:10px">
           <details class="wordFold" open>
             <summary class="wordFoldHead">
@@ -1357,6 +1364,8 @@
   const btnGradeSettingsReload = $("btnGradeSettingsReload");
   const gradeBtns = $("gradeBtns");
   const btnRefreshStudents = $("btnRefreshStudents");
+  const btnExportProgress = $("btnExportProgress");
+  const progressExportMsg = $("progressExportMsg");
   const btnMode = $("btnMode");
   const stuMsg = $("stuMsg");
   const stuThead = $("stuThead");
@@ -1380,6 +1389,9 @@
   const wordsMsg = $("wordsMsg");
   const wordsTbody = $("wordsTbody");
   const btnReloadWordCatalog = $("btnReloadWordCatalog");
+  const exportGradeSel = $("exportGradeSel");
+  const btnExportWords = $("btnExportWords");
+  const wordExportMsg = $("wordExportMsg");
   const wordCatalogMsg = $("wordCatalogMsg");
   const wordGradeList = $("wordGradeList");
   const wordGradeCount = $("wordGradeCount");
@@ -1566,6 +1578,20 @@
     const cfg = gradeDisplay?.[g];
     const lbl = String(cfg?.label ?? g).trim();
     return lbl || String(g);
+  }
+  function renderExportGradeOptions(){
+    if (!exportGradeSel) return;
+    const selected = String(exportGradeSel.value || currentGrade);
+    exportGradeSel.innerHTML = "";
+    for (let g=1; g<=MAX_GRADE; g++){
+      const option = document.createElement("option");
+      option.value = String(g);
+      option.textContent = `${gradeLabelForDisplay(g)}（クラス${g}）`;
+      exportGradeSel.appendChild(option);
+    }
+    exportGradeSel.value = [...exportGradeSel.options].some(option => option.value === selected)
+      ? selected
+      : "1";
   }
   function renderGradeSelectorButtons(){
     gradeBtns.innerHTML = "";
@@ -3565,11 +3591,13 @@
       const raw = await dbGet(P.gradeButtons()) || {};
       gradeDisplay = normalizeGradeSettings(raw);
       renderGradeSettingsRows(gradeDisplay);
+      renderExportGradeOptions();
       renderGradeSelectorButtons();
       gradeSettingsMsg.textContent = "読み込みOK：保存後は学生画面を再読込してください";
     }catch(e){
       gradeDisplay = defaultGradeSettings();
       renderGradeSettingsRows(gradeDisplay);
+      renderExportGradeOptions();
       renderGradeSelectorButtons();
       gradeSettingsMsg.textContent = "読み込み失敗（DBルール/ネット制限）";
     }
@@ -3593,6 +3621,7 @@
       gradeSettingsMsg.textContent = "保存OK：学生画面を再読込してください";
       gradeDisplay = normalizeGradeSettings(payload);
       renderGradeSelectorButtons();
+      renderExportGradeOptions();
     }catch(e){
       gradeSettingsMsg.textContent = "保存失敗（DBルール/ネット制限）";
     }
@@ -3619,6 +3648,75 @@
     _wordsCacheByGrade.set(grade, wg);
     return wg;
   }
+
+  function lessonExportLabel(lesson){
+    const value = String(lesson || "").trim();
+    return /課$/.test(value) ? value : `${value}課`;
+  }
+
+  function formatWordExportLine(rawWord){
+    const entry = (rawWord && typeof rawWord === "object") ? rawWord : {};
+    const meaningParsed = splitTextAndFurigana(String(entry.meaning || ""));
+    const meaning = meaningParsed.text;
+    const furigana = String(entry.meaningFurigana || meaningParsed.furigana || "").trim();
+    const normalized = normalizeDbWrongsAndExample(
+      Array.isArray(entry.wrongs) ? entry.wrongs : [],
+      entry.example
+    );
+    const wrongs = normalizeWrongsAndFurigana(normalized.wrongs, entry.wrongFurigana).wrongs.slice(0, 3);
+    const answer = furigana ? `${meaning}（${furigana}）` : meaning;
+    const fields = [String(entry.word || "").trim(), answer, ...wrongs].filter(Boolean);
+    return `${fields.join("・")}${normalized.example ? `：${normalized.example}` : ""}`;
+  }
+
+  function buildClassWordExport(wordsGradeObj, classLabel){
+    const sections = [];
+    for (const lesson of parseLessonKeys(wordsGradeObj)){
+      for (const stage of ["pre1", "pre2"]){
+        const stageObj = wordsGradeObj?.[lesson]?.[stage];
+        if (!stageObj || typeof stageObj !== "object") continue;
+        const lines = Object.values(stageObj).map(formatWordExportLine).filter(Boolean);
+        if (!lines.length) continue;
+        sections.push(`${classLabel}（${lessonExportLabel(lesson)}${stage}）\n${lines.join("\n")}`);
+      }
+    }
+    return sections.join("\n\n");
+  }
+
+  function downloadTextFile(filename, contents){
+    const blob = new Blob(["\uFEFF", contents], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(()=> URL.revokeObjectURL(url), 0);
+  }
+
+  btnExportWords.onclick = async ()=>{
+    const grade = String(exportGradeSel.value || "1");
+    const classLabel = gradeLabelForDisplay(grade);
+    wordExportMsg.textContent = "エクスポート用データを読み込み中…";
+    btnExportWords.disabled = true;
+    try{
+      _wordsCacheByGrade.delete(grade);
+      const wordsGradeObj = await getWordsGradeCached(grade);
+      const text = buildClassWordExport(wordsGradeObj, classLabel);
+      if (!text){
+        wordExportMsg.textContent = "対象のpre1・pre2に単語がありません。";
+        return;
+      }
+      const safeLabel = classLabel.replace(/[\\/:*?"<>|]/g, "_");
+      downloadTextFile(`${safeLabel}_単語一覧.txt`, text);
+      wordExportMsg.textContent = `${classLabel}の全課（pre1・pre2）をエクスポートしました。`;
+    }catch(e){
+      wordExportMsg.textContent = "エクスポート失敗（DBルール/ネット制限）";
+    }finally{
+      btnExportWords.disabled = false;
+    }
+  };
 
   function stageStats(wordsGradeObj, progressGradeObj, lesson, stage){
     const wStage = (wordsGradeObj?.[lesson]?.[stage]) || {};
@@ -3658,6 +3756,89 @@
     const rate = total>0 ? clamp(mastered/total,0,1) : 0;
     return { total, mastered, rate };
   }
+
+  function formatProgressExport(grade, classLabel, lessons, rows){
+    const heading = `${classLabel}（学年${grade}）`;
+    const lessonHeaders = lessons.flatMap(lesson => [
+      `${lessonExportLabel(lesson)}pre1`,
+      `${lessonExportLabel(lesson)}pre2`
+    ]);
+    const header = ["名前", ...lessonHeaders, "総達成度"].join("・");
+    const lines = rows.map(row => {
+      const lessonRates = lessons.flatMap(lesson => [
+        pctText01(row.perLesson[lesson].pre1.rate),
+        pctText01(row.perLesson[lesson].pre2.rate)
+      ]);
+      return [row.name || "(no name)", ...lessonRates, pctText01(row.total.rate)].join("・");
+    });
+    return [heading, header, ...lines].join("\n");
+  }
+
+  btnExportProgress.onclick = async ()=>{
+    const grade = String(currentGrade || 1);
+    const classLabel = gradeLabelForDisplay(grade);
+    progressExportMsg.textContent = "達成度を集計中…";
+    btnExportProgress.disabled = true;
+    try{
+      _wordsCacheByGrade.delete(grade);
+      const [wordsGradeObj, studentsObj] = await Promise.all([
+        getWordsGradeCached(grade),
+        dbGet(P.studentsRoot()).then(value => value || {})
+      ]);
+      const lessons = parseLessonKeys(wordsGradeObj);
+      if (!lessons.length){
+        progressExportMsg.textContent = "選択した学年に単語がありません。";
+        return;
+      }
+
+      const students = Object.entries(studentsObj)
+        .filter(([, student]) => student && typeof student === "object")
+        .map(([studentKey, student]) => ({
+          studentKey,
+          name: String(student.name || ""),
+          lastSeenAt: Number(student.lastSeenAt || 0)
+        }));
+      if (!students.length){
+        progressExportMsg.textContent = "学生がいません。";
+        return;
+      }
+
+      const rows = await Promise.all(students.map(async student => {
+        let progress = {};
+        try{ progress = await dbGet(P.progressGrade(student.studentKey, grade)) || {}; }catch(e){}
+        const perLesson = {};
+        for (const lesson of lessons){
+          perLesson[lesson] = {
+            pre1: stageStats(wordsGradeObj, progress, lesson, "pre1"),
+            pre2: stageStats(wordsGradeObj, progress, lesson, "pre2")
+          };
+        }
+        return {
+          ...student,
+          perLesson,
+          pre1: sumStageAllLessons(wordsGradeObj, progress, lessons, "pre1"),
+          pre2: sumStageAllLessons(wordsGradeObj, progress, lessons, "pre2"),
+          total: sumStagesAllLessons(wordsGradeObj, progress, lessons, ["pre1", "pre2"])
+        };
+      }));
+      rows.sort((a, b) =>
+        (b.total.rate - a.total.rate) ||
+        (b.pre1.rate - a.pre1.rate) ||
+        (b.pre2.rate - a.pre2.rate) ||
+        a.name.localeCompare(b.name, "ja") ||
+        (b.lastSeenAt - a.lastSeenAt)
+      );
+
+      const text = formatProgressExport(grade, classLabel, lessons, rows);
+      const safeLabel = classLabel.replace(/[\\/:*?"<>|]/g, "_");
+      downloadTextFile(`${safeLabel}_達成度一覧.txt`, text);
+      progressExportMsg.textContent = `${classLabel}の学生${rows.length}人を、総達成度が高い順にエクスポートしました。`;
+    }catch(e){
+      progressExportMsg.textContent = "エクスポート失敗（DBルール/ネット制限）";
+    }finally{
+      btnExportProgress.disabled = false;
+    }
+  };
 
   function buildThead(lessons){
     if (viewMode === "pre"){
