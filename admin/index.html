@@ -877,6 +877,7 @@
         <h2>学生管理</h2>
         <div class="space"></div>
 
+        <button class="btn" id="btnExportProgress" type="button">達成度をエクスポート</button>
         <button class="btn secondary" id="btnMode" type="button">review表示</button>
         <button class="btn secondary" id="btnRefreshStudents" type="button">更新</button>
       </div>
@@ -887,6 +888,7 @@
           <div class="space"></div>
           <div class="muted" id="stuMsg">読み込み待ち…</div>
         </div>
+        <div class="small" id="progressExportMsg" style="margin-bottom:10px">選択した学年の全学生を、pre1・pre2の総達成度が高い順にテキストで保存します。</div>
 
         <div style="overflow:auto">
           <table>
@@ -1362,6 +1364,8 @@
   const btnGradeSettingsReload = $("btnGradeSettingsReload");
   const gradeBtns = $("gradeBtns");
   const btnRefreshStudents = $("btnRefreshStudents");
+  const btnExportProgress = $("btnExportProgress");
+  const progressExportMsg = $("progressExportMsg");
   const btnMode = $("btnMode");
   const stuMsg = $("stuMsg");
   const stuThead = $("stuThead");
@@ -3752,6 +3756,76 @@
     const rate = total>0 ? clamp(mastered/total,0,1) : 0;
     return { total, mastered, rate };
   }
+
+  function formatProgressExport(grade, classLabel, rows){
+    const heading = `${classLabel}（学年${grade}）`;
+    const header = "名前・pre1達成度・pre2達成度・総達成度";
+    const lines = rows.map(row => [
+      row.name || "(no name)",
+      pctText01(row.pre1.rate),
+      pctText01(row.pre2.rate),
+      pctText01(row.total.rate)
+    ].join("・"));
+    return [heading, header, ...lines].join("\n");
+  }
+
+  btnExportProgress.onclick = async ()=>{
+    const grade = String(currentGrade || 1);
+    const classLabel = gradeLabelForDisplay(grade);
+    progressExportMsg.textContent = "達成度を集計中…";
+    btnExportProgress.disabled = true;
+    try{
+      _wordsCacheByGrade.delete(grade);
+      const [wordsGradeObj, studentsObj] = await Promise.all([
+        getWordsGradeCached(grade),
+        dbGet(P.studentsRoot()).then(value => value || {})
+      ]);
+      const lessons = parseLessonKeys(wordsGradeObj);
+      if (!lessons.length){
+        progressExportMsg.textContent = "選択した学年に単語がありません。";
+        return;
+      }
+
+      const students = Object.entries(studentsObj)
+        .filter(([, student]) => student && typeof student === "object")
+        .map(([studentKey, student]) => ({
+          studentKey,
+          name: String(student.name || ""),
+          lastSeenAt: Number(student.lastSeenAt || 0)
+        }));
+      if (!students.length){
+        progressExportMsg.textContent = "学生がいません。";
+        return;
+      }
+
+      const rows = await Promise.all(students.map(async student => {
+        let progress = {};
+        try{ progress = await dbGet(P.progressGrade(student.studentKey, grade)) || {}; }catch(e){}
+        return {
+          ...student,
+          pre1: sumStageAllLessons(wordsGradeObj, progress, lessons, "pre1"),
+          pre2: sumStageAllLessons(wordsGradeObj, progress, lessons, "pre2"),
+          total: sumStagesAllLessons(wordsGradeObj, progress, lessons, ["pre1", "pre2"])
+        };
+      }));
+      rows.sort((a, b) =>
+        (b.total.rate - a.total.rate) ||
+        (b.pre1.rate - a.pre1.rate) ||
+        (b.pre2.rate - a.pre2.rate) ||
+        a.name.localeCompare(b.name, "ja") ||
+        (b.lastSeenAt - a.lastSeenAt)
+      );
+
+      const text = formatProgressExport(grade, classLabel, rows);
+      const safeLabel = classLabel.replace(/[\\/:*?"<>|]/g, "_");
+      downloadTextFile(`${safeLabel}_達成度一覧.txt`, text);
+      progressExportMsg.textContent = `${classLabel}の学生${rows.length}人を、総達成度が高い順にエクスポートしました。`;
+    }catch(e){
+      progressExportMsg.textContent = "エクスポート失敗（DBルール/ネット制限）";
+    }finally{
+      btnExportProgress.disabled = false;
+    }
+  };
 
   function buildThead(lessons){
     if (viewMode === "pre"){
