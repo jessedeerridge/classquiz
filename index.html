@@ -81,7 +81,7 @@
       top:max(8px, env(safe-area-inset-top, 0px));
       left:max(8px, env(safe-area-inset-left, 0px));
       z-index:10000;
-      display:none;
+      display:flex;
       align-items:center;
       gap:7px;
       padding:4px 8px 4px 4px;
@@ -704,22 +704,8 @@ font-size: var(--reviewWordMaxPx);
   border-radius:18px;
   border:1px solid #eee;
   box-shadow:0 24px 70px rgba(0,0,0,.35);
-  padding:58px 16px 56px;
+  padding:18px 16px 56px;
 }
-
-    .sessionMeta{
-      position:absolute;
-      top:14px;
-      right:16px;
-      max-width:calc(100% - 32px);
-      color:#111;
-      font-size:14px;
-      font-weight:900;
-      line-height:1.35;
-      text-align:right;
-      white-space:pre-line;
-      overflow-wrap:anywhere;
-    }
 
     .sessionCenter{
       text-align:center;
@@ -1596,7 +1582,7 @@ font-size: var(--reviewWordMaxPx);
 
 <body>
 <div class="firebase-control" aria-label="Firebase接続状態">
-  <button id="firebaseDisconnect" type="button" aria-describedby="firebaseConnectionStatus" aria-pressed="true" hidden>切断</button>
+  <button id="firebaseDisconnect" type="button" aria-describedby="firebaseConnectionStatus" aria-pressed="true">切断</button>
   <span id="firebaseConnectionStatus" role="status" aria-live="polite">接続中…</span>
 </div>
 <button class="db-activity-indicator" id="dbActivityIndicator" type="button" role="status" aria-live="polite" aria-label="DB送受信未成功" title="DB送受信未成功">╌ / ╌</button>
@@ -1688,7 +1674,6 @@ font-size: var(--reviewWordMaxPx);
 <!-- ✅ セッション結果モーダル（要求仕様版） -->
 <div class="modalBack" id="sessionBack" aria-label="session result">
   <div class="modal" role="dialog" aria-modal="true">
-    <div class="sessionMeta" id="sessionMeta"></div>
     <div class="sessionCenter">
       <div class="line1">結果！</div>
       <div class="line2" id="sessionPct">--%</div>
@@ -3482,7 +3467,6 @@ const qTimerFg = document.getElementById("qTimerFg");
 /* ✅ セッション結果DOM */
 const sessionBack = document.getElementById("sessionBack");
 const sessionPct  = document.getElementById("sessionPct");
-const sessionMeta = document.getElementById("sessionMeta");
 const sessionReward = document.getElementById("sessionReward");
 const wrongList   = document.getElementById("wrongList");
 const btnSessionClose = document.getElementById("btnSessionClose");
@@ -6451,12 +6435,6 @@ function openSessionResult(){
   if (!SESSION) return;
 
   const pct = Math.round(getSessionAchievementRate() * 100);
-
-  if (sessionMeta){
-    const grade = COURSE[Number(SELECTED_GRADE)]?.label || gradeLabel(SELECTED_GRADE);
-    const stageNumber = SESSION.stage === "pre1" ? "1" : SESSION.stage === "pre2" ? "2" : stageLabel(SESSION.stage);
-    sessionMeta.textContent = `${CURRENT.name}\n(${grade})${SESSION.lesson}-${stageNumber}`;
-  }
 
   // ✅ まず表示をリセット
   if (sessionReward){
