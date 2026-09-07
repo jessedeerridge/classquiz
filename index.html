@@ -9,8 +9,6 @@
     :root{
       --gameW: 390px;
       --gameH: 700px;
-      --stageW: min(var(--gameW), calc(100vw - 32px));
-      --stageH: min(var(--gameH), calc(100dvh - 32px));
 --reviewWordMaxPx: 30px;
       --inventory-row: 84px;
       --inventory-gap: 4px;
@@ -58,29 +56,16 @@
     /* ✅クイズ画面のbody.bg（指定どおり） */
     body.quiz-bg{ background:#D1C1BB; color:#111; }
 
-    /* ✅ 入室画面だけ店内写真を表示（スマホ枠に固定） */
+    /* ✅ 入室画面だけ店内写真を表示 */
     body.name-bg{
-      background:#f7f7fb;
+      background: url("shopkeeper.jpg") center top / cover no-repeat fixed;
       color:#fff;
     }
 
     body.name-bg main{
       min-height:100dvh;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:16px;
+      padding-bottom:max(90px, calc(env(safe-area-inset-bottom, 0px) + 90px));
       box-sizing:border-box;
-    }
-
-    body.name-bg #studentSec{
-      position:relative;
-      width:var(--stageW);
-      height:var(--stageH);
-      border-radius:18px;
-      overflow:hidden;
-      background:url("shopkeeper.jpg") center top / cover no-repeat;
-      box-shadow:0 18px 42px rgba(0,0,0,.35);
     }
 
     main{max-width:960px;margin:0 auto;padding:16px}
@@ -91,6 +76,52 @@
     button{padding:10px 14px;border:0;border-radius:12px;background:#111;color:#fff;cursor:pointer}
     button.secondary{background:#5b6472}
     button.ghost{background:#fff;color:#111;border:1px solid #ccc}
+    .firebase-control{
+      position:fixed;
+      top:max(8px, env(safe-area-inset-top, 0px));
+      left:max(8px, env(safe-area-inset-left, 0px));
+      z-index:10000;
+      display:none;
+      align-items:center;
+      gap:7px;
+      padding:4px 8px 4px 4px;
+      border-radius:10px;
+      background:rgba(255,255,255,.92);
+      box-shadow:0 2px 10px rgba(0,0,0,.22);
+      color:#111;
+      font-size:13px;
+      font-weight:700;
+    }
+    .firebase-control button{
+      width:auto;
+      min-width:48px;
+      height:32px;
+      padding:0;
+      border-radius:8px;
+      font-weight:900;
+    }
+    .firebase-control button:disabled{ opacity:.55; cursor:default; }
+    .db-activity-indicator{
+      position:fixed;
+      top:max(8px, env(safe-area-inset-top, 0px));
+      right:max(8px, env(safe-area-inset-right, 0px));
+      z-index:10000;
+      width:auto;
+      min-width:30px;
+      height:18px;
+      display:grid;
+      place-items:center;
+      font-size:11px;
+      line-height:1;
+      padding:0;
+      border:0;
+      border-radius:50%;
+      background:transparent;
+      color:inherit;
+      cursor:default;
+      opacity:.55;
+      user-select:none;
+    }
     .card{background:#fff;border:1px solid #eee;border-radius:14px;padding:14px;margin:12px 0}
     .muted{opacity:.7;font-size:13px}
     .ok{color:#0a7a2f}
@@ -102,7 +133,7 @@
     .student-top{
       display:flex; flex-direction:column; gap:12px;
       max-width:200px;
-      margin:clamp(385px, 60%, 460px) auto 0;
+      margin:clamp(260px, 54vh, 62vh) auto 0;
       padding:0;
       background:transparent;
       border:0;
@@ -164,8 +195,8 @@
 
     .lesson-stage{
       position:relative;
-      width: var(--stageW);
-      height:var(--stageH);
+      width: min(var(--gameW), calc(100vw - 32px));
+      height:min(var(--gameH), calc(100vh - 32px));
       margin: 0 auto;
 
       background:#FFCCCC;
@@ -174,25 +205,6 @@
       overflow:hidden;
       box-shadow:0 18px 42px rgba(0,0,0,.55);
     }
-
-    .lesson-preparing-pop{
-      position:absolute;
-      left:50%;
-      top:50%;
-      transform:translate(-50%, -50%);
-      z-index:40;
-      background:rgba(0,0,0,.74);
-      color:#fff;
-      font-weight:900;
-      letter-spacing:.02em;
-      border-radius:12px;
-      padding:10px 18px;
-      box-shadow:0 8px 22px rgba(0,0,0,.28);
-      opacity:0;
-      pointer-events:none;
-      transition:opacity .16s ease;
-    }
-    .lesson-preparing-pop.show{ opacity:1; }
 
 
     .lesson-chara{
@@ -352,8 +364,8 @@
 
     .quiz-stage{
       position:relative;
-      width: var(--stageW);
-      height:var(--stageH);
+      width: min(var(--gameW), calc(100vw - 32px));
+      height:min(var(--gameH), calc(100vh - 32px));
       margin: 0 auto;
 
       background:
@@ -379,7 +391,7 @@
       z-index:1;
     }
 
-    /* ✅ reviewクイズ用：画面下に溜まる黒丸レイヤー */
+    /* ✅ pre2クイズ用：画面下に溜まる黒丸レイヤー */
     .reviewBallSvg{
       position:absolute;
       inset:0;
@@ -390,11 +402,9 @@
     }
 
     .quizCenterWord{
-      --reviewWordScaleX: 1;
       position:absolute;
       left:50%; top:calc(70% - 15px);
-      transform:translate(-50%,-50%) scaleX(var(--reviewWordScaleX));
-      transform-origin: center center;
+      transform:translate(-50%,-50%);
       width: calc(100% - 40px);
       text-align:center;
       color: var(--quizTextColor);
@@ -411,6 +421,8 @@ font-size: var(--reviewWordMaxPx);
 ========================= */
 .quizCenterWord.oneLine{
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; /* 最低サイズでも収まらない時の保険 */
 }
 
 /* ✅ review問題の下：例文を小さく表示 */
@@ -427,12 +439,9 @@ font-size: var(--reviewWordMaxPx);
   color: var(--quizTextColor);
   opacity:.70;
 
-  padding:8px 12px;
+  padding:8px 10px;
   border-radius:12px;
-  background: rgba(255,255,255,.18);
-  border:0;
-  box-shadow:none;
-  backdrop-filter: blur(1.5px);
+  background: rgba(0,0,0,.05);
 
   /* 例文は複数行OK */
   white-space: pre-wrap;
@@ -453,31 +462,6 @@ font-size: var(--reviewWordMaxPx);
       flex-direction:column;
       gap:10px;
       z-index:3;
-    }
-
-    .quizPromptBtn{
-      width:100%;
-      padding:0;
-      border:0;
-      border-radius:0;
-      background:transparent;
-      color: var(--quizTextColor);
-      text-align:center;
-      font-weight:900;
-      font-size: var(--reviewWordMaxPx);
-      line-height:1.15;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:clip;
-      pointer-events:none;
-      box-shadow:none;
-      user-select:none;
-    }
-
-    .optGrid{
-      display:flex;
-      flex-direction:column;
-      gap:10px;
     }
 
     .optBtn{
@@ -621,7 +605,6 @@ font-size: var(--reviewWordMaxPx);
     .stagePop .sbtn:hover{ border-color:#999; }
     .stagePop .sbtn.pre1{ background:#f6f8ff; }
     .stagePop .sbtn.pre2{ background:#f6fff8; }
-    .stagePop .sbtn.review{ background:#fff7f6; }
     .stagePop .sbtn:disabled{ opacity:.35; cursor:default; }
 
     .sbtn .label{
@@ -721,8 +704,22 @@ font-size: var(--reviewWordMaxPx);
   border-radius:18px;
   border:1px solid #eee;
   box-shadow:0 24px 70px rgba(0,0,0,.35);
-  padding:18px 16px 56px;
+  padding:58px 16px 56px;
 }
+
+    .sessionMeta{
+      position:absolute;
+      top:14px;
+      right:16px;
+      max-width:calc(100% - 32px);
+      color:#111;
+      font-size:14px;
+      font-weight:900;
+      line-height:1.35;
+      text-align:right;
+      white-space:pre-line;
+      overflow-wrap:anywhere;
+    }
 
     .sessionCenter{
       text-align:center;
@@ -1392,6 +1389,12 @@ font-size: var(--reviewWordMaxPx);
   color:#111;
   word-break:break-word;
 }
+#flashBack .flashMeaning ruby{ ruby-position:over; }
+#flashBack .flashMeaning rt{
+  font-size:11px;
+  font-weight:700;
+  color:#666;
+}
 #flashBack .flashWord{
   font-weight:900;
   font-size:17px;
@@ -1592,6 +1595,11 @@ font-size: var(--reviewWordMaxPx);
 </head>
 
 <body>
+<div class="firebase-control" aria-label="Firebase接続状態">
+  <button id="firebaseDisconnect" type="button" aria-describedby="firebaseConnectionStatus" aria-pressed="true" hidden>切断</button>
+  <span id="firebaseConnectionStatus" role="status" aria-live="polite">接続中…</span>
+</div>
+<button class="db-activity-indicator" id="dbActivityIndicator" type="button" role="status" aria-live="polite" aria-label="DB送受信未成功" title="DB送受信未成功">╌ / ╌</button>
 <main>
   <section id="studentSec">
 
@@ -1619,24 +1627,20 @@ font-size: var(--reviewWordMaxPx);
     <div id="lessonListBox" style="display:none">
       <div class="lesson-stage" id="lessonList">
         <svg class="lesson-svg" id="lessonSvg" aria-label="lesson menu"></svg>
-        <div class="lesson-preparing-pop" id="lessonPreparingPop" aria-live="polite">準備中...</div>
 
 
-        <!-- ✅ 予習復習選択ポップ（縦並び） -->
+        <!-- 単語ステージ選択ポップ（縦並び） -->
         <div class="stagePop" id="stagePop" aria-label="stage chooser">
           <div class="title" id="stagePopTitle">課</div>
           <div class="btnRow">
             <button class="sbtn pre1"   id="btnStagePre1"   type="button">
               <span class="label">単語1 <span class="icon">🥛</span></span>
-              <span class="progress" id="stagePre1Progress"> --/--語</span>
+              <span class="progress" id="stagePre1Progress">--%</span>
             </button>
             <button class="sbtn pre2"   id="btnStagePre2"   type="button">
-              <span class="label">単語2 <span class="icon">🥛</span></span>
-              <span class="progress" id="stagePre2Progress"> --/--語</span>
-            </button>
-            <button class="sbtn review" id="btnStageReview" type="button">
-              <span class="label">復習</span>
+              <span class="label">単語2</span>
               <span class="dots5" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+              <span class="progress" id="stagePre2Progress">--%</span>
             </button>
           </div>
         </div>
@@ -1662,16 +1666,13 @@ font-size: var(--reviewWordMaxPx);
         <div class="quiz-stage" id="quizStage" aria-label="quiz stage">
           <svg class="quizProgressSvg" id="quizProgressSvg" aria-hidden="true"></svg>
 
-          <!-- ✅ reviewクイズ：黒丸が溜まるレイヤー -->
+          <!-- ✅ pre2クイズ：黒丸が溜まるレイヤー -->
           <svg class="reviewBallSvg" id="reviewBallSvg" aria-hidden="true"></svg>
 
           <div class="dropletLayer" id="dropletLayer" aria-hidden="true"></div>
           <div class="quizCenterWord" id="quizWord"></div>
 <div class="quizExample" id="quizExample" style="display:none"></div>
-          <div class="quizOptions" id="quizOptions">
-            <button class="quizPromptBtn" id="quizPromptBtn" type="button" style="display:none"></button>
-            <div class="optGrid" id="optGrid"></div>
-          </div>
+          <div class="quizOptions" id="optGrid"></div>
         </div>
       </div>
     </div>
@@ -1687,6 +1688,7 @@ font-size: var(--reviewWordMaxPx);
 <!-- ✅ セッション結果モーダル（要求仕様版） -->
 <div class="modalBack" id="sessionBack" aria-label="session result">
   <div class="modal" role="dialog" aria-modal="true">
+    <div class="sessionMeta" id="sessionMeta"></div>
     <div class="sessionCenter">
       <div class="line1">結果！</div>
       <div class="line2" id="sessionPct">--%</div>
@@ -1789,39 +1791,117 @@ font-size: var(--reviewWordMaxPx);
 
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getDatabase, ref, get, set, update, runTransaction } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
 /* =========================
    ✅ Firebase（Realtime Database）
 ========================= */
 const firebaseConfig = {
-  apiKey: "AIzaSyARne6Jb4ePPe7vbvLryE_P-jZ2umI3LFc",
-  authDomain: "kakapo-8d297.firebaseapp.com",
-  databaseURL: "https://kakapo-8d297-default-rtdb.firebaseio.com",
-  projectId: "kakapo-8d297",
-  storageBucket: "kakapo-8d297.firebasestorage.app",
-  messagingSenderId: "702767130857",
-  appId: "1:702767130857:web:54472c8d5ea09bd3cf6878"
+ apiKey: "AIzaSyCaLCM4TXURROKyDKD_Mga8ZnWr1-Wk9Wg",
+  authDomain: "database-s-9e4b3.firebaseapp.com",
+  databaseURL: "https://database-s-9e4b3-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "database-s-9e4b3",
+  storageBucket: "database-s-9e4b3.firebasestorage.app",
+  messagingSenderId: "13648984683",
+  appId: "1:13648984683:web:c782d2963c253df69b8f2e",
+  measurementId: "G-FV2NMNQW4C"
 };
+let db = null;
+let ref, get, set, update, runTransaction, goOffline, goOnline;
+let _firebaseLoadPromise = null;
+let DB_CONNECTION_ENABLED = true;
+let DB_ACTIVITY_EPOCH = 0;
+let DB_ACTIVITY_SUCCEEDED = false;
+let DB_ACTIVITY_SESSION_ACTIVE = false;
+const dbActivityIndicator = document.getElementById("dbActivityIndicator");
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+function renderDbActivityIndicator(){
+  dbActivityIndicator.textContent = DB_ACTIVITY_SUCCEEDED ? "╌✧╌" : "╌ / ╌";
+  const label = DB_ACTIVITY_SUCCEEDED ? "DB送受信成功済み" : "DB送受信未成功";
+  dbActivityIndicator.setAttribute("aria-label", label);
+  dbActivityIndicator.title = label;
+}
+function resetDbActivityIndicator(){
+  DB_ACTIVITY_EPOCH++;
+  DB_ACTIVITY_SUCCEEDED = false;
+  renderDbActivityIndicator();
+}
+function startDbActivitySession(){
+  DB_ACTIVITY_SESSION_ACTIVE = true;
+  resetDbActivityIndicator();
+}
+function endDbActivitySession(){
+  DB_ACTIVITY_SESSION_ACTIVE = false;
+  resetDbActivityIndicator();
+}
+function markDbActivitySucceeded(epoch){
+  if (!DB_ACTIVITY_SESSION_ACTIVE || !DB_CONNECTION_ENABLED || epoch !== DB_ACTIVITY_EPOCH) return;
+  DB_ACTIVITY_SUCCEEDED = true;
+  renderDbActivityIndicator();
+}
+
+function ensureFirebaseReady(){
+  if (!DB_CONNECTION_ENABLED) return Promise.reject(new Error("db_connection_disabled"));
+  if (db) return Promise.resolve(db);
+  if (_firebaseLoadPromise) return _firebaseLoadPromise;
+  _firebaseLoadPromise = Promise.all([
+    import("https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"),
+    import("https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js")
+  ]).then(([appApi, dbApi])=>{
+    const app = appApi.initializeApp(firebaseConfig);
+    ({ ref, get, set, update, runTransaction, goOffline, goOnline } = dbApi);
+    db = dbApi.getDatabase(app);
+    firebaseConnectionStatus.textContent = "接続可能";
+    return db;
+  }).catch(error=>{
+    _firebaseLoadPromise = null; // ホームへ戻った時に再試行できるようにする
+    firebaseConnectionStatus.textContent = "オフライン";
+    throw error;
+  });
+  return _firebaseLoadPromise;
+}
+
+const firebaseDisconnect = document.getElementById("firebaseDisconnect");
+const firebaseConnectionStatus = document.getElementById("firebaseConnectionStatus");
+firebaseDisconnect.addEventListener("click", async ()=>{
+  DB_CONNECTION_ENABLED = !DB_CONNECTION_ENABLED;
+  firebaseDisconnect.setAttribute("aria-pressed", String(DB_CONNECTION_ENABLED));
+  firebaseDisconnect.textContent = DB_CONNECTION_ENABLED ? "切断" : "接続";
+  if (!DB_CONNECTION_ENABLED){
+    if (db && goOffline) goOffline(db);
+    firebaseConnectionStatus.textContent = "非接続";
+    return;
+  }
+  firebaseConnectionStatus.textContent = "接続中…";
+  try{
+    await ensureFirebaseReady();
+    if (db && goOnline) goOnline(db);
+    await syncCachedProgressToDb(STUDENT.studentKey);
+    if (IN_ROOM) await refreshLessons();
+  }catch(e){
+    firebaseConnectionStatus.textContent = "接続失敗（端末保存）";
+  }
+});
 
 function delay(ms){
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 async function dbGet(path, options={}){
+  const activityEpoch = DB_ACTIVITY_EPOCH;
   const timeoutMs = Number.isFinite(options.timeoutMs) ? options.timeoutMs : 5000;
   const retries = Number.isFinite(options.retries) ? options.retries : 2;
 
   let lastError = null;
   for (let attempt = 0; attempt <= retries; attempt++){
     try{
+      await Promise.race([
+        ensureFirebaseReady(),
+        new Promise((_, reject)=> setTimeout(()=> reject(new Error("firebase_load_timeout")), timeoutMs))
+      ]);
       const snap = await Promise.race([
         get(ref(db, path)),
         new Promise((_, reject)=> setTimeout(()=> reject(new Error("db_get_timeout")), timeoutMs))
       ]);
+      markDbActivitySucceeded(activityEpoch);
       return snap.exists() ? snap.val() : null;
     }catch(e){
       lastError = e;
@@ -1834,10 +1914,23 @@ async function dbGet(path, options={}){
   throw lastError || new Error("db_get_failed");
 }
 async function dbSet(path, value){
+  const activityEpoch = DB_ACTIVITY_EPOCH;
+  await ensureFirebaseReady();
   await set(ref(db, path), value);
+  markDbActivitySucceeded(activityEpoch);
 }
 async function dbUpdate(path, patch){
+  const activityEpoch = DB_ACTIVITY_EPOCH;
+  await ensureFirebaseReady();
   await update(ref(db, path), patch);
+  markDbActivitySucceeded(activityEpoch);
+}
+async function dbRunTransaction(databaseRef, transactionUpdate){
+  const activityEpoch = DB_ACTIVITY_EPOCH;
+  await ensureFirebaseReady();
+  const result = await runTransaction(databaseRef, transactionUpdate);
+  markDbActivitySucceeded(activityEpoch);
+  return result;
 }
 
 function nowTs(){ return Date.now(); }
@@ -1846,11 +1939,9 @@ const STUDENT = { studentKey: null };
 
 const P = {
   students: (studentKey)=> `students/${studentKey}`,
-  wordsStage: (grade, lesson, stage)=> `words/${grade}/${lesson}/${stage}`,
   progressStage: (studentKey, grade, lesson, stage)=> `progress/${studentKey}/${grade}/${lesson}/${stage}`,
   progressWord: (studentKey, grade, lesson, stage, wordId)=> `progress/${studentKey}/${grade}/${lesson}/${stage}/${wordId}`,
   lessonStageDone: (studentKey, grade, lesson, stage)=> `lessonProgress/${studentKey}/${grade}/${lesson}/${stage}`,
-  wordsGrade: (grade)=> `words/${grade}`,
   bestStage: (studentKey, grade, lesson, stage)=> `bestProgress/${studentKey}/${grade}/${lesson}/${stage}`,
   asa: (studentKey)=> `asa/${studentKey}`,
 
@@ -1900,22 +1991,1013 @@ const QUIZ_SESSION_RULES = {
   masteredCorrectCount: 3,
   unachievedMaxShows: 6,
   endTotalWrongs: 8,
-  allWordsModeMaxTotal: 35,
-  minimumQuestionPoolSize: 30,
-  deferredMasteredMinUnmastered: 1,
-  deferredMasteredMaxUnmastered: 29,
-  deferredMasteredRequiredAchievedRate: 0.70,
-};
-
-const REVIEW_SESSION_RULES = {
-  rounds: 2,
-  timerMs: 10000,
-  achievedCorrectCount: 2,
+  randomStageMinWords: 40,
+  randomStageMinRate: 0.60,
+  randomStageSize: 30,
 };
 
 const DEBUG_STAGE_RATES = false;
-const DEFAULT_MAX_GRADE = 8;
-const GRADE_SETTINGS_PATH = "settings/gradeButtons";
+/*
+ * 教材は Firebase に置かない。追加・修正はこの定数だけを編集する。
+ * localStorage のキーに教材の版を含めないことで、教材を追加しても生徒の
+ * 名前・学年・進捗キャッシュは消えない。
+ */
+const COURSE = Object.freeze({
+  1: { label:"Ⅰ", lessons:["1","2","3","4","5","6","7"] },
+  2: { label:"Ⅱ", lessons:["8","9","10","11","12","13","14","15"] },
+  3: { label:"Ⅲ", lessons:["1","2","3","4","5","6","7"] },
+  4: { label:"Ⅳ", lessons:["8","9","10","11","12","13","14","15"] },
+});
+
+const WORDS = Object.freeze({
+/* =========================
+  　クラス1
+========================= */
+  1: {
+    "1": {
+      pre1: [
+        "洗澡・お風呂（おふろ）・ところ・くもり：",
+        "建筑・建物（たてもの）・つくえ・かわ：",
+        "生活・生活（せいかつ）・さんせい・たいど：",
+        "不擅长・苦手（にがて）・ざんねん・とくい：",
+        "右边・右（みぎ）・ひだり, まえ：右に曲がってください。（请向右转。）",
+        "客人・お客（きゃく）さん・みなさん、としょかん・お客さんがたくさん来ました。（来了很多客人。）",
+        "带路・案内（あんない）する・かんこうする・としょかん：みなさんを図書館に案内します。（带大家去图书馆。）",
+        "带回去・持（も）って帰（かえ）ります・ほん・にもつ：この本を持って帰ります。（把这本书带回去。）",
+        "早上・朝（あさ）・よる・ひる：毎朝七時に起きます。（每天早上七点起床。）",
+        "朋友・友達（ともだち）・せんせい・かぞく：友達と映画を見ました。（和朋友看了电影。）",
+        "学习・勉強（べんきょう）する・りょこうする・りょうりする：図書館で日本語を勉強します。（在图书馆学习日语。）",
+        "车站・駅（えき）・みせ・がっこう：駅で母を待ちます。（在车站等妈妈。）",
+      ],
+      pre2: [
+        "天气・天気（てんき）・でんき・げんき：今日はいい天気です。（今天天气很好。）",
+        "食物・食（た）べ物（もの）・のみもの・くだもの：好きな食べ物は何ですか。（你喜欢什么食物？）",
+        "工作・仕事（しごと）・やすみ・べんきょう：父は東京で仕事をしています。（爸爸在东京工作。）",
+        "附近・近（ちか）く・とおく・となり：近くにコンビニがあります。（附近有便利店。）",
+      ],
+      review: [],
+    },
+  },
+2: {
+"8": {
+  pre1: [
+    "住・住（す）みます・います・はたらきます：私は東京に住んでいます。（我住在东京。）",
+    "妻子・妻（つま）・あに・りょうしん：妻は親切です。（我妻子很亲切。）",
+    "有（人・动物）・います・すみます・はたらきます：弟がいます。（我有弟弟。）",
+    "……个人・～人（にん）・～ひき・～ほん：家族は四人です。（家里有四个人。）",
+    "……只（猫が2...）・～匹（ひき）・～だい・～えん：猫が二匹います。（有两只猫。）",
+    "车・車（くるま）・びょういん・ぎんこう：車があります。（有车。）",
+    "公司・会社（かいしゃ）・びょういん・ぎんこう：会社で働いています。（在公司工作。）",
+    "工作・働（はたら）きます・すみます・います：会社で働いています。（在公司工作。）",
+    "哥哥・兄（あに）・おとうと・いもうと：兄は医者です。（我哥哥是医生。）",
+    "弟弟・弟（おとうと）・あに・いもうと：弟は高校生です。（我弟弟是高中生。）",
+    "妹妹・妹（いもうと）・あね・おとうと：妹は英語が上手です。（我妹妹擅长英语。）",
+    "姐姐・姉（あね）・いもうと・あに：姉は教師です。（我姐姐是老师。）",
+    "父母・両親（りょうしん）・つま・ルームメイト：両親は会社で働いています。（我父母在公司工作。）",
+    "室友・ルームメイト・りょうしん・つま：ルームメイトは親切です。（室友很亲切。）",
+    "一个人/独自・一人（ひとり）で・だれ・ルームメイト：一人で住んでいます。（一个人住。）",
+    "狗・犬（いぬ）・ねこ・くるま：犬はかわいいです。（狗很可爱。）",
+    "猫・猫（ねこ）・いぬ・くるま：猫は白いです。（猫是白色的。）",
+    "银行・銀行（ぎんこう）・かいしゃ・びょういん：銀行でアルバイトをしています。（在银行打工。）",
+    "打工・アルバイト・いしゃ・きょうし：銀行でアルバイトをしています。（在银行打工。）",
+    "医生・医者（いしゃ）・きょうし・びょういん：兄は医者です。（我哥哥是医生。）",
+    "医院・病院（びょういん）・ぎんこう・かいしゃ：病院で働いています。（在医院工作。）",
+    "教师・教師（きょうし）・いしゃ・こうこう：姉は教師です。（我姐姐是老师。）",
+    "高中・高校（こうこう）・びょういん・かいしゃ：弟は高校生です。（我弟弟是高中生。）",
+    "画・絵（え）・うた・えいご：絵が上手です。（擅长画画。）",
+    "擅长・上手（じょうず）・はやい・しんせつ：英語が上手です。（擅长英语。）",
+    "英语・英語（えいご）・うた・え：英語が上手です。（擅长英语。）",
+    "谁・誰（だれ）・どんな・ひとりで：あの人は誰ですか。（那个人是谁？）",
+    "网球・テニス・うた・え：テニスが上手です。（擅长网球。）",
+    "婚礼・結婚式（けっこんしき）・びょういん・かいしゃ：結婚式は楽しかったです。（婚礼很开心。）",
+    "个子/身高・背（せ）・かお・あたま：背が高いです。（个子高。）",
+    "高・高（たか）い・ちかい・くろい：背が高いです。（个子高。）",
+    "眼睛・目（め）・おかね・おさら：目が大きいです。（眼睛很大。）",
+    "头发・髪（かみ）・ねこ・ちから：髪が長いです。（头发很长。）",
+    "长・長（なが）い・みじかい・たかい：髪が長いです。（头发很长。）",
+    "短・短（みじか）い・ながい・しろい：足が短いです。（腿很短。）",
+    "歌・歌（うた）・え・テニス：歌が下手です。（不擅长唱歌。）",
+    "不擅长・下手（へた）・じょうず・やさしい：歌が下手です。（不擅长唱歌。）",
+    "黑・黒（くろ）い・かわいい・あつい：髪は黒いです。（头发是黑的。）",
+    "棕色・茶色（ちゃいろ）い・くろい・しろい：犬は茶色いです。（狗是棕色的。）",
+    "身体/体格・体（からだ）・おさら・くし：体が大きいです。（体格很大。）",
+    "嘴・口（くち）・まくら・ふくろ：口が小さいです。（嘴巴很小。）",
+    "鼻子・鼻（はな）・おと・かお：鼻が高いです。（鼻子高。）",
+    "腿/脚・足（あし）・はっぱ・みみ：足が長いです。（腿很长。）",
+    "脸・顔（かお）・つち・かみ：顔がかわいいです。（脸很可爱。）",
+    "头・頭（あたま）・はこ・いぬ：頭がいいです。（脑子聪明。）",
+    "聪明・頭（あたま）がいい・まじめ・げんき：兄は頭がいいです。（我哥哥很聪明。）",
+    "耳朵・耳（みみ）・て・せん：耳が小さいです。（耳朵很小。）",
+    "白・白（しろ）い・くさい・すずしい：猫は白いです。（猫是白色的。）",
+    "低・低（ひく）い・うすい・さむい：背が低いです。（个子矮。）",
+  ],
+
+  pre2: [
+    "认真・まじめ・しんせつ・げんき：後輩はまじめです。（后辈很认真。）",
+    "温柔・やさしい・くらい・おもしろい：姉はやさしいです。（我姐姐很温柔。）",
+    "有精神/精神好・元気（げんき）・まじめ・しんせつ：後輩は元気です。（后辈很有精神。）",
+    "后辈・後輩（こうはい）・せんぱい・きょうし：後輩はまじめです。（后辈很认真。）",
+    "前辈・先輩（せんぱい）・こうはい・きょうし：先輩は親切です。（前辈很亲切。）",
+    "可爱・かわいい・おもしろい・しんせつ：犬はかわいいです。（狗很可爱。）",
+    "亲切・親切（しんせつ）・まじめ・はやい：ルームメイトは親切です。（室友很亲切。）",
+    "有意思/有趣・おもしろい・かわいい・まじめ：この映画はおもしろいです。（这部电影很有意思。）",
+    "什么样的・どんな・だれ・ひとりで：どんな犬ですか。（是什么样的狗？）",
+    "卡片/贺卡・カード・かさ・メール：友達の誕生日にカードを送ります。（朋友生日的时候送贺卡。）",
+    "伞・傘（かさ）・カード・てがみ：傘を持って行きます。（带伞去。）",
+    "钱・お金（かね）・ノート・メール：お金をもらいました。（收到了钱。）",
+    "袜子・靴下（くつした）・ノート・かさ：靴下をもらいました。（收到了袜子。）",
+    "字典・辞書（じしょ）・ノート・てがみ：辞書をもらいました。（收到了字典。）",
+    "巧克力・チョコレート・カード・プレゼント：チョコレートをあげます。（送巧克力。）",
+    "信・手紙（てがみ）・メール・カード：祖母に手紙を送ります。（给祖母寄信。）",
+    "项链・ネックレス・チョコレート・プレゼント：ネックレスをもらいました。（收到了项链。）",
+    "笔记本・ノート・じしょ・メール：ノートをもらいました。（收到了笔记本。）",
+    "礼物・プレゼント・カード・ネックレス：プレゼントをあげます。（送礼物。）",
+    "电子邮件・メール・てがみ・カード：メールを送ります。（发邮件。）",
+    "祖母・祖母（そぼ）・ともだち・せんせい：祖母に手紙を送ります。（给祖母寄信。）",
+    "圣诞节・クリスマス・バレンタインデー・けっこんしき：クリスマスにプレゼントをもらいました。（圣诞节收到了礼物。）",
+    "婚礼・結婚式（けっこんしき）・クリスマス・たんじょうび：結婚式でカードをもらいました。（在婚礼上收到了贺卡。）",
+    "情人节・バレンタインデー・クリスマス・けっこんしき：バレンタインデーにチョコレートをあげます。（情人节送巧克力。）",
+    "什么・何（なに）・いつ・だれ：何をもらいましたか。（收到了什么？）",
+    "寄/发送・送（おく）ります・きます・なげます：祖母に手紙を送ります。（给祖母寄信。）",
+    "收到・もらいます・とります・いきます：プレゼントをもらいました。（收到了礼物。）",
+    "给/送给・あげます・かきます・みます：友達にノートをあげます。（送给朋友一本笔记本。）",
+    "给我・くれます・おきます・よみます：祖母がカードをくれます。（祖母给我贺卡。）",
+    "打电话・電話（でんわ）します・あんないします・そうじします：祖母に電話します。（给祖母打电话。）",
+    "马上/很快・もうすぐ・とても・すこし：もうすぐクリスマスですね。（马上就到圣诞节了。）",
+    "真好啊・よかったですね・ありがとう・すみません：「プレゼントをもらいました。」「よかったですね。」（“我收到礼物了。”“真好啊。”）",
+  ],
+
+  review: [],
+},
+
+/* =========================
+   ↓Lesson 9
+========================= */
+"9": {
+  pre1: [
+    "话/说话・話（はなし）・くるま・やさい：先生の話をよく聞きます。（我经常听老师讲话。）",
+    "歌舞剧/音乐剧・ミュージカル・ホテル・カメラ：私はミュージカルを見るのが好きです。（我喜欢看音乐剧。）",
+    "动作・アクション・サラダ・パスポート：兄はアクション映画をよく見ます。（哥哥经常看动作片。）",
+    "零食/点心・お菓子（かし）・てがみ・くつした：私はときどきお菓子を食べます。（我有时吃零食。）",
+    "邮票・切手（きって）・とけい・そら：切手を一枚買いました。（我买了一张邮票。）",
+    "古典音乐・クラシック・タオル・エレベーター：父はクラシックをよく聞きます。（爸爸经常听古典音乐。）",
+    "流行音乐・ポップス・レストラン・スーツケース：私はポップスが好きです。（我喜欢流行音乐。）",
+    "小说・小説（しょうせつ）・たまご・みどり：最近この小説を読みました。（最近我读了这本小说。）",
+    "漫画・漫画（まんが）・かばん・はし：弟は漫画を読むのが好きです。（弟弟喜欢看漫画。）",
+    "钓鱼・釣（つ）り・でんき・さくら：父は週末に釣りをします。（爸爸周末去钓鱼。）",
+    "电视剧・ドラマ・チョコレート・エスカレーター：母はドラマをよく見ます。（妈妈经常看电视剧。）",
+    "游泳池・プール・ニュース・アルバイト：夏はプールで泳ぎます。（夏天我在游泳池游泳。）",
+    "最近・最近（さいきん）・きのう・せんげつ：最近あまりテレビを見ません。（最近我不太看电视。）",
+    "…天・…日（にち）・…しゅうかん・…かげつ：日本に一日いました。（在日本待了一天。）",
+    "…个星期・…週間（しゅうかん）・…こ・…にち：一週間に二回ぐらい、テニスをします。（我一周大概打两次网球。）",
+    "…个月・…か月（げつ）・…わ・…にち：一か月に二回ぐらい、映画を見ます。（我一个月大概看两次电影。）",
+    "…年・…年（ねん）・…まい・…つき：私は日本語を三年勉強しています。（我学日语三年了。）",
+    "…次/…回・…回（かい）・…ほん・…にん：この映画を二回見ました。（这部电影我看了两次。）",
+    "…本（…本书）・…冊（さつ）・…まい・…こ：本を三冊買いました。（我买了三本书。）",
+    "游泳・泳（およ）ぎます・たべます・はなします：私は海で泳ぎます。（我在海里游泳。）",
+    "画・かきます・のぼります・つかいます：妹は絵を描きます。（妹妹画画。）",
+    "收集・集（あつ）めます・あらいます・わすれます：私は切手を集めています。（我在收集邮票。）",
+    "开车/驾驶・運転（うんてん）します・しゅくだいします・せつめいします：父は毎日車を運転します。（爸爸每天开车。）",
+    "尤其（是）/特别（是）・特（とく）に・すでに・もっと：私は特に漫画が好きです。（我尤其喜欢漫画。）",
+    "总是・いつも・ちょっと・でも：私はいつも七時に起きます。（我总是七点起床。）",
+    "经常・よく・ちょっと・まだ：私はよく映画を見ます。（我经常看电影。）",
+    "有时・ときどき・まいにち・まだ：私はときどき公園へ行きます。（我有时去公园。）",
+    "不太/不怎么・あまり・ですが・もう：私はあまりテレビを見ません。（我不太看电视。）",
+    "一点也不/完全不・全然（ぜんぜん）・としょかん・たんじょうび：今日は全然寒くないです。（今天一点也不冷。）",
+    "但是/可是・でも・もし・あまり：安いです。でも、あまり好きではありません。（虽然便宜，但是我不太喜欢。）",
+    "只/仅・だけ・それ・とき：水だけ飲みました。（我只喝了水。）",
+    "活动・イベント・ペンダント・ボール：学校のイベントに参加しました。（我参加了学校的活动。）",
+    "竞赛/比赛・コンテスト・カーテン・ネクタイ：日本語のコンテストに出ました。（我参加了日语比赛。）",
+    "书法・書道（しょどう）・てんき・はなび：姉は書道が上手です。（姐姐很擅长书法。）",
+    "潜水・ダイビング・コンビニ・テーブル：私はダイビングをしてみたいです。（我想试试潜水。）",
+    "跳舞・ダンス・ジュース・スカート：妹はダンスが上手です。（妹妹很会跳舞。）",
+    "……俱乐部（例：舞蹈俱乐部）・クラブ・ばなな・ちけっと：私はダンスクラブに入っています。（我加入了舞蹈俱乐部。）",
+    "……班（例：书法班）・教室（きょうしつ）・ゆうがた・のりもの：妹は書道教室に通っています。（妹妹在上书法课。）",
+    "学/学习・習（なら）います・かえります・あそびます：私は先生にピアノを習っています。（我在跟老师学钢琴。）",
+    "骑/乘（交通工具に…）・乗（の）ります・みます・つくります：毎日バスに乗ります。（我每天坐公交车。）",
+    "加入/参加（クラブに…）・入（はい）ります・おきます・ねます：兄はサッカークラブに入っています。（哥哥加入了足球俱乐部。）",
+    "报名/申请（イベントに…）・申（もう）し込（こ）みます・はこびます・けします：イベントに申し込みました。（我报名了活动。）",
+    "会/能・できます・あります・しります：私はスキーができます。（我会滑雪。）",
+    "参加（イベントに…）・参加（さんか）します・りょこうします・れんしゅうします：私は学校のイベントに参加します。（我参加学校的活动。）",
+    "了不起・すごい・きつい・こまかい：あの人はすごいですね。（那个人真了不起啊。）",
+    "各种各样（的）・いろいろな・あたらしい・しずかな：公園でいろいろな花を見ました。（我在公园里看到了各种各样的花。）",
+    "好/擅长・上手（じょうず）・しんせつ・たいせつ：妹はダンスが上手です。（妹妹很擅长跳舞。）",
+  ],
+
+  pre2: [
+    "在留卡・在留（ざいりゅう）カード・りれきしょ・がくせいしょう：在留カードを見せてください。（请出示在留卡。）",
+    "地址・住所（じゅうしょ）・なまえ・しごと：住所を書いてください。（请写上地址。）",
+    "作业・宿題（しゅくだい）・しけん・じゅぎょう：宿題はもう終わりましたか。（作业已经做完了吗？）",
+    "电话号码・電話番号（でんわばんごう）・しゃいんばんごう・あんしょうばんごう：電話番号を教えてください。（请告诉我电话号码。）",
+    "……路（公交车）・～番（ばん）・～かい・～ごう：3番のバスに乗ってください。（请坐3路公交车。）",
+    "告诉/说・言（い）います・ききます・はなします：あとで先生に言います。（我之后会告诉老师。）",
+    "付钱・払（はら）います・ならいます・あらいます：ここでお金を払います。（在这里付钱。）",
+    "下车・降（お）ります・のります・はしります：次の駅で降ります。（我在下一站下车。）",
+    "出示・見（み）せます・かえします・おしえます：学生証を見せます。（我出示学生证。）",
+    "预约・予約（よやく）します・べんきょうします・うんどうします：あしたレストランを予約します。（我明天预订餐厅。）",
+    "怎么・どうやって・いつでも・どこまで：学校へどうやって行きますか。（怎么去学校？）",
+    "总是・いつも・たぶん・かなり：わたしはいつも七時に起きます。（我总是七点起床。）",
+    "经常・よく・まだ・あと：彼はよく図書館へ行きます。（他经常去图书馆。）",
+    "前台・受付（うけつけ）・げんかん・となり：受付はあそこです。（前台在那边。）",
+  ],
+
+  review: [],
+},
+
+/* =========================
+   ↓Lesson 10
+========================= */
+"10": {
+  pre1: [
+    "购物中心・ショッピングモール・イルミネーション・パンフレット：日曜日にショッピングモールへ行きました。（星期天去了购物中心。）",
+    "穿・着（き）ます・みます・かきます：今日は新しい服を着ます。（今天穿新衣服。）",
+    "声音・音（おと）・くすり・みち：外で大きな音がしました。（外面传来了很大的声音。）",
+    "声音・声（こえ）・はし・かど：先生の声が聞こえます。（听得到老师的声音。）",
+    "药・薬（くすり）・こえ・みち：薬を飲みます。（吃药。）",
+    "右边・右（みぎ）・ひだり・まえ：右に曲がってください。（请向右转。）",
+    "左边・左（ひだり）・みぎ・うしろ：学校は左にあります。（学校在左边。）",
+    "拐角・角（かど）・はし・みち：あの角を右へ曲がります。（在那个拐角向右转。）",
+    "十字路口・交差点（こうさてん）・しんごう・いりぐち：交差点で友だちを待ちます。（在十字路口等朋友。）",
+    "红绿灯・信号（しんごう）・こうさてん・でぐち：信号で右に曲がってください。（请在红绿灯那里向右转。）",
+    "桥・橋（はし）・かど・みぎ：あの橋を渡ります。（我过那座桥。）",
+    "路/道路・道（みち）・はし・こえ：この道をまっすぐ行きます。（沿着这条路一直走。）",
+    "第1个・1つ目（め）・いちばん・いちにち：1つ目の信号を左へ曲がります。（在第一个红绿灯左转。）",
+    "找・探（さが）します・のみます・わたります：かばんを探しています。（我在找包。）",
+    "喝・飲（の）みます・ききます・まがります：水を飲みます。（喝水。）",
+    "拐弯（右に...）・曲（ま）がります・わかります・おります：ここを左に曲がります。（在这里向左转。）",
+    "过・渡（わた）ります・すわります・はいります：橋を渡ります。（过桥。）",
+    "能听见・聞（き）こえます・みえます・おくれます：鳥の声が聞こえます。（听得见鸟叫声。）",
+    "能看见・見（み）えます・きこえます・すてます：富士山が見えます。（看得见富士山。）",
+    "一直・まっすぐ・ゆっくり・しっかり：まっすぐ行ってください。（请一直往前走。）",
+    "不太/不怎么・よく～ない・まだ～ない・もう～ない：日本語はよくわからないです。（不太明白日语。）",
+    "一下・ちょっと・ずっと・きっと：ちょっと待ってください。（请稍等一下。）",
+    "嗯……・ええと・なるほど・たしかに：ええと、名前をもう一度お願いします。（嗯……请再说一遍您的名字。）",
+    "窗帘・カーテン・ショッピングモール・パンフレット：カーテンを閉めてください。（请把窗帘拉上。）",
+    "客人・お客（きゃく）さん・みなさん・かあさん：お客さんがたくさん来ました。（来了很多客人。）",
+    "垃圾・ごみ・にもつ・くすり：ごみを捨ててください。（请把垃圾扔掉。）",
+    "手・手（て）・かお・ほね：手を洗ってください。（请洗手。）",
+    "行李・荷物（にもつ）・くすり・てぶくろ：荷物を持って帰ります。（把行李带回去。）",
+    "宣传册/小册子・パンフレット・イルミネーション・ショッピングモール：駅でパンフレットをもらいました。（在车站拿到了宣传册。）",
+    "其他・他（ほか）・そと・うえ：ほかに質問はありますか。（还有其他问题吗？）",
+    "大家/各位・皆（みな）さん・おきゃくさん・どうぶつえん：皆さん、こんにちは。（大家好。）",
+    "特产/纪念品・お土産（みやげ）・にもつ・ごみ：友だちにお土産を買いました。（给朋友买了特产。）",
+    "按・押（お）します・さがします・すてます：このボタンを押します。（按这个按钮。）",
+    "坐・座（すわ）ります・たちます・おります：ここに座ってください。（请坐这里。）",
+    "站・立（た）ちます・すわります・はいります：ドアの前に立ちます。（站在门前。）",
+    "丢失・なくします・まがります・わたります：さいふをなくしました。（把钱包弄丢了。）",
+    "进入・入（はい）ります・でます・もどります：教室に入ります。（进入教室。）",
+    "拿回去/带回去・持（も）って帰（かえ）ります・はいってきます・もっていきます：この荷物は持って帰ります。（这件行李我要带回去。）",
+    "迟到・遅（おく）れます・こわれます・つかれます：授業に遅れました。（上课迟到了。）",
+    "扔・捨（す）てます・おします・たちます：古い雑誌を捨てます。（把旧杂志扔掉。）",
+    "集合・集合（しゅうごう）します・よやくします・りょこうします：駅前に集合します。（在车站前集合。）",
+    "危险・危（あぶ）ない・うれしい・やさしい：そこは危ないです。（那里很危险。）",
+    "重要的・大切（たいせつ）・ゆうめい・しずか：これは大切な本です。（这是重要的书。）",
+    "给别人添麻烦・迷惑（めいわく）・にぎやか・げんき：人に迷惑をかけてはいけません。（不能给别人添麻烦。）",
+    "かう（买）→て形・かって・かいて・かうて",
+    "いく（去）→て形・いって・いきて・いいて",
+    "さがす（找）→て形・さがして・さがいて・さがすて",
+    "のむ（喝）→て形・のんで・のみて・のむて",
+    "すわる（坐）→て形・すわって・すわりて・すわるて",
+    "あける（打开）→て形・あけて・あけって・あきて",
+  ],
+
+  pre2: [
+    "按・押（お）します・さがします・すてます：このボタンを押します。（按这个按钮。）",
+    "坐・座（すわ）ります・たちます・おります：ここに座ってください。（请坐这里。）",
+    "站・立（た）ちます・すわります・はいります：ドアの前に立ちます。（站在门前。）",
+    "丢失・なくします・まがります・わたります：さいふをなくしました。（把钱包弄丢了。）",
+    "进入・入（はい）ります・でます・もどります：教室に入ります。（进入教室。）",
+    "拿回去/带回去・持（も）って帰（かえ）ります・はいってきます・もっていきます：この荷物は持って帰ります。（这件行李我要带回去。）",
+    "迟到・遅（おく）れます・こわれます・つかれます：授業に遅れました。（上课迟到了。）",
+    "扔・捨（す）てます・おします・たちます：古い雑誌を捨てます。（把旧杂志扔掉。）",
+    "集合・集合（しゅうごう）します・よやくします・りょこうします：駅前に集合します。（在车站前集合。）",
+    "危险・危（あぶ）ない・うれしい・やさしい：そこは危ないです。（那里很危险。）",
+    "重要的・大切（たいせつ）・ゆうめい・しずか：これは大切な本です。（这是重要的书。）",
+    "给别人添麻烦・迷惑（めいわく）・にぎやか・げんき：人に迷惑をかけてはいけません。（不能给别人添麻烦。）",
+    "动物园・動物園（どうぶつえん）・としょかん・ゆうえんち：きのう動物園へ行きました。（昨天去了动物园。）",
+    "熊・クマ・コアラ・サル：動物園でクマを見ました。（在动物园看到了熊。）",
+    "树袋熊・コアラ・クマ・パンダ：コアラは木の上にいます。（树袋熊在树上。）",
+    "猴子・サル・ゾウ・トリ：サルが木に登っています。（猴子正在爬树。）",
+    "大象・ゾウ・サル・クマ：ゾウはとても大きいです。（大象非常大。）",
+    "鸟・鳥（とり）・くま・さる：鳥が空を飛んでいます。（鸟在天空中飞。）",
+    "熊猫・パンダ・ペンギン・コアラ：パンダはとても人気があります。（熊猫很受欢迎。）",
+    "企鹅・ペンギン・パンダ・クマ：ペンギンが水の中を泳いでいます。（企鹅在水里游泳。）",
+    "入口・入（い）り口（ぐち）・でぐち・まどぐち：入り口はあちらです。（入口在那边。）",
+    "出口・出口（でぐち）・いりぐち・うけつけ：出口は右です。（出口在右边。）",
+    "饲料/食物・えさ・おと・ごみ：動物にえさをあげます。（给动物喂食。）",
+    "肚子・おなか・にもつ・くすり：おなかがすきました。（肚子饿了。）",
+    "摩天轮・観覧車（かんらんしゃ）・こうえん・こうさてん：遊園地で観覧車に乗りました。（在游乐园坐了摩天轮。）",
+    "香蕉・バナナ・りんご・メロン：朝ごはんにバナナを食べました。（早饭吃了香蕉。）",
+    "球・ボール・ケーキ・コート：ボールを投げます。（扔球。）",
+    "走・歩（ある）きます・はたらきます・うごきます：駅まで歩きます。（走到车站。）",
+    "飞・飛（と）びます・あそびます・あびます：鳥が空を飛びます。（鸟在天空中飞。）",
+    "变成/成为・なります・あります・います：医者になりたいです。（想成为医生。）",
+    "休息・休（やす）みます・すみます・のみます：少し休みます。（稍微休息一下。）",
+    "做/干・やります・みます・おきます：宿題をやります。（做作业。）",
+    "肚子饿・おなかがすきます・おなかがいたいです・おなかがいっぱいです：昼になるとおなかがすきます。（到了中午就肚子饿。）",
+    "口渴・のどがかわきます・のどがいたいです・のどにいいです：たくさん歩いて、のどがかわきました。（走了很多路，口渴了。）",
+    "累・疲（つか）れます・なれます・たおれます：今日はとても疲れました。（今天非常累。）",
+    "疼・痛（いた）い・ねむい・ぬるい：足が痛いです。（脚疼。）",
+    "昏暗・暗（くら）い・ふるい・まるい：この道は夜になると暗いです。（这条路一到晚上就很暗。）",
+    "差不多该……・そろそろ・たまたま・それぞれ：そろそろ帰りましょう。（差不多该回去了。）",
+    "真的・本当（ほんとう）だ・じょうずだ・だいじだ：本当ですね。雨が降っています。（真的，下雨了。）",
+    "草坪・芝生（しばふ）・はたけ・もうふ：芝生に入らないでください。（请不要进入草坪。）",
+    "地方/场所・場所（ばしょ）・じゅうしょ・だいどころ：待ち合わせの場所は駅前です。（碰头的地点在车站前。）",
+    "碰头/约好见面・待（ま）ち合（あ）わせ・おくりもの・ゆうびん：待ち合わせは三時です。（约好三点见面。）",
+    "慢慢地・ゆっくり・しっかり・ときどき：ゆっくり話してください。（请慢慢说。）",
+  ],
+
+  review: [],
+},
+
+/* =========================
+   ↓Lesson 11
+========================= */
+"11": {
+  pre1: [
+    "疼/痛・痛（いた）い・あつい・いけない：頭が痛いです。（头疼。）",
+    "累・疲（つか）れます・ねます・はなします：たくさん歩いて疲れました。（走了很多路，累了。）",
+    "晚上/夜晚・夜（よる）・ゆめ・やま：夜、宿題をします。（晚上做作业。）",
+    "空闲/有空・暇（ひま）・へや・ひる：今日は暇です。（今天有空。）",
+    "时间・時間（じかん）・じしょ・じてんしゃ：時間がありません。（没有时间。）",
+    "雨・雨（あめ）・あさ・うみ：雨が降っています。（正在下雨。）",
+    "游泳・泳（およ）ぎます・あそびます・おきます：プールで泳ぎます。（在游泳池游泳。）",
+    "互联网・インターネット・アルバイト・プレゼント：インターネットで調べます。（在网上查。）",
+    "图书馆・図書館（としょかん）・たいいくかん・びじゅつかん：図書館で本を読みます。（在图书馆看书。）",
+    "书法・習字（しゅうじ）・そうじ・しゅくだい：習字を習います。（学习书法。）",
+    "学习・習（なら）います・かきます・なります：日本語を習います。（学习日语。）",
+    "开心/快乐・楽（たの）しい・あたらしい・ただしい：旅行は楽しいです。（旅行很开心。）",
+    "地方/場所・ところ・もの・とり：静かなところが好きです。（喜欢安静的地方。）",
+    "有趣・面白（おもしろ）い・あたたかい・おもい：この本は面白いです。（这本书很有趣。）",
+    "见面・会（あ）います・すわります・あります：友達に会います。（和朋友见面。）",
+    "看・見（み）ます・きます・います：テレビを見ます。（看电视。）",
+    "喝・飲（の）みます・よみます・のります：水を飲みます。（喝水。）",
+    "画・描（か）きます・ききます・なきます：絵を描きます。（画画。）",
+    "去・行（い）きます・ききます・かきます：学校へ行きます。（去学校。）",
+    "打工/兼职・アルバイト・クラスメイト・インターネット：アルバイトをします。（打工。）",
+    "远・遠（とお）い・おおい・つよい：学校は遠いです。（学校很远。）",
+    "近・近（ちか）い・ちいさい・ちがう：駅は近いです。（车站很近。）",
+    "变成/成为・なります・あります・のります：だんだん寒くなります。（渐渐变冷。）",
+    "从现在开始・これから・もう・それに：これから日本語を勉強します。（从现在开始学日语。）",
+    "头/脑袋・頭（あたま）・はな・あな：頭が痛いです。（我头疼。）",
+    "会话・会話（かいわ）・となり・しゃいん：日本語で会話します。（用日语对话。）",
+    "作文・作文（さくぶん）・えんぴつ・かたち：作文を書きます。（写作文。）",
+    "同班同学・クラスメイト・おとうと・きかい：クラスメイトと話します。（和同班同学说话。）",
+    "杂志・雑誌（ざっし）・じしょ・かがみ：雑誌を読みます。（看杂志。）",
+    "慢跑・ジョギング・チケット・ビール：毎朝ジョギングをします。（每天早上慢跑。）",
+    "生活・生活（せいかつ）・さくら・がくせい：今の生活に慣れました。（已经习惯现在的生活了。）",
+    "店长・店長（てんちょう）・あたま・しゃちょう：店長にあいさつします。（向店长打招呼。）",
+    "日记・日記（にっき）・かみ・しゅくだい：毎日日記を書きます。（每天写日记。）",
+    "起初/一开始・初（はじ）め・それで・もうすぐ：初めは少し緊張しました。（一开始有点紧张。）",
+    "独居/一个人生活・一人（ひとり）暮（ぐ）らし・おひとりさま・ひととおり：一人暮らしをしています。（我一个人生活。）",
+    "平假名・ひらがな・となり・へいじつ：ひらがなを覚えます。（记住平假名。）",
+    "工作日・平日（へいじつ）・まいとし・しゅうまつ：平日は学校へ行きます。（工作日去学校。）",
+    "每周/每星期・毎週（まいしゅう）・まんが・こんしゅう：毎週テニスをします。（每周打网球。）",
+    "完/结束・終（お）わります・もちます・もらいます：授業が終わります。（课结束。）",
+    "上（学）/定期去・通（かよ）います・とります・かきます：大学に通います。（我在上大学。）",
+    "感冒・風邪（かぜ）をひきます・きえます・しめます：風邪をひきます。（感冒。）",
+    "休息/请假（学校を...）・休（やす）みます・ねます・あらいます：学校を休みます。（向学校请假／不上学。）",
+    "习惯（アルバイトに...）・慣（な）れます・おぼえます・あるきます：日本の生活に慣れます。（习惯日本的生活。）",
+    "忘记・忘（わす）れます・なくします・けります：宿題を忘れました。（把作业忘了。）",
+    "散步・散歩（さんぽ）します・あるきます・おちます：公園を散歩します。（在公园散步。）",
+    "寂寞・寂（さび）しい・ふるい・あたたかい：一人暮らしは寂しいです。（一个人生活很寂寞。）",
+    "困・眠（ねむ）い・こわい・つめたい：とても眠いです。（非常困。）",
+    "大概/基本上・だいたい・まったく・ふつう：宿題はだいたい終わりました。（作业基本上做完了。）",
+    "怎么也（～ない）・なかなか・もう・やっと：日本語がなかなか上手になりません。（日语怎么也学不好。）",
+  ],
+
+  pre2: [
+    "奥林匹克・オリンピック・パスポート・コンサート：オリンピックを見ます。（看奥运会。）",
+    "外国/国外・外国（がいこく）・きゅうこう・でんしゃ：外国へ行きたいです。（想去国外。）",
+    "小学生・小学生（しょうがくせい）・ちゅうがくせい・だいがくせい：弟は小学生です。（弟弟是小学生。）",
+    "中学生・中学生（ちゅうがくせい）・しょうがくせい・だいがくせい：妹は中学生です。（妹妹是中学生。）",
+    "选手/运动员・選手（せんしゅ）・しゃちょう・せんぱい：彼は有名な選手です。（他是有名的运动员。）",
+    "祖父・祖父（そふ）・ちち・あね：祖父は元気です。（祖父身体很好。）",
+    "开始・始（はじ）めます・つかいます・うごきます：勉強を始めます。（开始学习。）",
+    "分开・別（わか）れます・つけます・のみます：駅で友達と別れます。（在车站和朋友分别。）",
+    "毕业・卒業（そつぎょう）します・はっぴょうします・れんしゅうします：来年、大学を卒業します。（明年大学毕业。）",
+    "入学・入学（にゅうがく）します・そつぎょうします・はっぴょうします：四月に大学に入学します。（四月上大学。）",
+    "渐渐地・だんだん・ずっと・ゆっくり：だんだん寒くなりました。（渐渐变冷了。）",
+    "初次/第一次・初（はじ）めて・いつも・それで：初めて日本へ行きました。（第一次去了日本。）",
+    "因此/所以・それで・じつは・まだ：雨が降りました。それで、出かけませんでした。（下雨了，所以没有出门。）",
+    "空调・エアコン・スマホ・パソコン：エアコンをつけます。（打开空调。）",
+    "新闻・ニュース・コップ・ジュース：ニュースを見ます。（看新闻。）",
+    "关掉（テレビを...）・消（け）します・きります・みせます：電気を消します。（关灯。）",
+    "打开（エアコンを...）・つけます・わかります・とります：テレビをつけます。（打开电视。）",
+    "搬家（～します）・引（ひ）っ越（こ）し・そうじ・せんたく：来月、引っ越しします。（下个月搬家。）",
+    "嗯・うん・いえ・うち：うん、わかった。（嗯，知道了。）",
+    "不・ううん・そう・まだ：ううん、違う。（不，不是。）",
+    "抱歉/对不起・ごめん・だめ・ごはん：ごめん、忘れた。（对不起，我忘了。）",
+    "这样啊/原来如此・そっか・いい・そっと：そっか、わかった。（这样啊，我明白了。）",
+    "再・また・そこ・はち：また会いましょう。（下次再见吧。）",
+  ],
+
+  review: [],
+},
+
+/* =========================
+   ↓Lesson 12
+========================= */
+"12": {
+  pre1: [
+    "受伤・けが・かぜ・かぎ：足をけがしました。（脚受伤了。）",
+    "食欲・食欲（しょくよく）・すいようび・しょくどう：今日は食欲がありません。（今天没有食欲。）",
+    "状态/身体状况・調子（ちょうし）・ちず・ちょうり：体の調子が悪いです。（身体状况不好。）",
+    "发烧・熱（ねつ）・ねこ・なつ：熱があります。（发烧了。）",
+    "生病/病・病気（びょうき）・りょうり・びようし：病気で学校を休みました。（因为生病请假了。）",
+    "嗓子/喉咙・のど・ねこ・まど：のどが痛いです。（嗓子疼。）",
+    "牙齿・歯（は）・ひ・ほ：歯が痛いです。（牙疼。）",
+    "喝酒的聚会・飲（の）み会（かい）・おみやげ・のみもの：明日、飲み会があります。（明天有个喝酒的聚会。）",
+    "……度・～度（ど）・～まい・～かい：熱は三十八度です。（体温三十八度。）",
+    "痊愈/好・治（なお）ります・あそびます・なおします：風邪が治りました。（感冒好了。）",
+    "不好・悪（わる）い・あまい・ひろい：調子が悪いです。（状态不好。）",
+    "不舒服・気持（きも）ちが悪（わる）い・ひらがながむずかしい・へやがあかるい：気持ちが悪いです。（不舒服。）",
+    "不要紧/没关系・大丈夫（だいじょうぶ）・にぎやかな・だいすきな：もう大丈夫です。（已经没事了。）",
+    "快/早・早（はや）く・ひろく・あかく：早く寝てください。（请早点睡。）",
+    "托您的福・おかげさまで・おつかれさま・いただきます：おかげさまで、元気です。（托您的福，我很好。）",
+    "请保重身体・お大事（だいじ）に・おかえりなさい・おやすみなさい：お大事に。（请保重身体。）",
+    "那可不好啊・それはいけませんね・それはおもしろいですね・それはあたらしいですね：「熱があります。」「それはいけませんね。」（“我发烧了。”“那可不好啊。”）",
+    "淋浴・シャワー・カメラ・セーター：シャワーを浴びます。（洗淋浴。）",
+    "睡眠・睡眠（すいみん）・すいとう・すいよう：睡眠を取ります。（睡觉／保证睡眠。）",
+    "牙医・歯医者（はいしゃ）・かいしゃ・でんしゃ：歯医者に行きます。（去看牙医。）",
+    "烧伤/烫伤・やけど・やさい・やくそく：手にやけどをしました。（手烫伤了。）",
+    "事情/事・こと・くつ・そと：大事なことがあります。（有重要的事。）",
+    "东西・もの・まど・みせ：冷たいものを飲みます。（喝凉的东西。）",
+    "以上・以上（いじょう）・いしゃ・いちご：熱が三十八度以上あります。（体温在三十八度以上。）",
+    "发出（声音）・出（だ）します・のみます・みせます：声を出します。（发出声音。）",
+    "出声・声（こえ）を出（だ）します・てをあげます・こめをたべます：大きな声を出します。（发出很大的声音。）",
+    "涂/抹・塗（ぬ）ります・ねます・なおります：薬を塗ります。（涂药。）",
+    "冲（淋浴）・浴（あ）びます・あいます・あそびます：シャワーを浴びます。（洗淋浴。）",
+    "外出・出（で）かけます・あそびます・かえります：日曜日に出かけます。（星期天外出。）",
+    "运动・運動（うんどう）します・そうじします・れんしゅうします：毎日、運動します。（每天运动。）",
+    "硬・かたい・あまい・きつい：このパンはかたいです。（这个面包很硬。）",
+    "软・柔（やわ）らかい・あたたかい・あたらしい：このタオルは柔らかいです。（这条毛巾很软。）",
+    "对身体好・体（からだ）にいい・あたまがいい・てんきがいい：野菜は体にいいです。（蔬菜对身体好。）",
+    "尽可能/尽量・できるだけ・そのほうが・これから：できるだけ早く来てください。（请尽量早点来。）",
+    "慢慢地/好好地・ゆっくり・はっきり・やっぱり：ゆっくり休んでください。（请好好休息。）",
+  ],
+
+  pre2: [
+    "药剂师・薬剤師（やくざいし）・えいがかん・やきゅうせんしゅ：薬剤師に聞きます。（问药剂师。）",
+    "外套/上衣・上着（うわぎ）・うさぎ・うわさ：上着を着ます。（穿外套。）",
+    "隐形眼镜・コンタクトレンズ・ハンバーグセット・コンサートホール：コンタクトレンズを使います。（使用隐形眼镜。）",
+    "说明书・説明書（せつめいしょ）・しゅくだい・せいせきひょう：説明書を読みます。（看说明书。）",
+    "洗澡/泡澡・お風呂（ふろ）・おさら・おふだ：お風呂に入ります。（泡澡。）",
+    "保险证・保険証（ほけんしょう）・じどうしゃ・ほうせきばこ：保険証を出してください。（请出示保险证。）",
+    "候诊室・待合室（まちあいしつ）・あさごはん・まんがきっさ：待合室で待ちます。（在候诊室等。）",
+    "药店/药房・薬局（やっきょく）・がっこう・やきにく：薬局へ行きます。（去药店。）",
+    "出示・出（だ）します・のみます・だまします：保険証を出します。（出示保险证。）",
+    "脱・脱（ぬ）ぎます・ねます・にげます：上着を脱ぎます。（脱上衣。）",
+    "跑・走（はし）ります・はなします・はたらきます：毎朝、走ります。（每天早上跑步。）",
+    "等・待（ま）ちます・もちます・まわします：ここで待ちます。（在这里等。）",
+    "刷・磨（みが）きます・かきます・はたらきます：歯を磨きます。（刷牙。）",
+    "躺下・横（よこ）になります・べんきょうします・あしたになります：ベッドで横になります。（在床上躺下。）",
+    "准备・準備（じゅんび）します・そうじします・コピーします：明日の準備をします。（做明天的准备。）",
+    "痒・かゆい・からい・あまい：背中がかゆいです。（背上很痒。）",
+    "处方单・処方箋（しょほうせん）・しょうがっこう・しんかんせん：処方箋を出します。（提交处方单。）",
+    "红・赤（あか）い・あまい・ちかい：目が赤いです。（眼睛红。）",
+  ],
+
+  review: [],
+},
+
+/* =========================
+   ↓Lesson 13
+========================= */
+"13": {
+  pre1: [
+    "红叶・紅葉（こうよう）・はなみ・こうえん：秋に紅葉を見に行きます。（秋天去看红叶。）",
+    "服务・サービス・せつめい・スーパー：店のサービスがいいです。（店里的服务很好。）",
+    "相扑・相撲（すもう）・じゅうどう・すみれ：相撲を見たことがあります。（我看过相扑。）",
+    "宾馆/酒店・ホテル・りょかん・マウス：ホテルに泊まります。（住酒店。）",
+    "知道・知（し）っています・すんでいます・すわっています：先生の名前を知っています。（知道老师的名字。）",
+    "约会・デートします・チェックします・ポーズします：日曜日に友達とデートします。（星期天和朋友约会。）",
+    "一次都没・1回（かい）も・ぜんぜん・こんども：日本へは1回も行ったことがありません。（一次也没去过日本。）",
+    "好几次・何回（なんかい）も・めったに・なんにんも：この映画を何回も見ました。（这部电影看过好几次。）",
+    "男士/男性・男（おとこ）の人（ひと）・しらないひと・おとなのひと：あの男の人は先生です。（那个男士是老师。）",
+    "女士/女性・女（おんな）の人（ひと）・しらないひと・おとなのひと：女の人が道を聞いています。（一位女士正在问路。）",
+    "商店・店（みせ）・せかい・えき：駅の近くに店があります。（车站附近有商店。）",
+    "游乐园・遊園地（ゆうえんち）・こうえん・しやくしょ：遊園地で遊びます。（在游乐园玩。）",
+    "过山车・ジェットコースター・しんかんせん・シャワー：ジェットコースターに乗ります。（坐过山车。）",
+    "电器产品・電気製品（でんきせいひん）・しんじゅくえき・せつめいしょ：電気製品を買います。（买电器产品。）",
+    "太阳镜・サングラス・めがね・サンダル：暑い日はサングラスをかけます。（热的时候戴太阳镜。）",
+    "眼镜・眼鏡（めがね）・サングラス・めがみ：眼鏡をかけています。（戴着眼镜。）",
+    "衬衫・シャツ・ふく・チケット：白いシャツを着ます。（穿白衬衫。）",
+    "裙子・スカート・ズボン・マフラー：母にスカートを買いました。（给妈妈买了裙子。）",
+    "领带・ネクタイ・くつした・ネックレス：父はネクタイをします。（爸爸系领带。）",
+    "帽子・帽子（ぼうし）・かさ・ぼうず：帽子をかぶります。（戴帽子。）",
+    "人气・人気（にんき）・てんき・にっき：この店は人気があります。（这家店很受欢迎。）",
+    "卖・売（う）ります・かいます・うたいます：店で服を売ります。（在店里卖衣服。）",
+    "戴（帽子を...）・かぶります・きます・はきます：帽子をかぶります。（戴帽子。）",
+    "住宿・泊（と）まります・すみます・つくります：ホテルに泊まります。（住酒店。）",
+  ],
+
+  pre2: [
+    "穿（裤子/鞋等）・はきます・きます・つけます：靴をはきます。（穿鞋。）",
+    "戴（めがねを...）・かけます・とります・かぶります：眼鏡をかけます。（戴眼镜。）",
+    "穿（シャツを...）・着（き）ます・はきます・ぬぎます：シャツを着ます。（穿衬衫。）",
+    "系（领带）・します・とります・きます：ネクタイをします。（系领带。）",
+    "蓝・青（あお）い・みどりの・あまい：青いシャツを買いました。（买了蓝色衬衫。）",
+    "红・赤（あか）い・ピンクの・あおい：赤い花があります。（有红色的花。）",
+    "黄・黄色（きいろ）い・みどりの・くろい：黄色い帽子をかぶります。（戴黄色的帽子。）",
+    "年轻・若（わか）い・おおい・わるい：若い人が多いです。（年轻人很多。）",
+    "新鲜的・新鮮（しんせん）な・きれいな・にぎやかな：新鮮な魚を食べます。（吃新鲜的鱼。）",
+    "材料・材料（ざいりょう）・どうぐ・こうじょう：料理の材料を買います。（买做菜的材料。）",
+    "场所/地方・場所（ばしょ）・かいさつ・てんじょう：集合場所を教えてください。（请告诉我集合地点。）",
+    "浴衣・浴衣（ゆかた）・てぶくろ・くつした：夏祭りで浴衣を着ます。（在夏日祭穿浴衣。）",
+    "某个地方/某处・どこか・だれか・どれか：休みの日にどこかへ行きたいです。（休息日想去某个地方。）",
+    "练习・練習（れんしゅう）します・べんきょうします・きゅうけいします：日本語を練習します。（练习日语。）",
+    "大家一起・みんなで・いままで・ちかくで：みんなでご飯を食べます。（大家一起吃饭。）",
+  ],
+
+  review: [],
+},
+
+},
+/* =========================
+  　クラス3
+========================= */
+  3: {
+  "1": {
+      pre1: [
+        "传单・チラシ・ざっし・アパート：駅でチラシをもらいました。（在车站收到了传单。）",
+        "兼职・アルバイト・チケット・デート：コンビニでアルバイトをしています。（我在便利店打工。）",
+        "招聘（アルバイトを）・募集（ぼしゅう）しています・けんさくしています・そうだんしています：この店ではアルバイトを募集しています。（这家店正在招聘兼职人员。）",
+        "简历・履歴書（りれきしょ）・がくせいしょう・とうろくしょう：履歴書を持ってきました。（我把简历带来了。）",
+        "上周・先週（せんしゅう）・でんきゅう・こしょう：先週、アルバイトを始めました。（上周开始打工了。）",
+        "网站・ホームページ・キャップ・プリンター：店のホームページを見ました。（看了这家店的网站。）",
+        "我是...的人。・昨日、電話した 者（もの）です・昨日、電話した かた です・昨日、電話した ひと です：昨日、電話した者です。（我是昨天给您打过电话的人。）",
+        "您是…的人吧。・アルバイト希望の 方（かた）ですね。・アルバイト希望の もの ですね。・アルバイト希望の ひと ですね。：アルバイト希望の方ですね。（您是来应聘兼职的吧。）",
+        "面试・面接（めんせつ）・よやく・ふくろ：明日、アルバイトの面接があります。（明天有兼职面试。）",
+        "后天・あさって・きもち・かがみ：面接はあさってです。（面试在后天。）",
+        "工作・働（はたら）きます・しめます・すわります：週に三日働きます。（每周工作三天。）",
+        "使用・使（つか）います・もちます・あらいます：仕事でパソコンを使います。（工作时使用电脑。）",
+        "做（饭）・作（つく）ります・します・こわします：店で料理を作ります。（在店里做饭。）",
+        "说・話（はな）します・ききます・なげます：お客さんと日本語で話します。（用日语和客人说话。）",
+        "开始（授業が...）・始（はじ）まります・はじめます・ひらきます：授業は九時に始まります。（九点开始上课。）",
+        "发送・送（おく）ります・とります・きめます：あとでメールを送ります。（待会儿发邮件。）",
+        "日常（会话）・日常（にちじょう）・さいこう・きんきゅう：日常会話を勉強しています。（正在学习日常会话。）",
+        "半年・半年（はんとし）・きょねん・おととし：日本語を半年勉強しました。（学了半年日语。）",
+        "带来・持（も）ってきます・もちます・まきます：面接に履歴書を持ってきました。（面试时把简历带来了。）",
+        "我叫・～と申（もう）します・～となります・～とおもいます：田中と申します。（我叫田中。）",
+        "请这边走・こちらへどうぞ・よろしくおねがいします・しつれいします：面接はこちらです。こちらへどうぞ。（面试在这边，请这边走。）",
+        "来了（自谦语）・参（まい）りました・あげました・きえました：アルバイトの面接に参りました。（我是来参加兼职面试的。）",
+        "那么・それでは・あれから・もう：それでは、面接を始めます。（那么，现在开始面试。）",
+        "在吗？（木村さんは...）・いらっしゃいますか・ごぞんじですか・おまちください：木村さんはいらっしゃいますか。（木村先生/女士在吗？）",
+      ],
+
+      pre2: [
+        "洗澡・お風呂（ふろ）・ところ・くもり：毎日、お風呂に入ります。（我每天洗澡。）",
+        "建筑・建物（たてもの）・つくえ・かわ：この建物は新しいです。（这栋建筑很新。）",
+        "生活・生活（せいかつ）・さんせい・たいど：日本の生活は楽しいです。（在日本的生活很开心。）",
+        "不擅长・苦手（にがて）・ざんねん・とくい：私は料理が苦手です。（我不擅长做饭。）",
+        "习惯（日本の生活に…）・慣（な）れます・はれます・ならいます：日本の生活に慣れました。（已经习惯日本的生活了。）",
+        "慢・遅（おそ）い・ながい・とおい：このバスは少し遅いです。（这辆公交车有点慢。）",
+        "记住・覚（おぼ）えます・きえます・つつみます：新しい言葉を覚えました。（记住了新的词语。）",
+        "舒服・気持（きも）ちがいい・くるしい・はずかしい：今日は天気がよくて、気持ちがいいです。（今天天气很好，很舒服。）",
+        "风景・景色（けしき）・きれい・かさ：ここからの景色はきれいです。（从这里看到的风景很美。）",
+        "已经・もう・まだ・はい：宿題はもう終わりました。（作业已经做完了。）",
+        "跑・走（はし）ります・あるきます・とおります：毎朝、公園を走ります。（每天早上在公园跑步。）",
+        "陌生人・知（し）らない人・しっていない人・しっている人：あそこに知らない人がいます。（那里有一个陌生人。）",
+        "听懂・聞（き）き取（と）ります・ききます・きこえます：先生の話を聞き取ります。（听懂老师说的话。）",
+        "唱歌・歌（うた）います・おどります・はなします：日本語の歌を歌います。（唱日语歌。）",
+        "鸟・鳥（とり）・ねこ・さかな：木の上に鳥がいます。（树上有一只鸟。）",
+        "乐器・楽器（がっき）・うた・おんがく：いろいろな楽器があります。（有各种各样的乐器。）",
+        "单词・単語（たんご）・ぶんぽう・ぶんしょう：新しい単語を覚えました。（记住了新的单词。）",
+        "房间・部屋（へや）・いえ・きょうしつ：部屋で勉強します。（在房间里学习。）",
+        "汉字・漢字（かんじ）・ひらがな・カタカナ：漢字を覚えます。（记汉字。）",
+        "新闻・ニュース・ドラマ・えいが：毎朝ニュースを見ます。（每天早上看新闻。）",
+        "说/说话・話（はな）します・ききます・よみます：友達と日本語で話します。（和朋友用日语说话。）",
+      ],
+
+      review: [],
+    },
+    "2": {
+      pre1: [
+        "温暖・暖（あたた）かい・かたい・しろい：このコートは暖かいです。（这件大衣很暖和。）",
+        "结实・丈夫（じょうぶ）・くるしい・ふるい：このかばんは丈夫です。（这个包很结实。）",
+        "穿（裤子/鞋等）・はきます・つけます・しります：黒いズボンをはきます。（穿黑色裤子。）",
+        "穿（上衣）・着（き）ます・おきます・そります：白いシャツを着ます。（穿白色衬衫。）",
+        "怎么样・いかがですか・こちらですか・どちらですか：このコートはいかがですか。（这件大衣怎么样？）",
+        "戴（めがねを…）・かけます・おきます・とります：眼鏡をかけます。（戴眼镜。）",
+        "戴（時計を…）・つけます・とめます・もらいます：腕時計をつけます。（戴手表。）",
+        "给……看・見（み）せます・みます・わたします：お客さんに商品を見せます。（给客人看商品。）",
+        "多・多（おお）い・くらい・あおい：この店はお客さんが多いです。（这家店客人很多。）",
+        "少・少（すく）ない・ちいさい・とおい：今日はお客さんが少ないです。（今天客人很少。）",
+        "长・長（なが）い・とおい・くらい：このコートは少し長いです。（这件大衣有点长。）",
+        "短・短（みじか）い・すずしい・はやい：このズボンは少し短いです。（这条裤子有点短。）",
+        "轻・軽（かる）い・くらい・おそい：このスーツケースは軽いです。（这个行李箱很轻。）",
+        "纽扣・ボタン・チップ・ブック：このボタンは小さいです。（这个纽扣很小。）",
+        "屏幕・画面（がめん）・はいしゃ・くつした：スマホの画面を見ます。（看手机屏幕。）",
+        "电子词典・電子辞書（でんしじしょ）・電子レンジ・携帯電話：電子辞書を使います。（使用电子词典。）",
+        "字・文字（もじ）・ず・しか：画面の文字が小さいです。（屏幕上的字很小。）",
+        "数字・数字（すうじ）・しょうぶ・なす：ここに数字を書きます。（在这里写数字。）",
+        "价格・値段（ねだん）・せいかく・ほうき：このコートの値段は一万円です。（这件大衣的价格是一万日元。）",
+        "大衣・コート・マット・チリ：新しいコートを買いました。（买了一件新大衣。）",
+        "行李箱・スーツケース・コンセント・エアコン：大きいスーツケースを買いました。（买了一个大行李箱。）",
+        "毛衣・セーター・バッテリー・スクリーン：冬はセーターを着ます。（冬天穿毛衣。）",
+        "尺寸・サイズ・キャップ・トマト：このシャツはサイズが大きいです。（这件衬衫尺寸很大。）",
+      ],
+
+      pre2: [
+        "墙・壁（かべ）・あし・となり：壁に写真があります。（墙上有照片。）",
+        "挂（壁に...）・かけます・みせます・けります：壁に時計をかけます。（把钟挂在墙上。）",
+        "贴・はります・はなします・まちます：壁にポスターをはります。（把海报贴在墙上。）",
+        "地图・地図（ちず）・きず・かち：地図を見ます。（看地图。）",
+        "免费・無料（むりょう）・めんきょ・おかし：このサービスは無料です。（这项服务是免费的。）",
+        "不限量・食（た）べ放題（ほうだい）・まくらなげ・かがみもち：この店は食べ放題です。（这家店可以不限量吃。）",
+        "楼层・フロア・コイン・トス：このフロアにレストランがあります。（这个楼层有餐厅。）",
+        "导游・ガイド・マウス・キツネ：ガイドが町を案内します。（导游带大家游览城市。）",
+        "套餐・セット・ダイス・マッチ：このセットをお願いします。（我要这个套餐。）",
+        "划算・お得（とく）・かつら・こんぶ：このセットはお得です。（这个套餐很划算。）",
+        "服务・サービス・ペット・タンス：このホテルはサービスがいいです。（这家酒店的服务很好。）",
+        "折扣券・割引券（わりびきけん）・せいりけん・むりょうけん：割引券を使います。（使用折扣券。）",
+        "限时・期間限定（きかんげんてい）・げんていきかん・くるまえび：これは期間限定の商品です。（这是限时商品。）",
+        "半价・半額（はんがく）・はんとしまえ・ばんさん：今日はケーキが半額です。（今天蛋糕半价。）",
+        "续杯・おかわり・ちかてつ・つづき：コーヒーをおかわりします。（再来一杯咖啡。）",
+        "浇（ソースを...）・かけます・なげます・いれます：料理にソースをかけます。（把酱汁浇在菜上。）",
+        "放入（砂糖を...）・入（い）れます・はいります・みせます：コーヒーに砂糖を入れます。（往咖啡里放糖。）",
+        "放・置（お）きます・とります・おとします：ここに荷物を置きます。（把行李放在这里。）",
+        "酱汁・ソース・リモコン・ケース：料理にソースをかけます。（在菜上浇酱汁。）",
+        "酱油・しょうゆ・さとう・しお：料理にしょうゆをかけます。（在菜上浇酱油。）",
+      ],
+
+      review: [],
+    },
+        /* =========================
+       ↓Lesson 3
+    ========================= */
+    "3": {
+      pre1: [
+        "专业・専門（せんもん）・こうちょう・しんせん：大学で日本語を専門にしています。（我在大学以日语为专业。）",
+        "工资・給料（きゅうりょう）・しゅうり・せんざい：毎月、給料をもらいます。（每个月领工资。）",
+        "打工・アルバイト・サイト・リモコン：週末にアルバイトをしています。（周末打工。）",
+        "存钱・貯金（ちょきん）します・あんないします・ほうそうします：留学のために貯金します。（为了留学存钱。）",
+        "寄宿家庭生活/寄宿家庭体验・ホームステイ・エスカレーター・スマイル：日本でホームステイをしました。（我在日本体验了寄宿家庭生活。）",
+        "商务・ビジネス・ケトル・マウス：大学でビジネスを勉強しています。（我在大学学习商务。）",
+        "毕业・卒業（そつぎょう）します・こうしんします・こうにゅうします：来年、大学を卒業します。（明年大学毕业。）",
+        "升学・進学（しんがく）します・たいそうします・せんたくします：卒業したら大学院に進学します。（毕业后升入研究生院。）",
+        "留学・留学（りゅうがく）します・しゅうりょうします・こんざつします：来年、日本に留学します。（明年去日本留学。）",
+        "社团・サークル・キャップ・ミッション：大学のサークルに入っています。（我参加了大学的社团。）",
+        "就业・就職（しゅうしょく）します・はんじょうします・かいはつします：卒業したら日本の会社に就職します。（毕业后去日本公司工作。）",
+        "将来・将来（しょうらい）・こうさ・けんきゅう：将来、日本語の先生になりたいです。（将来想当日语老师。）",
+        "努力・頑張（がんば）ります・おちつきます・にらみます：夢のために頑張ります。（为了梦想努力。）",
+        "建筑师・建築家（けんちくか）・かいはつしゃ・けんきゅうしゃ：将来、建築家になりたいです。（将来想成为建筑师。）",
+        "体验・体験（たいけん）します・いどうします・たいそうします：日本の生活を体験しました。（体验了日本的生活。）",
+        "文件・書類（しょるい）・こうじ・ふた：必要な書類を出してください。（请提交需要的文件。）",
+        "入学申请表・願書（がんしょ）・しょうめいしょ・めんきょしょう：大学に願書を出しました。（向大学提交了入学申请表。）",
+        "演讲・スピーチ・サイト・リアル：みんなの前でスピーチをしました。（在大家面前进行了演讲。）",
+        "竞赛/比赛・コンテスト・ミラクル・アルミホイル：日本語のコンテストに出ました。（参加了日语比赛。）",
+        "设计师・デザイナー・スター・ウィンドウ：将来、デザイナーになりたいです。（将来想成为设计师。）",
+      ],
+
+      pre2: [
+        "经营・経営（けいえい）・こうじょう・きかい：父は会社を経営しています。（爸爸经营着一家公司。）",
+        "设计师・デザイナー・テーマ・マッチング：姉はデザイナーです。（姐姐是设计师。）",
+        "建筑物・建物（たてもの）・せかい・みらい：この建物は有名です。（这栋建筑很有名。）",
+        "竞赛/比赛・コンテスト・ノート・タオル：日本語のコンテストに出ました。（参加了日语比赛。）",
+        "入学申请书・願書（がんしょ）・せんとう・こんど：大学に願書を出しました。（向大学提交了入学申请书。）",
+        "就职・就職（しゅうしょく）します・しんがくします・けんとうします：卒業したら会社に就職します。（毕业后去公司工作。）",
+        "体验・体験（たいけん）します・せんこうします・けんかします：日本の生活を体験しました。（体验了日本的生活。）",
+        "文件・書類（しょるい）・きんじょ・はがき：必要な書類を準備します。（准备需要的文件。）",
+        "建筑师・建築家（けんちくか）・しんけん・れんらく：兄は建築家です。（哥哥是建筑师。）",
+      ],
+
+      review: [],
+    },
+  },
+  4: {
+    "8": {
+      pre1: [
+        "课题・課題（かだい）・もくてき・こうか：地域が抱える課題を考えます。（思考地区面临的课题。）",
+        "现状・現状（げんじょう）・けっか・しょうらい：まず現状を正しく把握しましょう。（首先正确掌握现状吧。）",
+        "主张・主張（しゅちょう）する・ひていする・しょうめいする：自分の考えをはっきり主張しました。（明确表达了自己的观点。）",
+        "措施・対策（たいさく）・ほうほう・たいど：事故を防ぐ対策が必要です。（需要采取防止事故的措施。）",
+      ],
+      pre2: [
+        "考虑・考慮（こうりょ）する・むしする・きぼうする：安全性を考慮して設計します。（设计时考虑安全性。）",
+        "维持・維持（いじ）する・かいぜんする・へんこうする：品質を維持する努力が必要です。（需要努力维持品质。）",
+        "适当・適切（てきせつ）・あいまい・たんじゅん：状況に応じて適切に判断してください。（请根据情况妥善判断。）",
+        "根据・根拠（こんきょ）・けつろん・じょうけん：その判断の根拠を説明してください。（请说明作出该判断的根据。）",
+      ],
+      review: [],
+    },
+  },
+});
+
+/*
+ * 単語は次の1行形式で追加する（誤答は2個または3個）。
+ *   問題・正解（フリガナ）・誤答1・誤答2[・誤答3]：例文
+ * 誤答は「・」、半角カンマ、または「、」で区切れる。
+ * 「：」がない行では、最後の「・」以降を例文として扱う。
+ * 既存データとの互換性のため、従来のオブジェクト形式も読み込める。
+ */
+function parseWordEntry(entry, grade, lesson, stage, index){
+  if (entry && typeof entry === "object") return entry;
+
+  const source = String(entry ?? "").trim();
+  if (!source) return null;
+
+  const separatorAt = source.search(/[：:]/);
+  let fields;
+  let example;
+  if (separatorAt >= 0){
+    fields = source.slice(0, separatorAt).split("・").map(text=>text.trim());
+    example = source.slice(separatorAt + 1).trim();
+  } else {
+    fields = source.split("・").map(text=>text.trim());
+    example = fields.length >= 4 ? fields.pop() : "";
+  }
+  if (fields.some(text=>!text)) return null;
+
+  if (fields.length < 3) return null;
+  const [word, meaning, ...wrongFields] = fields;
+  const wrongs = wrongFields
+    .flatMap(text=>text.split(/[,、]/))
+    .map(text=>text.trim())
+    .filter(Boolean);
+  if (wrongs.length < 2 || wrongs.length > 3) return null;
+
+  return {
+    id: `i-${lesson}-${String(index + 1).padStart(2, "0")}`,
+    word,
+    meaning,
+    wrongs,
+    example,
+  };
+}
+
+function splitTextAndFurigana(raw){
+  const source = String(raw ?? "").trim();
+  if (!source) return { text:"", furigana:"" };
+
+  const annotationPattern = /(\p{Script=Han}+)[（(]([^（）()]+)[）)]/gu;
+  let found = false;
+  const text = source.replace(annotationPattern, (_, kanji)=>{
+    found = true;
+    return kanji;
+  });
+  if (!found) return { text:source, furigana:"" };
+
+  // 選択肢用の読みは、送り仮名も残した語全体の形にする。
+  const reading = source.replace(annotationPattern, (_, _kanji, rubyText)=>String(rubyText).trim());
+  return {
+    text: text.trim() || source,
+    furigana: reading.trim(),
+  };
+}
+
+function renderTextWithFurigana(element, raw){
+  element.textContent = "";
+  const source = String(raw ?? "").trim();
+  const annotationPattern = /(\p{Script=Han}+)[（(]([^（）()]+)[）)]/gu;
+  let cursor = 0;
+  let match;
+  while ((match = annotationPattern.exec(source)) !== null){
+    element.append(document.createTextNode(source.slice(cursor, match.index)));
+    const ruby = document.createElement("ruby");
+    ruby.append(document.createTextNode(match[1]));
+    const rt = document.createElement("rt");
+    rt.textContent = String(match[2] ?? "").trim();
+    ruby.append(rt);
+    element.append(ruby);
+    cursor = annotationPattern.lastIndex;
+  }
+  element.append(document.createTextNode(source.slice(cursor)));
+}
+
+const LESSON_CACHE_KEY = "yuko_wordlog_lesson_progress";
+
+function getEmbeddedStageWords(grade, lesson, stage){
+  const lessonData = WORDS[Number(grade)]?.[String(lesson)] || {};
+  const entries = lessonData[stage] || [];
+  return entries
+    .map((entry, index)=>parseWordEntry(entry, grade, lesson, stage, index))
+    .filter(Boolean);
+}
+
+function getPreviousStageRef(grade, lesson, stage){
+  const lessons = COURSE[Number(grade)]?.lessons || [];
+  const lessonIndex = lessons.indexOf(String(lesson));
+  if (stage === "pre2"){
+    return { grade:Number(grade), lesson:String(lesson), stage:"pre1" };
+  }
+  if (stage === "pre1" && lessonIndex > 0){
+    return { grade:Number(grade), lesson:String(lessons[lessonIndex - 1]), stage:"pre2" };
+  }
+  return null;
+}
+
+function fillStageWordsFromPrevious(grade, lesson, stage, words, targetCount=30){
+  if (!Array.isArray(words) || words.length >= targetCount) return words;
+  const previous = getPreviousStageRef(grade, lesson, stage);
+  if (!previous) return words;
+
+  const previousWords = getEmbeddedStageWords(previous.grade, previous.lesson, previous.stage);
+  if (!previousWords.length) return words;
+
+  const filled = words.slice();
+  let round = 0;
+  while (filled.length < targetCount){
+    const randomWords = previousWords.slice();
+    shuffleInPlace(randomWords);
+    for (const word of randomWords){
+      if (filled.length >= targetCount) break;
+      filled.push({
+        ...word,
+        id:`borrowed-${previous.grade}-${previous.lesson}-${previous.stage}-${word.id}-${round}`,
+      });
+    }
+    round += 1;
+  }
+  return filled;
+}
+function readLessonCache(){
+  try{ return JSON.parse(localStorage.getItem(LESSON_CACHE_KEY) || "{}") || {}; }
+  catch(e){ return {}; }
+}
+function writeLessonCache(cache){
+  try{ localStorage.setItem(LESSON_CACHE_KEY, JSON.stringify(cache)); }catch(e){}
+}
+function stageCachePath(studentKey, grade, lesson, stage){
+  return [studentKey, String(grade), "progress", String(lesson), String(stage)];
+}
+function getCacheNode(path){
+  let node = readLessonCache();
+  for (const key of path) node = (node && typeof node === "object") ? node[key] : null;
+  return (node && typeof node === "object") ? node : {};
+}
+function mergeCacheNode(path, patch){
+  const root = readLessonCache();
+  let node = root;
+  path.forEach((key, index)=>{
+    if (!node[key] || typeof node[key] !== "object") node[key] = {};
+    if (index === path.length - 1) node[key] = { ...node[key], ...patch };
+    node = node[key];
+  });
+  writeLessonCache(root);
+}
+function getCachedStageProgress(studentKey, grade, lesson, stage){
+  return getCacheNode(stageCachePath(studentKey, grade, lesson, stage));
+}
+function setCachedStageProgress(studentKey, grade, lesson, stage, words){
+  mergeCacheNode([studentKey, String(grade), "progress", String(lesson)], { [String(stage)]:words });
+}
+
+function mergeProgressForSync(remote = {}, local = {}){
+  const merged = structuredClone(remote || {});
+  for (const [lesson, stages] of Object.entries(local || {})){
+    if (!merged[lesson] || typeof merged[lesson] !== "object") merged[lesson] = {};
+    for (const [stage, words] of Object.entries(stages || {})){
+      if (!merged[lesson][stage] || typeof merged[lesson][stage] !== "object") merged[lesson][stage] = {};
+      for (const [wordId, localWord] of Object.entries(words || {})){
+        const remoteWord = merged[lesson][stage][wordId] || {};
+        const remoteAt = Number(remoteWord.lastAt) || 0;
+        const localAt = Number(localWord?.lastAt) || 0;
+        const latest = localAt >= remoteAt ? localWord : remoteWord;
+        merged[lesson][stage][wordId] = {
+          ...remoteWord,
+          ...(latest || {}),
+          correctCount:Math.max(Number(remoteWord.correctCount)||0, Number(localWord?.correctCount)||0),
+          wrongCount:Math.max(Number(remoteWord.wrongCount)||0, Number(localWord?.wrongCount)||0),
+          mastered:Boolean(remoteWord.mastered || localWord?.mastered),
+          lastAt:Math.max(remoteAt, localAt)
+        };
+      }
+    }
+  }
+  return merged;
+}
+
+function mergeBestForSync(remote = {}, local = {}){
+  const merged = structuredClone(remote || {});
+  for (const [lesson, stages] of Object.entries(local || {})){
+    if (!merged[lesson] || typeof merged[lesson] !== "object") merged[lesson] = {};
+    for (const [stage, localBest] of Object.entries(stages || {})){
+      const remoteBest = merged[lesson][stage] || {};
+      const remotePct = Number(remoteBest.bestPct) || 0;
+      const localPct = Number(localBest?.bestPct) || 0;
+      const highest = localPct > remotePct ? localBest : remoteBest;
+      const latest = (Number(localBest?.lastAt)||0) >= (Number(remoteBest.lastAt)||0) ? localBest : remoteBest;
+      merged[lesson][stage] = {
+        ...remoteBest,
+        ...(latest || {}),
+        bestPct:Math.max(remotePct, localPct),
+        bestAt:highest?.bestAt || 0,
+        plays:Math.max(Number(remoteBest.plays)||0, Number(localBest?.plays)||0)
+      };
+    }
+  }
+  return merged;
+}
+
+function mergeDoneForSync(remote = {}, local = {}){
+  const merged = structuredClone(remote || {});
+  for (const [lesson, stages] of Object.entries(local || {})){
+    if (!merged[lesson] || typeof merged[lesson] !== "object") merged[lesson] = {};
+    for (const [stage, localDone] of Object.entries(stages || {})){
+      const remoteDone = merged[lesson][stage];
+      if (!remoteDone?.completedAt || (localDone?.completedAt && localDone.completedAt < remoteDone.completedAt)){
+        merged[lesson][stage] = localDone;
+      }
+    }
+  }
+  return merged;
+}
+
+function comparableName(value){
+  return String(value || "").normalize("NFKC").trim().toLocaleLowerCase("ja");
+}
+async function resolveStudentKeyBeforeSync(fallbackKey){
+  const name = normName(CURRENT.name || stuName.value);
+  if (!name) return fallbackKey;
+  let resolvedKey = fallbackKey;
+  try{
+    const allStudents = await dbGet("students", {timeoutMs:1200,retries:0}) || {};
+    const match = Object.entries(allStudents).find(([, value])=>
+      comparableName(value?.name) === comparableName(name)
+    );
+    if (match) resolvedKey = match[0];
+  }catch(e){}
+
+  if (resolvedKey !== fallbackKey){
+    const root = readLessonCache();
+    const destination = root[resolvedKey] || {};
+    for (const [grade, sourceGrade] of Object.entries(root[fallbackKey] || {})){
+      const targetGrade = destination[grade] || {};
+      destination[grade] = {
+        ...targetGrade,
+        ...sourceGrade,
+        progress:{ ...(targetGrade.progress || {}), ...(sourceGrade.progress || {}) },
+        best:{ ...(targetGrade.best || {}), ...(sourceGrade.best || {}) },
+        done:{ ...(targetGrade.done || {}), ...(sourceGrade.done || {}) }
+      };
+    }
+    root[resolvedKey] = destination;
+    delete root[fallbackKey];
+    writeLessonCache(root);
+    STUDENT.studentKey = resolvedKey;
+  }
+  await dbUpdate(P.students(resolvedKey), {
+    studentKey:resolvedKey,
+    name,
+    lastGrade:SELECTED_GRADE,
+    lastSeenAt:nowTs()
+  });
+  return resolvedKey;
+}
+
+/* オフライン中に端末へ保存した進捗を、ホーム表示のたびにDBへ再送する。 */
+async function syncCachedProgressToDb(studentKey){
+  if (!studentKey) return false;
+  try{
+    await ensureFirebaseReady();
+    studentKey = await resolveStudentKeyBeforeSync(studentKey);
+    let studentCache = getCacheNode([studentKey]);
+    /* 同名で別端末から接続した場合はDB側も取り込み、端末側を優先して統合する。 */
+    for (const grade of Object.keys(COURSE)){
+      const localGrade = studentCache[grade] || {};
+      try{
+        const [remoteProgress, remoteBest, remoteDone] = await Promise.all([
+          dbGet(`progress/${studentKey}/${grade}`, {timeoutMs:1200,retries:0}),
+          dbGet(`bestProgress/${studentKey}/${grade}`, {timeoutMs:1200,retries:0}),
+          dbGet(`lessonProgress/${studentKey}/${grade}`, {timeoutMs:1200,retries:0})
+        ]);
+        mergeCacheNode([studentKey, grade], {
+          progress:mergeProgressForSync(remoteProgress, localGrade.progress),
+          best:mergeBestForSync(remoteBest, localGrade.best),
+          done:mergeDoneForSync(remoteDone, localGrade.done)
+        });
+      }catch(e){}
+    }
+    studentCache = getCacheNode([studentKey]);
+    const writes = [];
+    for (const [grade, gradeCache] of Object.entries(studentCache)){
+      if (!COURSE[Number(grade)] || !gradeCache || typeof gradeCache !== "object") continue;
+      if (gradeCache.progress) writes.push(
+        dbRunTransaction(ref(db, `progress/${studentKey}/${grade}`), current=>
+          mergeProgressForSync(current, gradeCache.progress)
+        ).then(result=>mergeCacheNode([studentKey, grade], { progress:result.snapshot.val() || {} }))
+      );
+      if (gradeCache.best) writes.push(
+        dbRunTransaction(ref(db, `bestProgress/${studentKey}/${grade}`), current=>
+          mergeBestForSync(current, gradeCache.best)
+        ).then(result=>mergeCacheNode([studentKey, grade], { best:result.snapshot.val() || {} }))
+      );
+      if (gradeCache.done) writes.push(
+        dbRunTransaction(ref(db, `lessonProgress/${studentKey}/${grade}`), current=>
+          mergeDoneForSync(current, gradeCache.done)
+        ).then(result=>mergeCacheNode([studentKey, grade], { done:result.snapshot.val() || {} }))
+      );
+    }
+    await Promise.all(writes);
+    firebaseConnectionStatus.textContent = "同期済み";
+    return true;
+  }catch(e){
+    firebaseConnectionStatus.textContent = "オフライン（端末保存）";
+    return false;
+  }
+}
   
 /* ✅ アニメは“背景”として：FPSを落としてクイズに干渉しない */
 const BG_ANIM_FPS_LESSON = 24;
@@ -1979,14 +3061,21 @@ function getGaugeFill(name, grade, lesson){
   if (Number.isInteger(idx) && idx >= 0 && idx < GAUGE_COLORS.length) return GAUGE_COLORS[idx].fill;
   return null;
 }
-function ensureGaugeColorIfNeeded(name, grade, lesson, rate01){
-  if (!name || !lesson) return;
-  if (!(rate01 >= 0.01)) return;
+function ensureGaugeColor(name, grade, lesson){
+  if (!name || !lesson) return null;
+  const currentFill = getGaugeFill(name, grade, lesson);
+  if (currentFill) return currentFill;
+
   const k = _gaugeKey(name, grade, lesson);
-  if (_gaugeColorMap[k] != null) return;
   const idx = Math.floor(Math.random() * GAUGE_COLORS.length);
   _gaugeColorMap[k] = idx;
   saveGaugeColorMap(_gaugeColorMap);
+  return GAUGE_COLORS[idx].fill;
+}
+function ensureGaugeColorIfNeeded(name, grade, lesson, rate01){
+  if (!name || !lesson) return;
+  if (!(rate01 >= 0.01)) return;
+  ensureGaugeColor(name, grade, lesson);
 }
 
 function getCharaImage(charaKey){
@@ -2354,7 +3443,6 @@ let charaButtons = [];
 const lessonListBox = document.getElementById("lessonListBox");
 const lessonList = document.getElementById("lessonList");
 const lessonSvg = document.getElementById("lessonSvg");
-const lessonPreparingPop = document.getElementById("lessonPreparingPop");
 const lessonChara = document.getElementById("lessonChara");
 const lessonCharaStack = document.getElementById("lessonCharaStack");
 const asaPop = document.getElementById("asaPop");
@@ -2365,7 +3453,6 @@ const stagePop = document.getElementById("stagePop");
 const stagePopTitle = document.getElementById("stagePopTitle");
 const btnStagePre1 = document.getElementById("btnStagePre1");
 const btnStagePre2 = document.getElementById("btnStagePre2");
-const btnStageReview = document.getElementById("btnStageReview");
 const stagePre1Progress = document.getElementById("stagePre1Progress");
 const stagePre2Progress = document.getElementById("stagePre2Progress");
 
@@ -2374,7 +3461,6 @@ const lessonInfo = document.getElementById("lessonInfo");
 const stageBadge = document.getElementById("stageBadge");
 const hint = document.getElementById("hint");
 const quizWord = document.getElementById("quizWord");
-const quizPromptBtn = document.getElementById("quizPromptBtn");
 const optGrid = document.getElementById("optGrid");
 const quizResult = document.getElementById("quizResult");
 const btnNext = document.getElementById("btnNext");
@@ -2396,6 +3482,7 @@ const qTimerFg = document.getElementById("qTimerFg");
 /* ✅ セッション結果DOM */
 const sessionBack = document.getElementById("sessionBack");
 const sessionPct  = document.getElementById("sessionPct");
+const sessionMeta = document.getElementById("sessionMeta");
 const sessionReward = document.getElementById("sessionReward");
 const wrongList   = document.getElementById("wrongList");
 const btnSessionClose = document.getElementById("btnSessionClose");
@@ -2539,7 +3626,7 @@ function renderAsaPop(){
 async function loadAsa(){
   if (!STUDENT.studentKey) return;
   try{
-    const raw = await dbGet(P.asa(STUDENT.studentKey));
+    const raw = await dbGet(P.asa(STUDENT.studentKey), { timeoutMs:800, retries:0 });
     applyAsaState(raw);
   }catch(_){
     applyAsaState(null);
@@ -2548,7 +3635,7 @@ async function loadAsa(){
 async function updateAsaViaTransaction(modifier){
   if (!STUDENT.studentKey) return;
   const path = ref(db, P.asa(STUDENT.studentKey));
-  const res = await runTransaction(path, (cur)=>{
+  const res = await dbRunTransaction(path, (cur)=>{
     const base = normalizeAsa(cur);
     const next = modifier({
       total: Math.max(0, base.total),
@@ -3563,7 +4650,7 @@ function renderCharaSelectButtons(){
    ★ 学年（増える版）
 ========================= */
 function defaultGradeSettings(){
-  return Array.from({length: DEFAULT_MAX_GRADE}, (_,i)=>({ id: i+1, label: String(i+1), enabled: true }));
+  return Object.entries(COURSE).map(([id, cfg])=>({ id:Number(id), label:cfg.label, enabled:true }));
 }
 function normalizeGradeSettings(obj){
   const base = defaultGradeSettings();
@@ -3636,12 +4723,7 @@ function renderGradeButtons(){
 }
 
   async function loadGradeSettings(){
-  try{
-    const raw = await dbGet(GRADE_SETTINGS_PATH);
-    gradeSettings = normalizeGradeSettings(raw);
-  }catch(e){
-    gradeSettings = defaultGradeSettings();
-  }
+  gradeSettings = defaultGradeSettings();
   SELECTED_GRADE = normalizeSelectedGrade(Number(localStorage.getItem(GRADE_KEY) || SELECTED_GRADE || 1));
   buildGradeButtons();
   renderGradeButtons();
@@ -3655,16 +4737,17 @@ async function enterStudent(name){
   const path = P.students(sk);
   const now = nowTs();
   let existing = null;
-  try{
-    existing = await dbGet(path);
-  }catch(e){
-    existing = null;
+  if (DB_CONNECTION_ENABLED){
+    try{
+      existing = await dbGet(path, { timeoutMs:800, retries:0 });
+    }catch(e){
+      existing = null;
+    }
   }
 
-  await dbUpdate(path, { studentKey: sk, name, createdAt: now, lastSeenAt: now });
-  if (!existing || !existing.createdAt){
-    await ensureInitialItemsOwned();
-  }
+  /* 入室はネットワークを待たない。オンラインなら背景で同期する。 */
+  dbUpdate(path, { studentKey: sk, name, createdAt: existing?.createdAt || now, lastSeenAt: now }).catch(()=>{});
+  if (!existing || !existing.createdAt) ensureInitialItemsOwned().catch(()=>{});
   try{
     setInterval(()=> dbUpdate(path, { lastSeenAt: nowTs() }).catch(()=>{}), 30000);
   }catch(e){}
@@ -3677,22 +4760,18 @@ async function ensureStagePool(grade, lesson, stage){
   if (STAGE_POOL && STAGE_POOL.grade===grade && STAGE_POOL.lesson===lesson && STAGE_POOL.stage===stage) return STAGE_POOL;
 
   const sk = STUDENT.studentKey;
-  const [wordsObj, progObj] = await Promise.all([
-    dbGet(P.wordsStage(grade, lesson, stage)),
-    dbGet(P.progressStage(sk, grade, lesson, stage))
-  ]);
+  let wordsObj = getEmbeddedStageWords(grade, lesson, stage);
+  wordsObj = fillStageWordsFromPrevious(grade, lesson, stage, wordsObj, QUIZ_SESSION_RULES.randomStageSize);
+  let progObj = getCachedStageProgress(sk, grade, lesson, stage);
+  try{
+    const remote = await dbGet(P.progressStage(sk, grade, lesson, stage), { timeoutMs:800, retries:0 });
+    if (remote && typeof remote === "object"){
+      progObj = { ...progObj, ...remote };
+      setCachedStageProgress(sk, grade, lesson, stage, progObj);
+    }
+  }catch(e){}
 
   const words = [];
-
-  function splitTextAndFurigana(raw){
-    const s = String(raw||"").trim();
-    if (!s) return { text:"", furigana:"" };
-    const m = s.match(/^(.*?)[（(]([^（）()]+)[）)]\s*$/);
-    if (!m) return { text:s, furigana:"" };
-    const text = String(m[1]||"").trim();
-    const furigana = String(m[2]||"").trim();
-    return { text: text || s, furigana };
-  }
 
   function normalizeWrongsAndFurigana(wrongs, rawMap={}){
     const map = (rawMap && typeof rawMap === "object") ? rawMap : {};
@@ -3711,8 +4790,8 @@ async function ensureStagePool(grade, lesson, stage){
     return { wrongs: Array.from(new Set(outWrongs)), wrongFurigana: outMap };
   }
 
-  if (wordsObj && typeof wordsObj === "object"){
-    for (const [wid, v] of Object.entries(wordsObj)){
+  if (Array.isArray(wordsObj)){
+    for (const v of wordsObj){
       if (!v || typeof v !== "object") continue;
       const word = String(v.word ?? "").trim();
       const meaningParsed = splitTextAndFurigana(v.meaning);
@@ -3724,7 +4803,7 @@ async function ensureStagePool(grade, lesson, stage){
       const wrongFurigana = wrongNorm.wrongFurigana;
       if (!word || !meaning || wrongs.length < 1) continue;
 const example = String(v.example ?? "").trim();
-words.push({ id:String(wid), word, meaning, meaningFurigana, wrongs, wrongFurigana, example });
+words.push({ id:String(v.id), word, meaning, meaningFurigana, wrongs, wrongFurigana, example });
     }
   }
 
@@ -3786,18 +4865,7 @@ async function apiEnter(name){
 }
 
 async function apiMenu(name){
-  try{
-    const sk = STUDENT.studentKey;
-    const s = await dbGet(P.students(sk)) || {};
-    const last = Number(s.lastGrade);
-    return {
-      ok:true,
-      last_grade: Number.isFinite(last) && last>=1 ? last : null,
-      grades: activeGradeIds()
-    };
-  }catch(e){
-    return { ok:false, error:(e&&e.message)?e.message:String(e) };
-  }
+  return { ok:true, last_grade:Number(localStorage.getItem(GRADE_KEY)) || null, grades:activeGradeIds() };
 }
 
 async function apiLessons(name, grade){
@@ -3805,44 +4873,21 @@ async function apiLessons(name, grade){
     const sk = STUDENT.studentKey;
     const g = Number(grade)||1;
 
-    await dbUpdate(P.students(sk), { lastGrade:g, lastSeenAt: nowTs() }).catch(()=>{});
+    dbUpdate(P.students(sk), { lastGrade:g, lastSeenAt: nowTs() }).catch(()=>{});
 
-const [wordsGrade, bestGrade, progGrade, doneGrade] = await Promise.all([
-  dbGet(P.wordsGrade(g)),
-  dbGet(`bestProgress/${sk}/${g}`),     // ✅ 追加：ベスト％
-  dbGet(`progress/${sk}/${g}`),         // （互換のため残す：bestが無い時だけ旧方式で計算用）
-  dbGet(`lessonProgress/${sk}/${g}`)
-]);
-
-
-    const wG = (wordsGrade && typeof wordsGrade==="object") ? wordsGrade : {};
-const bG = (bestGrade && typeof bestGrade==="object") ? bestGrade : {};
-const pG = (progGrade && typeof progGrade==="object") ? progGrade : {};
-    const dG = (doneGrade && typeof doneGrade==="object") ? doneGrade : {};
-
-    const lessons = Object.keys(wG).sort((a,b)=>{
-      const na = parseFloat(String(a).replace(/[^0-9.]/g,""));
-      const nb = parseFloat(String(b).replace(/[^0-9.]/g,""));
-      if (Number.isFinite(na) && Number.isFinite(nb) && na!==nb) return na-nb;
-      return String(a).localeCompare(String(b), "ja");
-    });
+    const lessons = COURSE[g]?.lessons || [];
+    const localGrade = getCacheNode([sk, String(g)]);
+    /* 課一覧は必ず本体と端末キャッシュだけで即時生成する。DBを待たない。 */
+    const bG = localGrade.best || {};
+    const pG = localGrade.progress || {};
+    const dG = localGrade.done || {};
 
 function calc(lesson, stage){
-  const stageObj = (wG[lesson] && wG[lesson][stage] && typeof wG[lesson][stage]==="object") ? wG[lesson][stage] : {};
-  const wordIds = Object.keys(stageObj);
+  const stageObj = getEmbeddedStageWords(g, lesson, stage);
+  const wordIds = stageObj.map(word=>String(word.id));
   const total = wordIds.length;
-  const allWordsModeMax = Math.max(1, Number(QUIZ_SESSION_RULES.allWordsModeMaxTotal) || 35);
-  const isAllWordsMode = total > 0 && total <= allWordsModeMax;
-  const pStage = (pG[lesson] && pG[lesson][stage] && typeof pG[lesson][stage]==="object") ? pG[lesson][stage] : {};
 
-  // x/y表示用の「mastered語数」は、実際の単語進捗から数える
-  let masteredCount = 0;
-  for (const wid of wordIds){
-    if (pStage[wid] && pStage[wid].mastered) masteredCount++;
-  }
-
-  // ✅ all-wordsモードだけはベスト％を優先（achieved運用）
-  //    大語彙(>=36語)ではmastered実数で達成率を出す
+  // ✅ 1) ベスト％があればそれを採用（これが本命）
   const bStage = (bG[lesson] && bG[lesson][stage] && typeof bG[lesson][stage] === "object")
     ? bG[lesson][stage]
     : null;
@@ -3850,57 +4895,43 @@ function calc(lesson, stage){
   const bestPct = bStage ? Number(bStage.bestPct) : null;
   const rateFromBest = (Number.isFinite(bestPct)) ? clamp(bestPct/100, 0, 1) : null;
 
-  const shouldUseBestPct = (stage === "review") || isAllWordsMode;
-  if (shouldUseBestPct && rateFromBest != null){
+  if (rateFromBest != null){
     const totalCount = total > 0 ? total : 100;
-    const bestAchievedCount = Math.round(rateFromBest * totalCount);
-    const rateFromXY = totalCount > 0 ? (bestAchievedCount / totalCount) : 0;
 
     return {
       total: totalCount,
-      mastered: bestAchievedCount,
-      masteredDisplay: bestAchievedCount,
-      rate: clamp(rateFromXY, 0, 1)
+      mastered: rateFromBest * totalCount,
+      rate: rateFromBest
     };
   }
 
   // ✅ 2) bestProgressがまだ無い古いデータ用フォールバック（旧：単語mastered計算）
 
-  const mastered = masteredCount;
+  const pStage = (pG[lesson] && pG[lesson][stage] && typeof pG[lesson][stage]==="object") ? pG[lesson][stage] : {};
+  let mastered = 0;
+  for (const wid of wordIds){
+    if (pStage[wid] && pStage[wid].mastered) mastered++;
+  }
   const rate = total>0 ? (mastered/total) : null;
-  return { total, mastered, masteredDisplay: mastered, rate };
+  return { total, mastered, rate };
 }
 
 
     const outLessons = lessons.map(lesson=>{
       const pre1 = calc(lesson,"pre1");
       const pre2 = calc(lesson,"pre2");
-      const review = calc(lesson,"review");
 
-// ✅ pre1/pre2 の合算で課の達成度にする
-const m1 = Number.isFinite(pre1.mastered) ? pre1.mastered : null;
-const m2 = Number.isFinite(pre2.mastered) ? pre2.mastered : null;
-const t1 = Number.isFinite(pre1.total) ? pre1.total : null;
-const t2 = Number.isFinite(pre2.total) ? pre2.total : null;
-let achieveRate = null;
-if (Number.isFinite(m1) && Number.isFinite(m2) && Number.isFinite(t1) && Number.isFinite(t2) && (t1 + t2) > 0){
-  achieveRate = clamp((m1 + m2) / (t1 + t2), 0, 1);
-} else {
-  const r1 = (pre1.rate != null) ? pre1.rate : 0;
-  const r2 = (pre2.rate != null) ? pre2.rate : 0;
-  achieveRate = clamp((r1 + r2) / 2, 0, 1);
-}
+// ジュースの目盛りは単語1（pre1）だけで0〜100%まで表示する。
+const achieveRate = pre1.rate != null ? clamp(pre1.rate, 0, 1) : 0;
       const done = dG[lesson] || {};
       const stage_status = {
         pre1: { completed_at: done.pre1?.completedAt || null },
         pre2: { completed_at: done.pre2?.completedAt || null },
-        review:{ completed_at: done.review?.completedAt || null },
       };
 
       const stage_rates = {
-        pre1: { rate: pre1.rate, mastered: pre1.mastered, masteredDisplay: pre1.masteredDisplay, total: pre1.total },
-        pre2: { rate: pre2.rate, mastered: pre2.mastered, masteredDisplay: pre2.masteredDisplay, total: pre2.total },
-        review:{ rate: review.rate, mastered: review.mastered, masteredDisplay: review.masteredDisplay, total: review.total },
+        pre1: { rate: pre1.rate, mastered: pre1.mastered, total: pre1.total },
+        pre2: { rate: pre2.rate, mastered: pre2.mastered, total: pre2.total },
       };
 
       return { lesson, achieveRate, stage_status, stage_rates };
@@ -3919,51 +4950,15 @@ async function apiQuestion(name, grade, lesson, stage){
       return { ok:false, error:"no_words" };
     }
 
-    const stageNorm = String(stage || "");
-    if (stageNorm === "review" && SESSION){
-      ensureSessionWordStats();
-      ensureReviewOrder();
-      const idx = Number(SESSION.reviewIndex || 0);
-      const order = Array.isArray(SESSION.reviewOrder) ? SESSION.reviewOrder : [];
-      if (idx >= order.length){
-        return { ok:false, error:"session_done" };
-      }
-      const nextId = String(order[idx] ?? "");
-      const w = STAGE_POOL.words.find(x=>String(x.id ?? "") === nextId);
-      if (!w){
-        SESSION.reviewIndex = idx + 1;
-        return await apiQuestion(name, grade, lesson, stageNorm);
-      }
-      SESSION.reviewIndex = idx + 1;
-      const optionsMeta = makeOptionsForWord(w);
-      const options = optionsMeta.map(x=>x.display);
-      const correctDisplay = (optionsMeta.find(x=>x.text === w.meaning)?.display) || w.meaning;
-      return {
-        ok:true,
-        word_id: w.id,
-        word: w.word,
-        options,
-        correct: correctDisplay,
-        example: w.example || ""
-      };
-    }
-
-    // ✅ セッション対象単語から候補
+    // ✅ 常に全単語から候補
     let candidates = STAGE_POOL.words;
-
-    try{
-      ensureSessionWordStats();
-      if (SESSION && Array.isArray(SESSION.wordIds) && SESSION.wordIds.length){
-        const set = new Set(SESSION.wordIds.map(String));
-        candidates = candidates.filter(w=> set.has(String(w.id ?? "")));
-      }
-    }catch(e){}
 
     // ✅ このクイズで「達成済み」の単語は出題しない
     try{
       ensureSessionWordStats();
       if (typeof canAskWordId === "function" && SESSION){
-        const okc = candidates.filter(w=>canAskWordId(w.id));
+        const sessionIds = new Set(SESSION.wordIds || []);
+        const okc = candidates.filter(w=>sessionIds.has(String(w.id ?? "")) && canAskWordId(w.id));
         candidates = okc;
       }
     }catch(e){}
@@ -4006,7 +5001,7 @@ return {
   }
 }
 
-async function apiAnswer(name, word_id, chosen, opts={}){
+async function apiAnswer(name, word_id, chosen){
   try{
     const sk = STUDENT.studentKey;
     const g = SELECTED_GRADE;
@@ -4024,8 +5019,21 @@ async function apiAnswer(name, word_id, chosen, opts={}){
     const c = String(chosen ?? "");
     const is_correct = (c === correct);
 
+    /* DB がオフラインでも、先に端末へ回答進捗を確定する。 */
+    const local = (STAGE_POOL.prog?.[wid] && typeof STAGE_POOL.prog[wid] === "object")
+      ? { ...STAGE_POOL.prog[wid] }
+      : { correctCount:0, wrongCount:0, mastered:false, lastAt:0 };
+    if (is_correct) local.correctCount = (local.correctCount || 0) + 1;
+    else local.wrongCount = (local.wrongCount || 0) + 1;
+    local.lastAt = nowTs();
+    local.mastered = local.mastered || is_correct;
+    local.lastChosen = c;
+    local.lastCorrect = correct;
+    STAGE_POOL.prog[wid] = local;
+    setCachedStageProgress(sk, g, lesson, stage, STAGE_POOL.prog);
+
     const path = P.progressWord(sk, g, lesson, stage, wid);
-    await runTransaction(ref(db, path), (cur)=>{
+    await dbRunTransaction(ref(db, path), (cur)=>{
       const now = nowTs();
       const base = (cur && typeof cur === "object") ? cur : {
         correctCount: 0, wrongCount: 0, mastered: false, lastAt: 0
@@ -4033,20 +5041,11 @@ async function apiAnswer(name, word_id, chosen, opts={}){
       if (is_correct) base.correctCount = (base.correctCount||0) + 1;
       else base.wrongCount = (base.wrongCount||0) + 1;
       base.lastAt = now;
-      const shouldMarkMastered = !!opts.markMastered;
-      if (shouldMarkMastered) base.mastered = true;
+      if (is_correct) base.mastered = true;
       base.lastChosen = c;
       base.lastCorrect = correct;
       return base;
-    });
-
-    if (STAGE_POOL){
-      STAGE_POOL.prog = STAGE_POOL.prog || {};
-      const base = (STAGE_POOL.prog[wid] && typeof STAGE_POOL.prog[wid]==="object") ? STAGE_POOL.prog[wid] : {};
-      base.mastered = base.mastered || !!opts.markMastered;
-      base.lastAt = nowTs();
-      STAGE_POOL.prog[wid] = base;
-    }
+    }).catch(()=>{});
 
     return { ok:true, is_correct, correct, chosen: c };
   }catch(e){
@@ -4060,7 +5059,10 @@ async function apiLessonComplete(name, grade, lesson, stage){
     const g = Number(grade)||SELECTED_GRADE;
     const l = String(lesson||"");
     const s = String(stage||"pre1");
-    await dbSet(P.lessonStageDone(sk, g, l, s), { completedAt: nowTs() });
+    const done = { completedAt: nowTs() };
+    const cached = getCacheNode([sk, String(g), "done", l]);
+    mergeCacheNode([sk, String(g), "done", l], { ...cached, [s]:done });
+    await dbSet(P.lessonStageDone(sk, g, l, s), done).catch(()=>{});
     return { ok:true };
   }catch(e){
     return { ok:false, error:(e&&e.message)?e.message:String(e) };
@@ -4076,7 +5078,19 @@ async function apiSaveBestStage(name, grade, lesson, stage, pct){
 
     const path = P.bestStage(sk, g, l, s);
 
-    await runTransaction(ref(db, path), (cur)=>{
+    const previous = getCacheNode([sk, String(g), "best", l, s]);
+    const now = nowTs();
+    const localBest = {
+      ...previous,
+      plays:(Number(previous.plays)||0) + 1,
+      lastPct:p,
+      lastAt:now,
+      bestPct:Math.max(Number(previous.bestPct)||0, p),
+      bestAt:p >= (Number(previous.bestPct)||0) ? now : previous.bestAt,
+    };
+    mergeCacheNode([sk, String(g), "best", l], { [s]:localBest });
+
+    await dbRunTransaction(ref(db, path), (cur)=>{
       const now = nowTs();
       const base = (cur && typeof cur === "object") ? cur : {
         bestPct: 0,
@@ -4096,7 +5110,7 @@ async function apiSaveBestStage(name, grade, lesson, stage, pct){
         base.bestAt = now;
       }
       return base;
-    });
+    }).catch(()=>{});
 
     return { ok:true };
   }catch(e){
@@ -4121,38 +5135,11 @@ function setStuStatus(text, ok=true){
   stuStatus.className = ok ? "muted ok" : "muted ng";
 }
 
-let _lessonPreparingTimer = null;
-function showLessonPreparingPop(){
-  if (!lessonPreparingPop) return;
-  if (_lessonPreparingTimer){
-    clearTimeout(_lessonPreparingTimer);
-    _lessonPreparingTimer = null;
-  }
-  lessonPreparingPop.classList.add("show");
-  _lessonPreparingTimer = setTimeout(()=>{
-    lessonPreparingPop.classList.remove("show");
-    _lessonPreparingTimer = null;
-  }, 1000);
-}
-
-function getRegisteredQuestionCount(meta){
-  const s = meta?.stageStats;
-  if (!s) return 0;
-  const totals = [s.pre1?.total, s.pre2?.total, s.review?.total];
-  return totals.reduce((sum, v)=>{
-    const n = Number(v);
-    return Number.isFinite(n) && n > 0 ? (sum + n) : sum;
-  }, 0);
-}
-
 function formatStageProgressText(meta, stage){
-  const stageStats = meta?.stageStats?.[stage];
-  const mastered = Number(stageStats?.masteredDisplay ?? stageStats?.mastered);
-  const total = Number(stageStats?.total);
-  if (!Number.isFinite(mastered) || !Number.isFinite(total) || total <= 0){
-    return " --/--語";
-  }
-  return ` ${Math.max(0, Math.round(mastered))}/${Math.round(total)}語`;
+  const rate = meta?.stageStats?.[stage]?.rate;
+  const n = Number(rate);
+  if (!Number.isFinite(n)) return "--%";
+  return `${Math.round(clamp(n, 0, 1) * 100)}%`;
 }
 
 /* =========================
@@ -4177,10 +5164,10 @@ function closeLowRatePop(){
 }
 
 async function fetchRandomExamples(grade, lesson, stage, n=3){
-  const obj = await dbGet(P.wordsStage(grade, lesson, stage));
+  const obj = getEmbeddedStageWords(grade, lesson, stage);
   const arr = [];
-  if (obj && typeof obj === "object"){
-    for (const v of Object.values(obj)){
+  if (Array.isArray(obj)){
+    for (const v of obj){
       if (!v || typeof v !== "object") continue;
       const word = String(v.word ?? "").trim();
       const meaning = String(v.meaning ?? "").trim();
@@ -4410,8 +5397,8 @@ function renderFlashCard(){
       example.className = "flashExampleLine";
 
       if (entry){
-        meaning.textContent = entry.meaning || "";
-        furigana.textContent = entry.meaningFurigana || "";
+        renderTextWithFurigana(meaning, entry.meaningRaw || entry.meaning || "");
+        furigana.textContent = entry.meaningRaw ? "" : (entry.meaningFurigana || "");
         if (!furigana.textContent) furigana.classList.add("is-empty");
         word.textContent = getMemorizeModeWordDisplay(entry.word || "");
         const ex = String(entry.example ?? "").trim();
@@ -4527,20 +5514,18 @@ requestAnimationFrame(fitFlashModalWidth);
 
   let list = [];
   try{
-    const obj = await dbGet(P.wordsStage(grade, lesson, stage));
-    if (obj && typeof obj === "object"){
-      const entries = Object.entries(obj);
-      entries.sort((a,b)=> String(a[0]).localeCompare(String(b[0]))); // 安定順
-      for (const [, v] of entries){
+    const obj = getEmbeddedStageWords(grade, lesson, stage);
+    if (Array.isArray(obj)){
+      for (const v of obj){
         if (!v || typeof v !== "object") continue;
         const word = String(v.word ?? "").trim();
         const meaningRaw = String(v.meaning ?? "").trim();
-        const m = meaningRaw.match(/^(.*?)[（(]([^（）()]+)[）)]\s*$/);
-        const meaning = (m ? String(m[1]||"") : meaningRaw).trim();
-        const meaningFurigana = String(v.meaningFurigana || (m ? String(m[2]||"") : "") || "").trim();
+        const parsedMeaning = splitTextAndFurigana(meaningRaw);
+        const meaning = parsedMeaning.text;
+        const meaningFurigana = String(v.meaningFurigana || parsedMeaning.furigana || "").trim();
         if (!word || !meaning) continue;
 const example = String(v.example ?? "").trim(); // ✅追加（DBのexample）
-list.push({ word, meaning, meaningFurigana, example });
+list.push({ word, meaning, meaningRaw, meaningFurigana, example });
       }
     }
   }catch(e){
@@ -4691,31 +5676,28 @@ btnLowRateMem.onclick = async ()=>{
 
 
 /* =========================
-   ✅ 変更点（review黒玉の挙動）
+   ✅ 変更点（pre2黒玉の挙動）
 ========================= */
 let QUIZ_REVIEW_BALLS_FROZEN = false;     // クイズ中フリーズ
 let QUIZ_REVIEW_BALLS_START_COUNT = 0;    // 開始時の玉数
 let QUIZ_REVIEW_FINALIZING = false;       // 二重実行防止
 
 function isQuizVisible(){ return quizBox && quizBox.style.display !== "none"; }
-function isReviewNow(){ return (CURRENT.stage === "review"); }
+function isPre2Now(){ return (CURRENT.stage === "pre2"); }
 
 function freezeReviewBallsStart(){
-  if (!isReviewNow()) return;
-  QUIZ_REVIEW_BALLS_FROZEN = false;
+  if (!isPre2Now()) return;
+  QUIZ_REVIEW_BALLS_FROZEN = true;
   QUIZ_REVIEW_FINALIZING = false;
 
-  // ✅ reviewは毎回0個から開始（セッション内の正答率アップに応じて増やす）
-  QUIZ_REVIEW_BALLS_START_COUNT = 0;
-  if (SESSION && SESSION.stage === "review"){
-    SESSION.reviewLiveBestPct = 0;
-  }
+  // 開始時の玉数を「今のDB反映済みlesson一覧」から計算
+  QUIZ_REVIEW_BALLS_START_COUNT = getReviewBallCountForLesson(CURRENT.lesson);
 
   const key = `${CURRENT.name}|${SELECTED_GRADE}|${normLesson(CURRENT.lesson)}`;
   _quizReviewBallPrev.set(key, QUIZ_REVIEW_BALLS_START_COUNT);
 
   // まずは“静止表示”（落とさない）
-  renderQuizReviewBalls(CURRENT.lesson, false, 0);
+  renderQuizReviewBalls(CURRENT.lesson, false, QUIZ_REVIEW_BALLS_START_COUNT);
 }
 
 function fitLowRateModalWidth(){
@@ -4770,8 +5752,8 @@ window.addEventListener("resize", ()=>{
   if (flashBack && flashBack.style.display === "flex"){
     requestAnimationFrame(fitFlashModalWidth);
   }
-  // ✅ review表示の追従（縮小＆例文位置）
-  if (quizBox && quizBox.style.display !== "none" && CURRENT.stage === "review"){
+  // ✅ pre2表示の追従（縮小＆例文位置）
+  if (quizBox && quizBox.style.display !== "none" && CURRENT.stage === "pre2"){
     requestAnimationFrame(applyReviewPromptLayout);
   }
   if (lessonListBox && lessonListBox.style.display !== "none"){
@@ -4859,7 +5841,7 @@ const targets = [flashList, flashPager].filter(Boolean);
 
 
 /* =========================
-   ✅ review結果表示待ち（落下完了→2秒）
+   ✅ pre2結果表示待ち（落下完了→2秒）
 ========================= */
 let _reviewFinalizeToken = 0;
 let _reviewResultTimer = null;
@@ -4878,7 +5860,7 @@ function scheduleOpenSessionResultAfterReviewBalls(prevCount, nextCount){
   const stillValid = ()=>{
     if (token !== _reviewFinalizeToken) return false;
     if (!SESSION) return false;
-    if (CURRENT.stage !== "review") return false;
+    if (CURRENT.stage !== "pre2") return false;
     if (!quizBox || quizBox.style.display === "none") return false;
     return true;
   };
@@ -4920,12 +5902,42 @@ function scheduleOpenSessionResultAfterReviewBalls(prevCount, nextCount){
 }
 
 async function finalizeReviewBallsAndShowResult(){
-  openSessionResult();
+  if (!isPre2Now()) { openSessionResult(); return; }
+  if (QUIZ_REVIEW_FINALIZING) return;
+  QUIZ_REVIEW_FINALIZING = true;
+
+  clearReviewResultWait();
+
+  // フリーズ解除（ここから先は更新OK）
+  QUIZ_REVIEW_BALLS_FROZEN = false;
+
+  const key = `${CURRENT.name}|${SELECTED_GRADE}|${normLesson(CURRENT.lesson)}`;
+  const prev = _quizReviewBallPrev.get(key) ?? QUIZ_REVIEW_BALLS_START_COUNT;
+  const lesson = CURRENT.lesson;
+
+  // 「最後の問題が終わった瞬間」に達成率を再取得して玉数決定
+  try{
+    await refreshLessons(); // DBの最新を読み、pre2%を確定
+  }catch(e){}
+
+  const next = getReviewBallCountForLesson(lesson);
+
+  // 増えた分だけ落下させる（減ったら単に描画が減る）
+  renderQuizReviewBalls(lesson, (next > prev), prev);
+
+  // ✅ 落下が全部終わってから2秒後に結果表示
+  scheduleOpenSessionResultAfterReviewBalls(prev, next);
 }
 
 /* ========= 画面表示 ========= */
 function showNameScreen(){
   IN_ROOM = false;
+
+  /* 接続を有効にしている場合は、トップへ戻った時にも再接続・再送する。 */
+  if (DB_CONNECTION_ENABLED && STUDENT.studentKey){
+    syncCachedProgressToDb(STUDENT.studentKey);
+  }
+  endDbActivitySession();
 
   studentTop.style.display = "";
   lessonListBox.style.display = "none";
@@ -4952,12 +5964,18 @@ function showNameScreen(){
   QUIZ_REVIEW_BALLS_FROZEN = false;
   QUIZ_REVIEW_FINALIZING = false;
 
-  // ✅ review結果待ちキャンセル
+  // ✅ pre2結果待ちキャンセル
   clearReviewResultWait();
 }
 
 async function showLessonList(){
   IN_ROOM = true;
+  startDbActivitySession();
+
+  /* 入室時・クイズから戻った時のどちらも接続とキャッシュ同期を再試行する。 */
+  syncCachedProgressToDb(STUDENT.studentKey).then(ok=>{
+    if (ok) refreshLessons().catch(()=>{});
+  });
 
   studentTop.style.display = "none";
   lessonListBox.style.display = "";
@@ -4994,7 +6012,7 @@ async function showLessonList(){
   QUIZ_REVIEW_BALLS_FROZEN = false;
   QUIZ_REVIEW_FINALIZING = false;
 
-  // ✅ review結果待ちキャンセル
+  // ✅ pre2結果待ちキャンセル
   clearReviewResultWait();
 }
 
@@ -5023,8 +6041,8 @@ function showQuiz(){
 
   setReviewVisualMode();
 
-  // ✅ reviewなら「開始時点の玉数」で静止表示（クイズ中に落とさない）
-  if (CURRENT.stage === "review"){
+  // ✅ pre2なら「開始時点の玉数」で静止表示（クイズ中に落とさない）
+  if (CURRENT.stage === "pre2"){
     const key = `${CURRENT.name}|${SELECTED_GRADE}|${normLesson(CURRENT.lesson)}`;
     const prev = _quizReviewBallPrev.get(key) ?? getReviewBallCountForLesson(CURRENT.lesson);
     renderQuizReviewBalls(CURRENT.lesson, false, prev);
@@ -5044,7 +6062,7 @@ backFab.onclick = async ()=>{
   closeSessionResult();
   closeLowRatePop();
 
-  // ✅ review結果待ちキャンセル
+  // ✅ pre2結果待ちキャンセル
   clearReviewResultWait();
 
   if (quizBox.style.display !== "none"){
@@ -5091,9 +6109,9 @@ function syncDropletColorToGauge(){
 /* ========= ★デバッグ用：stage別の達成率 ========= */
 function readStageStats(x){
   const out = {
-    pre1:{ rate:null, mastered:null, masteredDisplay:null, total:null },
-    pre2:{ rate:null, mastered:null, masteredDisplay:null, total:null },
-    review:{ rate:null, mastered:null, masteredDisplay:null, total:null },
+    pre1:{ rate:null, mastered:null, total:null },
+    pre2:{ rate:null, mastered:null, total:null },
+    review:{ rate:null, mastered:null, total:null },
   };
 
   const sr = x.stage_rates || x.stageRates || x.stage_rate || x.stageRate || null;
@@ -5103,8 +6121,6 @@ function readStageStats(x){
       if (o && typeof o === "object"){
         if (out[s].rate == null && o.rate != null) out[s].rate = toRate01(o.rate);
         if (out[s].mastered == null && o.mastered != null) out[s].mastered = Number(o.mastered);
-        if (out[s].masteredDisplay == null && o.masteredDisplay != null) out[s].masteredDisplay = Number(o.masteredDisplay);
-        if (out[s].masteredDisplay == null && o.mastered_display != null) out[s].masteredDisplay = Number(o.mastered_display);
         if (out[s].total == null && o.total != null) out[s].total = Number(o.total);
         if (out[s].mastered == null && o.done != null) out[s].mastered = Number(o.done);
         if (out[s].total == null && o.all != null) out[s].total = Number(o.all);
@@ -5192,8 +6208,8 @@ async function refreshLessons(){
   drawLessonTrapezoids(true); /* ✅ 戻った時は“伸び”アニメ */
   syncDropletColorToGauge();
 
-  // ✅ reviewクイズ中は黒玉を「更新しない」
-  if (isQuizVisible() && CURRENT.stage === "review"){
+  // ✅ pre2クイズ中は黒玉を「更新しない」
+  if (isQuizVisible() && CURRENT.stage === "pre2"){
     if (!QUIZ_REVIEW_BALLS_FROZEN && !QUIZ_REVIEW_FINALIZING){
       const key = `${CURRENT.name}|${SELECTED_GRADE}|${normLesson(CURRENT.lesson)}`;
       const prev = _quizReviewBallPrev.get(key) ?? getReviewBallCountForLesson(CURRENT.lesson);
@@ -5260,23 +6276,7 @@ function computePlannedCount(meta, stage){
   return Math.min(total, Math.trunc(n)) * Math.max(1, QUIZ_RULES.repeatPerWord|0);
 }
 function startSession(lesson, stage, meta){
-  const total = (STAGE_POOL && Array.isArray(STAGE_POOL.words)) ? STAGE_POOL.words.length : 0;
-  const allWordsModeMax = Math.max(1, Number(QUIZ_SESSION_RULES.allWordsModeMaxTotal) || 35);
-  const isAllWordsMode = (stage !== "review") && total <= allWordsModeMax;
-  const progress = (STAGE_POOL && STAGE_POOL.prog && typeof STAGE_POOL.prog === "object") ? STAGE_POOL.prog : {};
-  let unmasteredCount = 0;
-  if (stage !== "review"){
-    const words = (STAGE_POOL && Array.isArray(STAGE_POOL.words)) ? STAGE_POOL.words : [];
-    for (const w of words){
-      const id = String(w.id ?? "");
-      if (!id) continue;
-      if (!(progress[id] && progress[id].mastered)) unmasteredCount++;
-    }
-  }
-  const deferMin = Math.max(0, Number(QUIZ_SESSION_RULES.deferredMasteredMinUnmastered) || 1);
-  const deferMax = Math.max(deferMin, Number(QUIZ_SESSION_RULES.deferredMasteredMaxUnmastered) || 29);
-  const shouldDeferMastered = !isAllWordsMode && stage !== "review" && unmasteredCount >= deferMin && unmasteredCount <= deferMax;
-
+  const savedRate = getStageRate01FromMeta(meta, stage);
   SESSION = {
     key: `${CURRENT.name}|${SELECTED_GRADE}|${lesson}|${stage}|${Date.now()}`,
     lesson, stage,
@@ -5286,95 +6286,16 @@ function startSession(lesson, stage, meta){
     totalWrongs: 0,
     wordStats: new Map(),
     wordIds: [],
+    wordPoolReady: false,
+    savedStageRate: savedRate,
+    isRandomStage: false,
     itemAwarded: false,
     rewardPrepared: false,
     preparedReward: null,
-    reviewOrder: [],
-    reviewIndex: 0,
-    selectedWordIds: null,
-    isAllWordsMode,
-    shouldDeferMastered,
-    pendingMasteredIds: new Set(),
-    reviewLiveBestPct: 0,
-    reviewRawCorrect: 0,
   };
 }
-
-function buildSessionWordIdsForStage(){
-  if (!STAGE_POOL || !Array.isArray(STAGE_POOL.words)) return [];
-
-  const allWords = STAGE_POOL.words;
-  const allIds = allWords.map(w=>String(w.id ?? "")).filter(Boolean);
-  if (CURRENT.stage === "review") return allIds;
-
-  const total = allWords.length;
-  const allWordsModeMax = Math.max(1, Number(QUIZ_SESSION_RULES.allWordsModeMaxTotal) || 35);
-  if (total <= allWordsModeMax) return allIds;
-
-  const progress = (STAGE_POOL.prog && typeof STAGE_POOL.prog === "object") ? STAGE_POOL.prog : {};
-  const unmastered = [];
-  const mastered = [];
-
-  for (const w of allWords){
-    const id = String(w.id ?? "");
-    if (!id) continue;
-    const done = !!(progress[id] && progress[id].mastered);
-    if (done) mastered.push(id);
-    else unmastered.push(id);
-  }
-
-  const minPool = Math.max(1, Number(QUIZ_SESSION_RULES.minimumQuestionPoolSize) || 30);
-
-  if (unmastered.length >= minPool){
-    const sampled = unmastered.slice();
-    shuffleInPlace(sampled);
-    return sampled.slice(0, minPool);
-  }
-
-  if (!unmastered.length){
-    const sampledMastered = mastered.slice();
-    shuffleInPlace(sampledMastered);
-    return sampledMastered.slice(0, minPool);
-  }
-  if (!mastered.length){
-    return unmastered;
-  }
-
-  const fill = mastered.slice();
-  shuffleInPlace(fill);
-  const needed = Math.max(0, minPool - unmastered.length);
-  return unmastered.concat(fill.slice(0, needed));
-}
-
-function ensureReviewOrder(){
-  if (!SESSION || SESSION.stage !== "review") return;
-  if (Array.isArray(SESSION.reviewOrder) && SESSION.reviewOrder.length > 0) return;
-  ensureSessionWordStats();
-  const ids = Array.isArray(SESSION.wordIds) ? SESSION.wordIds.filter(Boolean) : [];
-  if (!ids.length){
-    SESSION.reviewOrder = [];
-    SESSION.reviewIndex = 0;
-    return;
-  }
-  const rounds = Math.max(1, REVIEW_SESSION_RULES.rounds | 0);
-  const order = [];
-  for (let r=0; r<rounds; r++){
-    const lap = ids.slice();
-    shuffleInPlace(lap);
-    order.push(...lap);
-  }
-  SESSION.reviewOrder = order;
-  SESSION.reviewIndex = 0;
-}
-
 function endSessionIfNeeded(){
   if (!SESSION) return false;
-  if (SESSION.stage === "review"){
-    ensureReviewOrder();
-    const idx = Number(SESSION.reviewIndex || 0);
-    const total = Array.isArray(SESSION.reviewOrder) ? SESSION.reviewOrder.length : 0;
-    return total > 0 && idx >= total;
-  }
   const ids = Array.isArray(SESSION.wordIds) ? SESSION.wordIds : [];
   if (!ids.length || !SESSION.wordStats) return false;
 
@@ -5391,11 +6312,21 @@ function endSessionIfNeeded(){
 function ensureSessionWordStats(){
   if (!SESSION || !STAGE_POOL || !Array.isArray(STAGE_POOL.words)) return;
   if (!SESSION.wordStats) SESSION.wordStats = new Map();
-  if (!Array.isArray(SESSION.selectedWordIds) || SESSION.selectedWordIds.length === 0){
-    SESSION.selectedWordIds = buildSessionWordIdsForStage();
+  if (!SESSION.wordPoolReady){
+    const ids = STAGE_POOL.words.map(w=>String(w.id ?? "")).filter(Boolean);
+    const shouldUseRandomStage =
+      ids.length >= QUIZ_SESSION_RULES.randomStageMinWords &&
+      Number.isFinite(SESSION.savedStageRate) &&
+      SESSION.savedStageRate >= QUIZ_SESSION_RULES.randomStageMinRate;
+    if (shouldUseRandomStage){
+      shuffleInPlace(ids);
+      SESSION.wordIds = ids.slice(0, QUIZ_SESSION_RULES.randomStageSize);
+      SESSION.isRandomStage = true;
+    } else {
+      SESSION.wordIds = ids;
+    }
+    SESSION.wordPoolReady = true;
   }
-  const ids = Array.isArray(SESSION.selectedWordIds) ? SESSION.selectedWordIds : [];
-  SESSION.wordIds = ids.filter(Boolean);
   SESSION.wordIds.forEach((id)=>{
     if (!SESSION.wordStats.has(id)){
       SESSION.wordStats.set(id, {
@@ -5439,28 +6370,36 @@ function applyWordAnswerStats(wordId, isCorrect, isFast){
   if (isCorrect){
     stats.correct = (stats.correct || 0) + 1;
     if (isFast) stats.fast = (stats.fast || 0) + 1;
-    stats.wrongStreak = 0;
   } else {
-    stats.fast = 0;
     stats.wrongStreak = (stats.wrongStreak || 0) + 1;
   }
-  if (SESSION?.stage === "review"){
-    if ((stats.correct || 0) >= REVIEW_SESSION_RULES.achievedCorrectCount){
-      stats.achieved = true;
-    }
-    return;
-  }
-  const reachedMasteredInSession =
-    (stats.fast || 0) >= QUIZ_SESSION_RULES.masteredFastCount ||
-    (stats.correct || 0) >= QUIZ_SESSION_RULES.masteredCorrectCount;
-
-  if (SESSION?.shouldDeferMastered && reachedMasteredInSession){
-    if (!(SESSION.pendingMasteredIds instanceof Set)) SESSION.pendingMasteredIds = new Set();
-    SESSION.pendingMasteredIds.add(String(wordId || ""));
-  }
-  if (reachedMasteredInSession){
+  if (stats.fast >= QUIZ_SESSION_RULES.masteredFastCount || stats.correct >= QUIZ_SESSION_RULES.masteredCorrectCount){
     stats.achieved = true;
   }
+}
+
+/*
+ * 1単語ぶんの達成度。
+ * 通常正解は 1/3 ずつ進み、最初の高速正解だけは 1/2 まで進む。
+ * 高速正解が2回、または正解が3回になった時点で達成（1）にする。
+ */
+function getWordAchievementRate(stats){
+  if (!stats) return 0;
+  const correct = Math.max(0, Number(stats.correct) || 0);
+  const fast = Math.max(0, Number(stats.fast) || 0);
+  if (stats.achieved || fast >= QUIZ_SESSION_RULES.masteredFastCount || correct >= QUIZ_SESSION_RULES.masteredCorrectCount){
+    return 1;
+  }
+  if (correct === 1 && fast === 1) return 1 / 2;
+  return clamp(correct / QUIZ_SESSION_RULES.masteredCorrectCount, 0, 1);
+}
+
+function getSessionAchievementRate(){
+  if (!SESSION) return 0;
+  const ids = Array.isArray(SESSION.wordIds) ? SESSION.wordIds : [];
+  if (!ids.length || !SESSION.wordStats) return 0;
+  const total = ids.reduce((sum, id)=> sum + getWordAchievementRate(SESSION.wordStats.get(id)), 0);
+  return clamp(total / ids.length, 0, 1);
 }
 
 function applySessionAnswerStats({ wordId, word, correctText, chosen, isCorrect, isFast }){
@@ -5472,28 +6411,16 @@ function applySessionAnswerStats({ wordId, word, correctText, chosen, isCorrect,
     SESSION.wrongs.push({ wordId: String(wordId || ""), word: word || "", meaning: String(correctText || "") });
   }
   applyWordAnswerStats(wordId, isCorrect, isFast);
-  if (isCorrect && SESSION.wrongs.length){
-    const stats = getSessionWordStats(wordId);
-    if (stats?.achieved){
-      const key = String(wordId || "");
-      const before = SESSION.wrongs.length;
-      SESSION.wrongs = SESSION.wrongs.filter(w=> (w.wordId || "") !== key);
-      const removed = before - SESSION.wrongs.length;
-      if (removed > 0){
-        SESSION.correct += removed;
-        SESSION.totalWrongs = Math.max(0, (SESSION.totalWrongs || 0) - removed);
-      }
-    }
-  }
 }
 
 function pickFallbackWordId(excludeId){
   if (!SESSION || !STAGE_POOL || !Array.isArray(STAGE_POOL.words)) return null;
   ensureSessionWordStats();
   const exclude = String(excludeId ?? "");
+  const sessionIds = new Set(SESSION.wordIds || []);
   const candidates = STAGE_POOL.words
     .map(w=>({ id: String(w.id ?? ""), stats: SESSION.wordStats.get(String(w.id ?? "")) }))
-    .filter(x=> x.id && x.id !== exclude);
+    .filter(x=> x.id && x.id !== exclude && sessionIds.has(x.id) && !x.stats?.achieved && (x.stats?.shown || 0) < QUIZ_SESSION_RULES.unachievedMaxShows);
   if (!candidates.length) return null;
 
   candidates.sort((a, b)=>{
@@ -5519,99 +6446,17 @@ function pickFallbackWordId(excludeId){
   return candidates[0]?.id || null;
 }
 
-function getSessionAchievedPct(){
-  if (!SESSION) return 0;
-  ensureSessionWordStats();
-  const ids = Array.isArray(SESSION.wordIds) ? SESSION.wordIds.filter(Boolean) : [];
-  const total = Math.max(1, ids.length);
-  let achieved = 0;
-  ids.forEach((id)=>{
-    const s = SESSION.wordStats?.get(String(id));
-    if (s?.achieved) achieved++;
-  });
-  return Math.round((achieved / total) * 100);
-}
-
-function getSessionAnswerAccuracyPct(){
-  if (!SESSION) return 0;
-  const asked = Math.max(0, Number(SESSION.asked) || 0);
-  if (asked <= 0) return 0;
-  const correct = clamp(Number(SESSION.correct) || 0, 0, asked);
-  return Math.round((correct / asked) * 100);
-}
-
-function getReviewBallProgressPct(){
-  if (!SESSION || SESSION.stage !== "review") return 0;
-  ensureSessionWordStats();
-  const total = Array.isArray(SESSION.wordIds) ? SESSION.wordIds.length : 0;
-  if (total <= 0) return 0;
-  const correct = Math.max(0, Number(SESSION.reviewRawCorrect) || 0);
-  return Math.round((correct / total) * 100);
-}
-
-function getCurrentStageMasteredPct(){
-  if (!STAGE_POOL || !Array.isArray(STAGE_POOL.words) || !SESSION || SESSION.stage === "review") return 0;
-  const total = STAGE_POOL.words.length;
-  if (total <= 0) return 0;
-  const prog = (STAGE_POOL.prog && typeof STAGE_POOL.prog === "object") ? STAGE_POOL.prog : {};
-  let mastered = 0;
-  STAGE_POOL.words.forEach((w)=>{
-    const id = String(w.id ?? "");
-    if (id && prog[id] && prog[id].mastered) mastered++;
-  });
-  return Math.round((mastered / total) * 100);
-}
-
-function getSessionResultPct({ achievedPct, masteredPct }){
-  if (!SESSION) return achievedPct;
-  if (SESSION.stage === "review") return getSessionAnswerAccuracyPct();
-  if (SESSION.isAllWordsMode) return achievedPct;
-  if (SESSION.shouldDeferMastered) return achievedPct;
-  return masteredPct;
-}
-
-function shouldSkipProgressUpdateForDeferredMode(achievedPct){
-  if (!SESSION || !SESSION.shouldDeferMastered || SESSION.stage === "review") return false;
-  const threshold = Math.round((Number(QUIZ_SESSION_RULES.deferredMasteredRequiredAchievedRate) || 0.80) * 100);
-  return achievedPct < threshold;
-}
-
-async function commitDeferredMasteredIfNeeded(achievedPct){
-  if (!SESSION || !SESSION.shouldDeferMastered || SESSION.stage === "review") return;
-  if (shouldSkipProgressUpdateForDeferredMode(achievedPct)) return;
-  const pending = Array.from(SESSION.pendingMasteredIds || []);
-  if (!pending.length) return;
-  const sk = STUDENT?.studentKey;
-  if (!sk) return;
-  const g = SELECTED_GRADE;
-  const lesson = CURRENT.lesson;
-  const stage = CURRENT.stage;
-  for (const wid of pending){
-    const path = P.progressWord(sk, g, lesson, stage, wid);
-    await runTransaction(ref(db, path), (cur)=>{
-      const now = nowTs();
-      const base = (cur && typeof cur === "object") ? cur : { correctCount:0, wrongCount:0, mastered:false, lastAt:0 };
-      base.mastered = true;
-      base.lastAt = now;
-      return base;
-    });
-    if (STAGE_POOL){
-      STAGE_POOL.prog = STAGE_POOL.prog || {};
-      const cur = (STAGE_POOL.prog[wid] && typeof STAGE_POOL.prog[wid] === "object") ? STAGE_POOL.prog[wid] : {};
-      cur.mastered = true;
-      cur.lastAt = nowTs();
-      STAGE_POOL.prog[wid] = cur;
-    }
-  }
-}
-
 
 function openSessionResult(){
   if (!SESSION) return;
 
-  const achievedPct = getSessionAchievedPct();
-  const masteredPct = getCurrentStageMasteredPct();
-  const pct = getSessionResultPct({ achievedPct, masteredPct });
+  const pct = Math.round(getSessionAchievementRate() * 100);
+
+  if (sessionMeta){
+    const grade = COURSE[Number(SELECTED_GRADE)]?.label || gradeLabel(SELECTED_GRADE);
+    const stageNumber = SESSION.stage === "pre1" ? "1" : SESSION.stage === "pre2" ? "2" : stageLabel(SESSION.stage);
+    sessionMeta.textContent = `${CURRENT.name}\n(${grade})${SESSION.lesson}-${stageNumber}`;
+  }
 
   // ✅ まず表示をリセット
   if (sessionReward){
@@ -5635,15 +6480,7 @@ function openSessionResult(){
   // ✅ ベスト％をDBに保存（最大値だけ残す）
   (async ()=>{
     try{
-      await commitDeferredMasteredIfNeeded(achievedPct);
-      if (!shouldSkipProgressUpdateForDeferredMode(achievedPct)){
-        const savePct = (SESSION.stage === "review")
-          ? getSessionAnswerAccuracyPct()
-          : (SESSION.isAllWordsMode)
-          ? achievedPct
-          : getCurrentStageMasteredPct();
-        await apiSaveBestStage(CURRENT.name, SELECTED_GRADE, SESSION.lesson, SESSION.stage, savePct);
-      }
+      await apiSaveBestStage(CURRENT.name, SELECTED_GRADE, SESSION.lesson, SESSION.stage, pct);
       // ベスト更新があり得るので、一覧側の表示も追従
       defer(()=> refreshLessons().catch(()=>{}));
     }catch(_){}
@@ -5797,17 +6634,14 @@ const REVIEW_WORD_BASE_PX = (()=> {
   return Number.isFinite(n) && n > 0 ? n : 30;
 })();
 
-const REVIEW_WORD_MIN_PX  = 14;
-const REVIEW_WORD_MIN_SCALE_X = 0.72;
-const REVIEW_WORD_WRAP_PX = 12;
+const REVIEW_WORD_MIN_PX  = 18;
 
 const REVIEW_OPTION_MIN_PX = 12;
-const ONE_LINE_FIT_STAGES = new Set(["pre1", "pre2", "review"]);
 
 function applyReviewOptionLayout(){
   if (!optGrid) return;
 
-  const isReview = (CURRENT.stage === "review");
+  const isReview = (CURRENT.stage === "pre2");
   const btns = [...optGrid.querySelectorAll(".optBtn")];
   if (!btns.length) return;
 
@@ -5852,102 +6686,20 @@ function positionQuizExampleUnderWord(){
   quizExample.style.top = `${Math.round(top)}px`;
 }
 
-function adjustReviewVerticalLayout(){
-  if (!quizStage || !quizWord || !optGrid) return;
-  if (CURRENT.stage !== "review"){
-    quizWord.style.top = "";
-    return;
-  }
-
-  const stageRect = quizStage.getBoundingClientRect();
-  const optionRect = optGrid.getBoundingClientRect();
-  if (!stageRect.height || !optionRect.height) return;
-
-  const wordRect = quizWord.getBoundingClientRect();
-  const hasExample = !!(quizExample && quizExample.style.display !== "none");
-  const exampleRect = hasExample ? quizExample.getBoundingClientRect() : null;
-
-  const safeTop = 88;
-  const safeBottom = (optionRect.top - stageRect.top) - 12;
-  const currentCenterY = (wordRect.top - stageRect.top) + (wordRect.height / 2);
-
-  const afterWordNeed = hasExample
-    ? ((wordRect.height / 2) + 10 + (exampleRect?.height || 0))
-    : (wordRect.height / 2);
-  const maxCenterY = safeBottom - afterWordNeed;
-
-  const nextCenterY = Math.max(safeTop, Math.min(currentCenterY, maxCenterY));
-  quizWord.style.top = `${Math.round(nextCenterY)}px`;
-
-  if (hasExample){
-    positionQuizExampleUnderWord();
-    const updatedExampleRect = quizExample.getBoundingClientRect();
-    const exampleBottom = updatedExampleRect.bottom - stageRect.top;
-    const overlap = exampleBottom - safeBottom;
-    if (overlap > 0){
-      const curTop = Number.parseFloat(quizExample.style.top || "0");
-      quizExample.style.top = `${Math.max(0, Math.round(curTop - overlap - 2))}px`;
-    }
-  }
-}
-
-function fitQuizPromptButtonOneLine(){
-  if (!quizPromptBtn || quizPromptBtn.style.display === "none") return;
-
-  let fs = REVIEW_WORD_BASE_PX;
-  quizPromptBtn.style.fontSize = `${fs}px`;
-
-  while (fs > REVIEW_WORD_MIN_PX && (quizPromptBtn.scrollWidth > quizPromptBtn.clientWidth + 1)){
-    fs -= 1;
-    quizPromptBtn.style.fontSize = `${fs}px`;
-  }
-}
-
 function applyReviewPromptLayout(){
   if (!quizWord) return;
 
-  const stage = String(CURRENT.stage || "");
-  const isReview = (stage === "review");
-  const isPreStage = (stage === "pre1" || stage === "pre2");
-  const shouldFitOneLine = ONE_LINE_FIT_STAGES.has(stage);
-
-  if (quizPromptBtn){
-    if (isPreStage){
-      quizPromptBtn.textContent = quizWord.textContent || "";
-      quizPromptBtn.style.display = "block";
-      quizPromptBtn.style.fontSize = "";
-      requestAnimationFrame(fitQuizPromptButtonOneLine);
-      quizWord.style.display = "none";
-    } else {
-      quizPromptBtn.textContent = "";
-      quizPromptBtn.style.display = "none";
-      quizPromptBtn.style.fontSize = "";
-      quizWord.style.display = "";
-    }
-  }
+  const isReview = (CURRENT.stage === "pre2");
 
   // reset
-  quizWord.classList.toggle("oneLine", shouldFitOneLine);
+  quizWord.classList.toggle("oneLine", isReview);
 
-  if (isPreStage){
-    if (quizExample){
-      quizExample.textContent = "";
-      quizExample.style.display = "none";
-      quizExample.style.top = "";
-    }
-    return;
-  }
-
-  if (!shouldFitOneLine){
+  if (!isReview){
     // 通常は元の見た目に戻す
-    quizWord.style.top = "";
     quizWord.style.fontSize = "";
     quizWord.style.whiteSpace = "";
-    quizWord.style.wordBreak = "";
-    quizWord.style.overflowWrap = "";
     quizWord.style.overflow = "";
     quizWord.style.textOverflow = "";
-    quizWord.style.removeProperty("--reviewWordScaleX");
 
     if (quizExample){
       quizExample.textContent = "";
@@ -5957,14 +6709,13 @@ function applyReviewPromptLayout(){
     return;
   }
 
-  // pre1/pre2/review：1行固定＋縮小
+  // review：1行固定＋縮小
   quizWord.style.whiteSpace = "nowrap";
-  quizWord.style.overflow = "visible";
-  quizWord.style.textOverflow = "clip";
+  quizWord.style.overflow = "hidden";
+  quizWord.style.textOverflow = "ellipsis";
 
   // まずベースサイズに戻してから測定
   let fs = REVIEW_WORD_BASE_PX;
-  quizWord.style.setProperty("--reviewWordScaleX", "1");
   quizWord.style.fontSize = `${fs}px`;
 
   // 収まるまで縮小（scrollWidth > clientWidth の間）
@@ -5974,39 +6725,17 @@ function applyReviewPromptLayout(){
     quizWord.style.fontSize = `${fs}px`;
   }
 
-  // 最小サイズでも収まらない場合は、横方向のみ軽く縮小して1行を維持
-  if (quizWord.scrollWidth > quizWord.clientWidth + 1){
-    const ratio = quizWord.clientWidth / Math.max(1, quizWord.scrollWidth);
-    const nextScale = Math.max(REVIEW_WORD_MIN_SCALE_X, Math.min(1, ratio));
-    quizWord.style.setProperty("--reviewWordScaleX", String(nextScale));
-  }
-
-  // それでもはみ出すほど長い問題文は、折り返し表示に切り替える
-  if (quizWord.scrollWidth > quizWord.clientWidth + 1){
-    const wrapFs = Math.max(REVIEW_WORD_WRAP_PX, fs - 1);
-    quizWord.style.setProperty("--reviewWordScaleX", "1");
-    quizWord.style.fontSize = `${wrapFs}px`;
-    quizWord.style.whiteSpace = "normal";
-    quizWord.style.wordBreak = "break-word";
-    quizWord.style.overflowWrap = "anywhere";
-    quizWord.style.textOverflow = "clip";
-  }
-
-  // 例文（reviewのみ表示）
-  const ex = isReview ? String(CURRENT.currentQ?.example ?? "").trim() : "";
+  // 例文
+  const ex = String(CURRENT.currentQ?.example ?? "").trim();
   if (quizExample){
-    if (isReview && ex){
+    if (ex){
       quizExample.textContent = ex;
       quizExample.style.display = "";
       // 問題のサイズが確定してから位置合わせ
-      requestAnimationFrame(()=>{
-        positionQuizExampleUnderWord();
-        adjustReviewVerticalLayout();
-      });
+      requestAnimationFrame(positionQuizExampleUnderWord);
     } else {
       quizExample.textContent = "";
       quizExample.style.display = "none";
-      if (isReview) requestAnimationFrame(adjustReviewVerticalLayout);
     }
   }
   applyReviewOptionLayout();
@@ -6038,16 +6767,14 @@ function openStagePop(lesson, meta, anchorX, anchorY){
   _pendingLesson = lesson;
   _pendingLessonMeta = meta || null;
   stagePopTitle.textContent = `${gradeLabel(SELECTED_GRADE)} / ${lesson}`;
-  const hasInfo = !!(meta && meta.stageDone && (meta.stageDone.pre1 || meta.stageDone.pre2 || meta.stageDone.review));
+  const hasInfo = !!(meta && meta.stageDone && (meta.stageDone.pre1 || meta.stageDone.pre2));
   const pre1Done = hasInfo ? !!meta.stageDone.pre1 : null;
-  const pre2Done = hasInfo ? !!meta.stageDone.pre2 : null;
 
   if (stagePre1Progress) stagePre1Progress.textContent = formatStageProgressText(meta, "pre1");
   if (stagePre2Progress) stagePre2Progress.textContent = formatStageProgressText(meta, "pre2");
 
   btnStagePre1.disabled = false;
   btnStagePre2.disabled = (hasInfo ? !pre1Done : false);
-  btnStageReview.disabled = (hasInfo ? !pre2Done : false);
 
   const rect = lessonList.getBoundingClientRect();
   let x = anchorX;
@@ -6079,6 +6806,9 @@ function startStageCore(stage, metaOverride=null, lessonOverride=null){
   CURRENT.lesson = lesson;
   CURRENT.stage = stage;
 
+  // ステージ開始時にジュース色を一度だけ確定し、課選択画面でも同じ色を使う。
+  ensureGaugeColor(CURRENT.name, SELECTED_GRADE, CURRENT.lesson);
+
   if (lessonInfo) lessonInfo.textContent = `${gradeLabel(SELECTED_GRADE)} / ${CURRENT.lesson}`;
   if (stageBadge){
     stageBadge.style.display = "";
@@ -6090,8 +6820,8 @@ function startStageCore(stage, metaOverride=null, lessonOverride=null){
 
   startSession(CURRENT.lesson, CURRENT.stage, meta || null);
 
-  // ✅ reviewなら「開始時点で玉数固定（フリーズ開始）」
-  if (stage === "review"){
+  // ✅ pre2なら「開始時点で玉数固定（フリーズ開始）」
+  if (stage === "pre2"){
     freezeReviewBallsStart();
   } else {
     QUIZ_REVIEW_BALLS_FROZEN = false;
@@ -6112,7 +6842,6 @@ function startStageCore(stage, metaOverride=null, lessonOverride=null){
 async function startStage(stage){
   if (!_pendingLesson) return;
   if (stage === "pre2" && btnStagePre2.disabled) return;
-  if (stage === "review" && btnStageReview.disabled) return;
 
   // ✅ pre1/pre2 は常に lowRateポップを表示
   if (stage === "pre1" || stage === "pre2"){
@@ -6130,7 +6859,6 @@ async function startStage(stage){
 
 btnStagePre1.onclick = ()=> startStage("pre1");
 btnStagePre2.onclick = ()=> startStage("pre2");
-btnStageReview.onclick = ()=> startStage("review");
 
 lessonListBox.addEventListener("pointerdown", (e)=>{
   if (stagePop.style.display === "block" && !stagePop.contains(e.target)){
@@ -6140,7 +6868,6 @@ lessonListBox.addEventListener("pointerdown", (e)=>{
 
 /* ========= クイズ ========= */
 const QT_MS = 4000;
-const REVIEW_QT_MS = REVIEW_SESSION_RULES.timerMs;
 const ANSWER_FEEDBACK_MS = {
   correct: 260,
   incorrect: 1200,
@@ -6287,7 +7014,7 @@ async function pickUniqueQuestion(forceFresh=false){
       j = await _prefetch.promise;
       const nextId = j && (j.word_id ?? j.wordId ?? j.id);
       const curId  = CURRENT.currentQ && CURRENT.currentQ.word_id;
-      if (CURRENT.stage !== "review" && curId != null && nextId != null && String(nextId) === String(curId)){
+      if (curId != null && nextId != null && String(nextId) === String(curId)){
         j = await apiQuestion(CURRENT.name, SELECTED_GRADE, CURRENT.lesson, CURRENT.stage);
       }
     } else {
@@ -6303,7 +7030,7 @@ async function pickUniqueQuestion(forceFresh=false){
     const wordId = j.word_id ?? j.wordId ?? j.id;
     if (!SESSION) return j;
 
-    if (CURRENT.stage === "review" || canAskWordId(wordId)){
+    if (canAskWordId(wordId)){
       return j;
     }
     forceFresh = true;
@@ -6320,11 +7047,6 @@ async function nextQuestionFast(forceFresh=false){
 function renderQuestionJson(j){
   clearOptions();
   quizWord.textContent = "";
-  if (quizPromptBtn){
-    quizPromptBtn.textContent = "";
-    quizPromptBtn.style.display = "none";
-    quizPromptBtn.style.fontSize = "";
-  }
   stopQuestionTimer();
   _questionShownAt = 0;
   syncDropletColorToGauge();
@@ -6337,9 +7059,9 @@ function renderQuestionJson(j){
 
     stopQuestionTimer();
 
-    // ✅ reviewもそのまま結果へ（黒丸は回答ごとにリアルタイム更新済み）
-    if (CURRENT.stage === "review"){
-      openSessionResult();
+    // ✅ pre2は「最後の瞬間に達成率→玉落下」してから、落下完了+2秒で結果
+    if (CURRENT.stage === "pre2"){
+      finalizeReviewBallsAndShowResult();
       return;
     }
 
@@ -6372,7 +7094,7 @@ quizWord.textContent = word || "（no word）";
 markWordShown(wordId);
 if (SESSION) SESSION.lastWordId = wordId;
 
-// ✅ pre1/pre2/review：改行しない＆自動縮小（reviewのみ例文表示）
+// ✅ pre2のとき：改行しない＆自動縮小＆例文表示
 requestAnimationFrame(applyReviewPromptLayout);
 
   const st = j.stage || CURRENT.stage;
@@ -6401,7 +7123,7 @@ requestAnimationFrame(applyReviewPromptLayout);
 
   requestAnimationFrame(applyReviewOptionLayout);
   _questionShownAt = performance.now();
-  startQuestionTimer(CURRENT.stage === "review" ? REVIEW_QT_MS : QT_MS);
+  startQuestionTimer(QT_MS);
 }
 
 async function loadQuestion(){
@@ -6447,8 +7169,8 @@ async function submitAnswer(text, chosenBtnEl){
         if (b.textContent === correctLocal) b.classList.add("goodGreen");
       });
 
-      // ✅ review中は💧を出さない（黒丸は「最後だけ落とす」）
-      if (CURRENT.stage !== "review"){
+      // ✅ pre2中は💧を出さない（黒丸は「最後だけ落とす」）
+      if (CURRENT.stage !== "pre2"){
         spawnDroplets();
       }
     } else {
@@ -6474,9 +7196,6 @@ async function submitAnswer(text, chosenBtnEl){
   if (SESSION){
     SESSION.asked += 1;
     if (isCorrectLocal != null){
-      if (CURRENT.stage === "review" && isCorrectLocal){
-        SESSION.reviewRawCorrect = (Number(SESSION.reviewRawCorrect) || 0) + 1;
-      }
       applySessionAnswerStats({
         wordId: CURRENT.currentQ.word_id,
         word: CURRENT.currentQ.word || "",
@@ -6485,9 +7204,7 @@ async function submitAnswer(text, chosenBtnEl){
         isCorrect: isCorrectLocal,
         isFast: isCorrectLocal ? isFastAnswer : false,
       });
-      if (CURRENT.stage === "review"){
-        updateReviewBallsRealtimeOnAnswer();
-      }
+      updatePre2BallsDuringQuiz();
     }
   }
 
@@ -6513,7 +7230,11 @@ async function submitAnswer(text, chosenBtnEl){
   setTimeout(()=>{
     ANSWERING = false;
     if (doneNow){
-      openSessionResult();
+      if (CURRENT.stage === "pre2"){
+        finalizeReviewBallsAndShowResult();
+      } else {
+        openSessionResult();
+      }
     } else {
       nextQuestionFast(true);
     }
@@ -6522,16 +7243,7 @@ async function submitAnswer(text, chosenBtnEl){
   // ✅ 4) DB保存 + 最新rate反映（裏）
   (async ()=>{
     try{
-      const sessionStats = getSessionWordStats(snapshot.word_id);
-      const markMastered = !!(
-        sessionStats &&
-        (
-          (sessionStats.fast || 0) >= QUIZ_SESSION_RULES.masteredFastCount ||
-          (sessionStats.correct || 0) >= QUIZ_SESSION_RULES.masteredCorrectCount
-        ) &&
-        !SESSION?.shouldDeferMastered
-      );
-      const j = await apiAnswer(snapshot.name, snapshot.word_id, snapshot.chosen, { markMastered });
+      const j = await apiAnswer(snapshot.name, snapshot.word_id, snapshot.chosen);
       if (!j || !j.ok){
         defer(()=> setResult(`保存失敗（背景処理）：${(j && j.error) || "unknown"}`, false));
         return;
@@ -6548,9 +7260,10 @@ async function submitAnswer(text, chosenBtnEl){
           isCorrect,
           isFast: isCorrect ? snapshot.isFastAnswer : false,
         });
+        updatePre2BallsDuringQuiz();
       }
 
-      // ✅ 進捗更新は裏で（ただしreview中の黒玉は更新しない）
+      // ✅ 進捗更新は裏で（ただしpre2中の黒玉は更新しない）
       defer(async ()=>{
         try{
           const stillSame = (CURRENT.name === snapshot.name);
@@ -6617,7 +7330,7 @@ async function startFlow(){
     CURRENT.name = normName(j.name || name);
     await applyLastGradeFromMenu();
     prefetchLessons();
-    await loadAsa();
+    loadAsa().catch(()=>{});
     await loadCharaItemPlacements();
 
     setStuStatus("入室OK（課を押してね）", true);
@@ -6798,7 +7511,7 @@ function ensureWaveLoop(){
 }
 
 /* =========================
-   ✅ review(復習) 10%ごとに黒丸を溜める（課選択側）
+   ✅ pre2 10%ごとに黒丸を溜める（課選択側）
    ※ここは元のまま
 ========================= */
 let _reviewBallPrevCount = new Map();
@@ -6806,7 +7519,7 @@ let _reviewBallInitDone  = false;
 let _reviewBallOffsets   = new Map();
 
 function getReviewRate01(tile){
-  const r = tile?.stageStats?.review?.rate;
+  const r = tile?.stageStats?.pre2?.rate;
   return (r != null) ? clamp(Number(r), 0, 1) : 0;
 }
 function getReviewBallCount(tile){
@@ -7122,13 +7835,6 @@ function drawLessonTrapezoids(animateLevels=true){
       hit.setAttribute("fill", "transparent");
       hit.style.cursor = "pointer";
       hit.addEventListener("click", (ev)=>{
-        const questionCount = getRegisteredQuestionCount(t);
-        if (questionCount > 0 && questionCount <= 5){
-          closeStagePop();
-          showLessonPreparingPop();
-          ev.stopPropagation();
-          return;
-        }
         const listRect = lessonList.getBoundingClientRect();
         const clientX = ev.clientX;
         const clientY = ev.clientY;
@@ -7201,7 +7907,7 @@ function drawLessonTrapezoids(animateLevels=true){
         gWave.appendChild(wavePath);
       }
 
-      /* ✅ review黒丸（台形内） */
+      /* ✅ pre2黒丸（台形内） */
       const ballCount = getReviewBallCount(t);
       const prevCount = _reviewBallPrevCount.get(lessonKey) ?? 0;
 
@@ -7475,7 +8181,7 @@ window.addEventListener("resize", scheduleCharaItemsRender);
 window.addEventListener("resize", ()=>requestAnimationFrame(applyReviewOptionLayout));
 
 
-/* ========= ★ クイズ全体：pre1+pre2 波ゲージ ========= */
+/* ========= ★ クイズ全体：pre1 ジュースゲージ ========= */
 function getCurrentLessonSumRate01(){
   const lesson = normLesson(CURRENT.lesson);
   if (!lesson) return 0;
@@ -7483,8 +8189,16 @@ function getCurrentLessonSumRate01(){
   const t = (_lastLessonTiles || []).find(x => normLesson(x.lesson) === lesson);
   if (!t || !t.stageStats) return 0;
 
-  const r = t.stageStats.sum_pre1_pre2?.rate;
-  return (r != null) ? clamp(r, 0, 1) : 0;
+  const r = t.stageStats.pre1?.rate;
+  const savedRate = (r != null) ? clamp(r, 0, 1) : 0;
+
+  // pre1の進行中は、習得できた単語の割合をジュースへ即時反映する。
+  if (CURRENT.stage !== "pre1" || !SESSION || normLesson(SESSION.lesson) !== lesson){
+    return savedRate;
+  }
+  const ids = Array.isArray(SESSION.wordIds) ? SESSION.wordIds : [];
+  if (!ids.length || !SESSION.wordStats) return savedRate;
+  return Math.max(savedRate, getSessionAchievementRate());
 }
 
 let _quizWave = null;
@@ -7604,7 +8318,7 @@ function spawnDroplets(){
 }
 
 /* =========================
-   ✅ reviewクイズ：10%ごとに黒丸（画面下に溜める）
+   ✅ pre2クイズ：10%ごとに黒丸（画面下に溜める）
 ========================= */
 const _quizReviewBallOffsets = new Map();
 const _quizReviewBallPrev    = new Map();
@@ -7615,38 +8329,32 @@ function _tileByLesson(lesson){
 }
 function getReviewRate01ForLesson(lesson){
   const t = _tileByLesson(lesson);
-  const r = t?.stageStats?.review?.rate;
-  return (r != null) ? clamp(Number(r), 0, 1) : 0;
+  const r = t?.stageStats?.pre2?.rate;
+  const savedRate = (r != null) ? clamp(Number(r), 0, 1) : 0;
+
+  // pre2の進行中は、習得できた単語の割合をその場で黒丸へ反映する。
+  if (CURRENT.stage !== "pre2" || !SESSION || normLesson(SESSION.lesson) !== normLesson(lesson)){
+    return savedRate;
+  }
+  const ids = Array.isArray(SESSION.wordIds) ? SESSION.wordIds : [];
+  if (!ids.length || !SESSION.wordStats) return savedRate;
+  return Math.max(savedRate, getSessionAchievementRate());
 }
 function getReviewBallCountForLesson(lesson){
-  if (
-    SESSION && SESSION.stage === "review" &&
-    CURRENT.stage === "review" &&
-    normLesson(SESSION.lesson) === normLesson(lesson)
-  ){
-    const bestPct = clamp(Number(SESSION.reviewLiveBestPct) || 0, 0, 100);
-    return clamp(Math.floor(bestPct / 10 + 1e-9), 0, 10);
-  }
   const r = getReviewRate01ForLesson(lesson);
   return clamp(Math.floor(r * 10 + 1e-9), 0, 10);
 }
-
-function updateReviewBallsRealtimeOnAnswer(){
-  if (!SESSION || SESSION.stage !== "review") return;
-  if (CURRENT.stage !== "review") return;
-
+function updatePre2BallsDuringQuiz(){
+  if (CURRENT.stage !== "pre2" || !reviewBallSvg) return;
   const key = `${CURRENT.name}|${SELECTED_GRADE}|${normLesson(CURRENT.lesson)}`;
   const prev = _quizReviewBallPrev.get(key) ?? 0;
-
-  const progressPct = getReviewBallProgressPct();
-  const bestPct = Math.max(Number(SESSION.reviewLiveBestPct) || 0, progressPct);
-  SESSION.reviewLiveBestPct = bestPct;
-
-  const next = clamp(Math.floor(bestPct / 10 + 1e-9), 0, 10);
-  renderQuizReviewBalls(CURRENT.lesson, (next > prev), prev);
+  const next = getReviewBallCountForLesson(CURRENT.lesson);
+  if (next !== prev){
+    renderQuizReviewBalls(CURRENT.lesson, next > prev, prev);
+  }
 }
 function setReviewVisualMode(){
-  const isReview = (CURRENT.stage === "review");
+  const isReview = (CURRENT.stage === "pre2");
   if (dropletLayer) dropletLayer.style.display = isReview ? "none" : "";
   if (reviewBallSvg) reviewBallSvg.style.display = isReview ? "" : "none";
 }
@@ -7681,7 +8389,7 @@ function _getQuizBallLayout(){
 
 function renderQuizReviewBalls(lesson, animateFromPrev=false, prevCount=0){
   if (!reviewBallSvg) return;
-  if (CURRENT.stage !== "review") return;
+  if (CURRENT.stage !== "pre2") return;
 
   const key = `${CURRENT.name}|${SELECTED_GRADE}|${normLesson(lesson)}`;
   const count = getReviewBallCountForLesson(lesson);
@@ -7761,7 +8469,6 @@ const initialLoads = [
 if (savedName){
   initialLoads.push(loadCharaItemPlacements());
 }
-await Promise.all(initialLoads);
 preloadCharaImages();
 preloadLessonAssets();
 renderCharaSelectButtons();
@@ -7769,6 +8476,13 @@ renderCharaItems();
 updateCharaSelectPreview();
 showNameScreen();
 syncDropletColorToGauge();
+window.addEventListener("pagehide", endDbActivitySession);
+/* Firebase/CDNが落ちていてもトップ画面を先に表示し、装飾だけ後から反映する。 */
+Promise.all(initialLoads).then(()=>{
+  renderCharaSelectButtons();
+  renderCharaItems();
+  updateCharaSelectPreview();
+}).catch(()=>{});
 </script>
 </body>
 </html>
