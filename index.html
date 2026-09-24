@@ -2031,9 +2031,9 @@ const WORDS = Object.freeze({
         "……岁・～さい・～じん・～にん：私は21さいです。（我21岁。）",
         "爱好・しゅみ・しごと・なまえ：趣味は何ですか。（您的爱好是什么？）",
         "生日・たんじょうび・しゅっしん・しゅみ：誕生日はいつですか。（您的生日是什么时候？）",
-        "哪里人？（出身（しゅっしん）は）・どちらですか・なんですか・いつですか：出身はどちらですか。（您是哪里人？）",
-        "是什么（趣味（しゅみ）は）・なんですか・どちらですか・いつですか：趣味は何ですか。（您的爱好是什么？）",
-        "什么时候（誕生日（たんじょうび）は）・いつですか・なんですか・どちらですか：誕生日はいつですか。（您的生日是什么时候？）",
+        "哪里人？（出身（しゅっしん）は…）・どちらですか・なんですか・いつですか：出身はどちらですか。（您是哪里人？）",
+        "是什么（趣味（しゅみ）は…）・なんですか・どちらですか・いつですか：趣味は何ですか。（您的爱好是什么？）",
+        "什么时候（誕生日（たんじょうび）は…）・いつですか・なんですか・どちらですか：誕生日はいつですか。（您的生日是什么时候？）",
       ],
       pre2: [
         "天气・天気（てんき）・でんき・げんき：今日はいい天気です。（今天天气很好。）",
@@ -5297,10 +5297,16 @@ function clearFlashTimer(){
 function getMemorizeModeWordDisplay(word){
   const raw = String(word ?? "");
   return raw
-    .replace(/（[^）]*）/g, "")
-    .replace(/\([^)]*\)/g, "")
+    .replace(/(\p{Script=Han}+)[（(]([^（）()]+)[）)]/gu, "$1")
     .replace(/\s{2,}/g, " ")
     .trim();
+}
+
+function getMemorizeModeMeaningDisplay(entry){
+  const raw = String(entry?.meaningRaw || entry?.meaning || "");
+  return String(entry?.meaning || "").trim() === "じゃないです"
+    ? "…じゃないです。"
+    : raw;
 }
 
 function getFlashMaskRows(){
@@ -5420,7 +5426,7 @@ function renderFlashCard(){
       example.className = "flashExampleLine";
 
       if (entry){
-        renderTextWithFurigana(meaning, entry.meaningRaw || entry.meaning || "");
+        renderTextWithFurigana(meaning, getMemorizeModeMeaningDisplay(entry));
         furigana.textContent = entry.meaningRaw ? "" : (entry.meaningFurigana || "");
         if (!furigana.textContent) furigana.classList.add("is-empty");
         word.textContent = getMemorizeModeWordDisplay(entry.word || "");
