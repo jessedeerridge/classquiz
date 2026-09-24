@@ -1489,6 +1489,9 @@ font-size: var(--reviewWordMaxPx);
   word-break: break-word;
   min-height:16px;
 }
+#flashBack .flashExampleLine.hasFurigana{
+  margin-top:6px;
+}
 #flashBack .flashExampleLine.is-empty{
   background: transparent;
   opacity: 0;
@@ -5440,6 +5443,9 @@ function renderFlashCard(){
         word.textContent = getMemorizeModeWordDisplay(entry);
         const ex = String(entry.example ?? "").trim();
         renderTextWithFurigana(example, ex);
+        if (example.querySelector("ruby")){
+          example.classList.add("hasFurigana");
+        }
         if (!ex){
           example.classList.add("is-empty");
         }
