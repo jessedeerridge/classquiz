@@ -2016,6 +2016,24 @@ const WORDS = Object.freeze({
   1: {
     "1": {
       pre1: [
+        "名字・なまえ・しごと・しゅみ：お名前は？（您叫什么名字？）",
+        "我・わたし・がくせい・せんせい：私は学生です。（我是学生。）",
+        "工作・しごと・なまえ・しゅみ：お仕事は？（您做什么工作？）",
+        "学生・がくせい・せんせい・かいしゃいん：私は学生です。（我是学生。）",
+        "公司职员・かいしゃいん・がくせい・せんせい：会社員ですか。（您是公司职员吗？）",
+        "老师・せんせい・がくせい・かいしゃいん：先生、すみません。（老师，不好意思。）",
+        "是的・はい・いいえ・こんにちは：はい。（是的。）はい、学生です。（是的，我是学生。）",
+        "不是（回答时）・いいえ・はい・ありがとう：いいえ、会社員じゃないです。（不，我不是公司职员。）",
+        "不是・じゃないです・です・ですか：いいえ、会社員じゃないです。（不，我不是公司职员。）",
+        "出身地・しゅっしん・くに・なまえ：出身はどちらですか。（您是哪里人？）",
+        "国家・くに・しゅっしん・なまえ：お国はどちらですか。（您来自哪个国家？）",
+        "中国人・ちゅうごくじん・がくせい・かいしゃいん：中国人です。（我是中国人。）",
+        "……岁・～さい・～じん・～にん：私は21さいです。（我21岁。）",
+        "爱好・しゅみ・しごと・なまえ：趣味は何ですか。（您的爱好是什么？）",
+        "生日・たんじょうび・しゅっしん・しゅみ：誕生日はいつですか。（您的生日是什么时候？）",
+        "（出身（しゅっしん）は）哪里人？・どちらですか・なんですか・いつですか：出身はどちらですか。（您是哪里人？）",
+        "（趣味（しゅみ）は）是什么・なんですか・どちらですか・いつですか：趣味は何ですか。（您的爱好是什么？）",
+        "（誕生日（たんじょうび）は）什么时候・いつですか・なんですか・どちらですか：誕生日はいつですか。（您的生日是什么时候？）",
         "洗澡・お風呂（おふろ）・ところ・くもり：",
         "建筑・建物（たてもの）・つくえ・かわ：",
         "生活・生活（せいかつ）・さんせい・たいど：",
@@ -2811,6 +2829,10 @@ function fillStageWordsFromPrevious(grade, lesson, stage, words, targetCount=30)
     round += 1;
   }
   return filled;
+}
+
+function isOrderedQuestionStage(grade, lesson, stage){
+  return Number(grade) === 1 && String(lesson) === "1" && String(stage) === "pre1";
 }
 function readLessonCache(){
   try{ return JSON.parse(localStorage.getItem(LESSON_CACHE_KEY) || "{}") || {}; }
@@ -4983,7 +5005,20 @@ async function apiQuestion(name, grade, lesson, stage){
       }
     }
 
-    const w = pickList[Math.floor(Math.random()*pickList.length)];
+    let w;
+    if (isOrderedQuestionStage(grade, lesson, stage)){
+      const candidateIds = new Set(candidates.map(item=>String(item.id ?? "")));
+      const lastIndex = STAGE_POOL.words.findIndex(item=>String(item.id ?? "") === lastId);
+      for (let offset = 1; offset <= STAGE_POOL.words.length; offset += 1){
+        const item = STAGE_POOL.words[(lastIndex + offset) % STAGE_POOL.words.length];
+        if (candidateIds.has(String(item.id ?? ""))){
+          w = item;
+          break;
+        }
+      }
+    } else {
+      w = pickList[Math.floor(Math.random()*pickList.length)];
+    }
     const optionsMeta = makeOptionsForWord(w);
     const options = optionsMeta.map(x=>x.display);
     const correctDisplay = (optionsMeta.find(x=>x.text === w.meaning)?.display) || w.meaning;
@@ -6315,6 +6350,7 @@ function ensureSessionWordStats(){
   if (!SESSION.wordPoolReady){
     const ids = STAGE_POOL.words.map(w=>String(w.id ?? "")).filter(Boolean);
     const shouldUseRandomStage =
+      !isOrderedQuestionStage(SELECTED_GRADE, SESSION.lesson, SESSION.stage) &&
       ids.length >= QUIZ_SESSION_RULES.randomStageMinWords &&
       Number.isFinite(SESSION.savedStageRate) &&
       SESSION.savedStageRate >= QUIZ_SESSION_RULES.randomStageMinRate;
@@ -7090,7 +7126,11 @@ function renderQuestionJson(j){
 const example = (j.example != null) ? String(j.example) : "";
 
 CURRENT.currentQ = { raw:j, word_id: wordId, word, correct, example };
-quizWord.textContent = word || "（no word）";
+if (word){
+  renderTextWithFurigana(quizWord, word);
+} else {
+  quizWord.textContent = "（no word）";
+}
 markWordShown(wordId);
 if (SESSION) SESSION.lastWordId = wordId;
 
