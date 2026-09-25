@@ -1761,7 +1761,7 @@ font-size: var(--reviewWordMaxPx);
   <div class="modal" role="dialog" aria-modal="true">
     <div class="lrHead" id="lowRateTitle"></div>
 
-    <div class="lrExampleLabel">たとえば...</div>
+    <div class="lrExampleLabel" id="lowRateExampleLabel">たとえば...</div>
     <ul class="lrList" id="lowRateList"></ul>
 
     <div class="lrBtns">
@@ -3534,6 +3534,7 @@ const lowRateTitle = document.getElementById("lowRateTitle");
 const lowRateList = document.getElementById("lowRateList");
 const btnLowRateStart = document.getElementById("btnLowRateStart");
 const btnLowRateMem = document.getElementById("btnLowRateMem");
+const lowRateExampleLabel = document.getElementById("lowRateExampleLabel");
 /* ✅ フラッシュカードDOM（おぼえる👀） */
 const flashBack   = document.getElementById("flashBack");
 const flashCard   = document.getElementById("flashCard");
@@ -5216,6 +5217,14 @@ async function fetchRandomExamples(grade, lesson, stage, n=3){
 
 async function openLowRatePop(lesson, stage, meta){
   _lowRatePending = { lesson:normLesson(lesson), stage:String(stage||"pre1"), meta: meta || null };
+
+  const useChineseLabels =
+    Number(SELECTED_GRADE) === 1 &&
+    _lowRatePending.lesson === "1" &&
+    (_lowRatePending.stage === "pre1" || _lowRatePending.stage === "pre2");
+  if (lowRateExampleLabel) lowRateExampleLabel.textContent = useChineseLabels ? "例如……" : "たとえば...";
+  if (btnLowRateStart) btnLowRateStart.textContent = useChineseLabels ? "好像会了！🥛" : "できそう！🥛";
+  if (btnLowRateMem) btnLowRateMem.textContent = useChineseLabels ? "记一记👀" : "おぼえる👀";
 
 
   if (lowRateList) lowRateList.innerHTML = "";
