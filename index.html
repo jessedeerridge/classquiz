@@ -6956,6 +6956,7 @@ lessonListBox.addEventListener("pointerdown", (e)=>{
 
 /* ========= クイズ ========= */
 const QT_MS = 4000;
+const BEGINNER_QT_MS = 7000;
 const ANSWER_FEEDBACK_MS = {
   correct: 260,
   incorrect: 1200,
@@ -6965,6 +6966,12 @@ let _qtRAF = null;
 let _qtStart = 0;
 let _qtActive = false;
 let _questionShownAt = 0;
+
+function currentQuestionTimeMs(){
+  return usesChineseBeginnerUi(SELECTED_GRADE, CURRENT.lesson, CURRENT.stage)
+    ? BEGINNER_QT_MS
+    : QT_MS;
+}
 
 function initCircle(){
   const r = 18;
@@ -7215,7 +7222,7 @@ requestAnimationFrame(applyReviewPromptLayout);
 
   requestAnimationFrame(applyReviewOptionLayout);
   _questionShownAt = performance.now();
-  startQuestionTimer(QT_MS);
+  startQuestionTimer(currentQuestionTimeMs());
 }
 
 async function loadQuestion(){
