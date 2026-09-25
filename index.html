@@ -318,14 +318,16 @@
 
     .gradeFab{
       position:fixed;
-      right:16px; bottom:16px;
-      transform: translateX(-64px); /* 戻る↻の左に並べる */
+      right:80px;
+      bottom:max(16px, env(safe-area-inset-bottom, 0px));
       display:flex; gap:8px;
-      z-index:999;
+      z-index:1200;
       user-select:none;
-      flex-wrap:wrap;
-      max-width: 240px;
+      flex-wrap:nowrap;
+      width:max-content;
+      max-width:calc(100vw - 112px);
       justify-content:flex-end;
+      pointer-events:none;
       display:none;
     }
     .gbtn{
@@ -337,6 +339,7 @@
       display:flex; align-items:center; justify-content:center;
       font-weight:900;
       cursor:pointer;
+      pointer-events:auto;
       box-shadow:0 10px 22px rgba(0,0,0,.35);
       backdrop-filter: blur(6px);
     }
@@ -1293,6 +1296,11 @@ font-size: var(--reviewWordMaxPx);
   background: #c7c7c7;
   border-radius: 0;
 }
+#flashBack .flashMeaning.flashMasked rt{
+  color: transparent;
+  opacity:0;
+  visibility:hidden;
+}
 #flashBack .flashFurigana.flashMasked{
   opacity:0;
 }
@@ -1483,6 +1491,9 @@ font-size: var(--reviewWordMaxPx);
   white-space: pre-wrap;
   word-break: break-word;
   min-height:16px;
+}
+#flashBack .flashExampleLine.hasFurigana{
+  margin-top:6px;
 }
 #flashBack .flashExampleLine.is-empty{
   background: transparent;
@@ -1750,7 +1761,7 @@ font-size: var(--reviewWordMaxPx);
   <div class="modal" role="dialog" aria-modal="true">
     <div class="lrHead" id="lowRateTitle"></div>
 
-    <div class="lrExampleLabel">たとえば...</div>
+    <div class="lrExampleLabel" id="lowRateExampleLabel">たとえば...</div>
     <ul class="lrList" id="lowRateList"></ul>
 
     <div class="lrBtns">
@@ -2016,24 +2027,43 @@ const WORDS = Object.freeze({
   1: {
     "1": {
       pre1: [
-        "洗澡・お風呂（おふろ）・ところ・くもり：",
-        "建筑・建物（たてもの）・つくえ・かわ：",
-        "生活・生活（せいかつ）・さんせい・たいど：",
-        "不擅长・苦手（にがて）・ざんねん・とくい：",
-        "右边・右（みぎ）・ひだり, まえ：右に曲がってください。（请向右转。）",
-        "客人・お客（きゃく）さん・みなさん、としょかん・お客さんがたくさん来ました。（来了很多客人。）",
-        "带路・案内（あんない）する・かんこうする・としょかん：みなさんを図書館に案内します。（带大家去图书馆。）",
-        "带回去・持（も）って帰（かえ）ります・ほん・にもつ：この本を持って帰ります。（把这本书带回去。）",
-        "早上・朝（あさ）・よる・ひる：毎朝七時に起きます。（每天早上七点起床。）",
-        "朋友・友達（ともだち）・せんせい・かぞく：友達と映画を見ました。（和朋友看了电影。）",
-        "学习・勉強（べんきょう）する・りょこうする・りょうりする：図書館で日本語を勉強します。（在图书馆学习日语。）",
-        "车站・駅（えき）・みせ・がっこう：駅で母を待ちます。（在车站等妈妈。）",
+        "名字・なまえ・しごと・しゅみ：お名前（なまえ）は？（您叫什么名字？）",
+        "我・わたし・がくせい・せんせい：私（わたし）は学生（がくせい）です。（我是学生。）",
+        "工作・しごと・なまえ・しゅみ：お仕事（しごと）は？（您做什么工作？）",
+        "学生・がくせい・せんせい・かいしゃいん：私（わたし）は学生（がくせい）です。（我是学生。）",
+        "公司职员・かいしゃいん・がくせい・せんせい：会社員（かいしゃいん）ですか。（您是公司职员吗？）",
+        "老师・せんせい・がくせい・かいしゃいん：先生（せんせい）、すみません。（老师，不好意思。）",
+        "是的。・はい・いいえ・こんにちは：はい、学生（がくせい）です。（是的，我是学生。）",
+        "不是。・いいえ・はい・ありがとう：いいえ、会社員（かいしゃいん）じゃないです。（不是，我不是公司职员。）",
+        "我不是公司职员 （会社員（かいしゃいん）…）・じゃないです・です・ですか：会社員（かいしゃいん）じゃないです。（我不是公司职员。）",
+        "出身地・しゅっしん・くに・なまえ：出身（しゅっしん）はどちらですか。（您是哪里人？）",
+        "国家・くに・しゅっしん・なまえ：お国（くに）はどちらですか。（您来自哪个国家？）",
+        "中国人・ちゅうごくじん・がくせい・かいしゃいん：中国人（ちゅうごくじん）です。（我是中国人。）",
+        "……岁・～さい・～じん・～にん：私（わたし）は21さいです。（我21岁。）",
+        "爱好・しゅみ・しごと・なまえ：趣味（しゅみ）は何（なん）ですか。（您的爱好是什么？）",
+        "生日・たんじょうび・しゅっしん・しゅみ：誕生日（たんじょうび）はいつですか。（您的生日是什么时候？）",
+        "哪里人？（出身（しゅっしん）は…）・どちらですか・なんですか・いつですか：出身（しゅっしん）はどちらですか。（您是哪里人？）",
+        "是什么（趣味（しゅみ）は…）・なんですか・どちらですか・いつですか：趣味（しゅみ）は何（なん）ですか。（您的爱好是什么？）",
+        "什么时候（誕生日（たんじょうび）は…）・いつですか・なんですか・どちらですか：誕生日（たんじょうび）はいつですか。（您的生日是什么时候？）",
       ],
       pre2: [
-        "天气・天気（てんき）・でんき・げんき：今日はいい天気です。（今天天气很好。）",
-        "食物・食（た）べ物（もの）・のみもの・くだもの：好きな食べ物は何ですか。（你喜欢什么食物？）",
-        "工作・仕事（しごと）・やすみ・べんきょう：父は東京で仕事をしています。（爸爸在东京工作。）",
-        "附近・近（ちか）く・とおく・となり：近くにコンビニがあります。（附近有便利店。）",
+        "6・ろく・なな・はち：6番です。（是6号。）",
+        "7・なな・ろく・はち：7番です。（是7号。）",
+        "8・はち・きゅう・じゅう：8番です。（是8号。）",
+        "9・きゅう・はち・じゅう：9番です。（是9号。）",
+        "10・じゅう・はち・きゅう：10番です。（是10号。）",
+        "1日・ついたち・ふつか・みっか：誕生日は4月1日です。（生日是4月1日。）",
+        "2日・ふつか・ついたち・よっか：誕生日は4月2日です。（生日是4月2日。）",
+        "3日・みっか・よっか・むいか：誕生日は4月3日です。（生日是4月3日。）",
+        "4日・よっか・ようか・いつか：誕生日は4月4日です。（生日是4月4日。）",
+        "5日・いつか・ここのか・とおか：誕生日は4月5日です。（生日是4月5日。）",
+        "4月・しがつ・よんがつ・しちがつ：誕生日は4月1日です。（生日是4月1日。）",
+        "7月・しちがつ・しがつ・はちがつ：誕生日は7月2日です。（生日是7月2日。）",
+        "9月・くがつ・きゅうがつ・じゅうがつ：誕生日は9月3日です。（生日是9月3日。）",
+        "21岁・にじゅう いっ さい・にじゅう いち さい・にじゅう はっさい：私は21歳です。（我21岁。）",
+        "28岁・にじゅう はっ さい・にじゅう いっ さい・にじゅっ さい：私は28歳です。（我28岁。）",
+        "30岁・さんじゅっ さい・さんじゅう っさい・はたち：私は30歳です。（我30岁。）",
+        "20岁・はたち・にじゅう さい・さんじゅっさい：私ははたちです。（我20岁。）",
       ],
       review: [],
     },
@@ -2812,6 +2842,10 @@ function fillStageWordsFromPrevious(grade, lesson, stage, words, targetCount=30)
   }
   return filled;
 }
+
+function isOrderedQuestionStage(grade, lesson, stage){
+  return Number(grade) === 1 && String(lesson) === "1" && String(stage) === "pre1";
+}
 function readLessonCache(){
   try{ return JSON.parse(localStorage.getItem(LESSON_CACHE_KEY) || "{}") || {}; }
   catch(e){ return {}; }
@@ -3513,6 +3547,7 @@ const lowRateTitle = document.getElementById("lowRateTitle");
 const lowRateList = document.getElementById("lowRateList");
 const btnLowRateStart = document.getElementById("btnLowRateStart");
 const btnLowRateMem = document.getElementById("btnLowRateMem");
+const lowRateExampleLabel = document.getElementById("lowRateExampleLabel");
 /* ✅ フラッシュカードDOM（おぼえる👀） */
 const flashBack   = document.getElementById("flashBack");
 const flashCard   = document.getElementById("flashCard");
@@ -4983,7 +5018,20 @@ async function apiQuestion(name, grade, lesson, stage){
       }
     }
 
-    const w = pickList[Math.floor(Math.random()*pickList.length)];
+    let w;
+    if (isOrderedQuestionStage(grade, lesson, stage)){
+      const candidateIds = new Set(candidates.map(item=>String(item.id ?? "")));
+      const lastIndex = STAGE_POOL.words.findIndex(item=>String(item.id ?? "") === lastId);
+      for (let offset = 1; offset <= STAGE_POOL.words.length; offset += 1){
+        const item = STAGE_POOL.words[(lastIndex + offset) % STAGE_POOL.words.length];
+        if (candidateIds.has(String(item.id ?? ""))){
+          w = item;
+          break;
+        }
+      }
+    } else {
+      w = pickList[Math.floor(Math.random()*pickList.length)];
+    }
     const optionsMeta = makeOptionsForWord(w);
     const options = optionsMeta.map(x=>x.display);
     const correctDisplay = (optionsMeta.find(x=>x.text === w.meaning)?.display) || w.meaning;
@@ -5142,6 +5190,12 @@ function formatStageProgressText(meta, stage){
   return `${Math.round(clamp(n, 0, 1) * 100)}%`;
 }
 
+function usesChineseBeginnerUi(grade, lesson, stage){
+  const normalizedStage = String(stage || "pre1");
+  return Number(grade) === 1 && normLesson(lesson) === "1" &&
+    (normalizedStage === "pre1" || normalizedStage === "pre2");
+}
+
 /* =========================
    ✅ 追加：pre1/pre2 40%未満なら lowRateポップ
 ========================= */
@@ -5183,6 +5237,15 @@ async function fetchRandomExamples(grade, lesson, stage, n=3){
 async function openLowRatePop(lesson, stage, meta){
   _lowRatePending = { lesson:normLesson(lesson), stage:String(stage||"pre1"), meta: meta || null };
 
+  const useChineseLabels = usesChineseBeginnerUi(
+    SELECTED_GRADE,
+    _lowRatePending.lesson,
+    _lowRatePending.stage
+  );
+  if (lowRateExampleLabel) lowRateExampleLabel.textContent = useChineseLabels ? "例如……" : "たとえば...";
+  if (btnLowRateStart) btnLowRateStart.textContent = useChineseLabels ? "好像会了！🥛" : "できそう！🥛";
+  if (btnLowRateMem) btnLowRateMem.textContent = useChineseLabels ? "记一记👀" : "おぼえる👀";
+
 
   if (lowRateList) lowRateList.innerHTML = "";
 
@@ -5201,10 +5264,16 @@ async function openLowRatePop(lesson, stage, meta){
     } else {
       ex.forEach(({word, meaning})=>{
         const li = document.createElement("li");
-        li.innerHTML =
-          `<span class="lrWord">${escapeHtml(word)}</span>` +
-          `<span class="lrDash">-</span>` +
-          `<span class="lrMean">${escapeHtml(meaning)}</span>`;
+        const wordEl = document.createElement("span");
+        wordEl.className = "lrWord";
+        renderTextWithFurigana(wordEl, word);
+        const dashEl = document.createElement("span");
+        dashEl.className = "lrDash";
+        dashEl.textContent = "-";
+        const meaningEl = document.createElement("span");
+        meaningEl.className = "lrMean";
+        renderTextWithFurigana(meaningEl, meaning);
+        li.append(wordEl, dashEl, meaningEl);
         lowRateList.appendChild(li);
       });
     }
@@ -5247,6 +5316,7 @@ const FLASH = {
   lastCountedIndex: -1,
   jpMaskStep: -1,
   zhMaskStep: -1,
+  useChineseLabels: false,
 };
 const FLASH_PAGE_SIZE = 6;
 
@@ -5271,13 +5341,22 @@ function clearFlashTimer(){
   }
 }
 
-function getMemorizeModeWordDisplay(word){
-  const raw = String(word ?? "");
+function getMemorizeModeWordDisplay(entry){
+  const raw = String(entry?.word ?? "");
+  if (String(entry?.meaning || "").trim() === "じゃないです"){
+    return raw.replace(/（会社員（かいしゃいん）…）/g, "").trim();
+  }
   return raw
-    .replace(/（[^）]*）/g, "")
-    .replace(/\([^)]*\)/g, "")
+    .replace(/(\p{Script=Han}+)[（(]([^（）()]+)[）)]/gu, "$1")
     .replace(/\s{2,}/g, " ")
     .trim();
+}
+
+function getMemorizeModeMeaningDisplay(entry){
+  const raw = String(entry?.meaningRaw || entry?.meaning || "");
+  return String(entry?.meaning || "").trim() === "じゃないです"
+    ? "会社員（かいしゃいん）じゃないです"
+    : raw;
 }
 
 function getFlashMaskRows(){
@@ -5301,7 +5380,7 @@ function applyFlashMasking(){
   });
 }
 
-function updateSingleFlashModeButton(button, maskStep, hideLabel){
+function updateSingleFlashModeButton(button, maskStep, hideLabel, nextLabel="次のことばを見る"){
   if (!button) return;
   const label = button.querySelector(".flashModeLabel");
   const total = getFlashMaskRows().length;
@@ -5313,12 +5392,23 @@ function updateSingleFlashModeButton(button, maskStep, hideLabel){
     label.textContent = hideLabel;
     return;
   }
-  label.textContent = active ? "次のことばを見る" : hideLabel;
+  label.textContent = active ? nextLabel : hideLabel;
 }
 
 function updateFlashModeButton(){
-  updateSingleFlashModeButton(flashModeJp, FLASH.jpMaskStep, "日本語をかくす");
-  updateSingleFlashModeButton(flashModeZh, FLASH.zhMaskStep, "中国語をかくす");
+  const nextLabel = FLASH.useChineseLabels ? "看下一个词" : "次のことばを見る";
+  updateSingleFlashModeButton(
+    flashModeJp,
+    FLASH.jpMaskStep,
+    FLASH.useChineseLabels ? "隐藏日语" : "日本語をかくす",
+    nextLabel
+  );
+  updateSingleFlashModeButton(
+    flashModeZh,
+    FLASH.zhMaskStep,
+    FLASH.useChineseLabels ? "隐藏中文" : "中国語をかくす",
+    nextLabel
+  );
 }
 
 function cycleFlashMasking(target){
@@ -5329,11 +5419,13 @@ function cycleFlashMasking(target){
   FLASH[otherKey] = -1;
   if (FLASH[key] < 0){
     FLASH[key] = 0;
+  } else if (FLASH[key] >= total){
+    // 一番下まで開いた次は、次ページを全語隠した状態で表示する。
+    FLASH[key] = 0;
+    flashGo(1, true);
+    return;
   } else {
     FLASH[key] += 1;
-    if (FLASH[key] > total){
-      FLASH[key] = 0;
-    }
   }
   applyFlashMasking();
   updateFlashModeButton();
@@ -5351,6 +5443,7 @@ function closeFlash(){
   FLASH.lastCountedIndex = -1;
   FLASH.jpMaskStep = -1;
   FLASH.zhMaskStep = -1;
+  FLASH.useChineseLabels = false;
 
   // ✅ 途中状態を完全リセット（カクつき防止）
   flashCard.classList.remove("flashInRight","flashOutLeft","flashOutRight","flashInLeft");
@@ -5397,12 +5490,15 @@ function renderFlashCard(){
       example.className = "flashExampleLine";
 
       if (entry){
-        renderTextWithFurigana(meaning, entry.meaningRaw || entry.meaning || "");
+        renderTextWithFurigana(meaning, getMemorizeModeMeaningDisplay(entry));
         furigana.textContent = entry.meaningRaw ? "" : (entry.meaningFurigana || "");
         if (!furigana.textContent) furigana.classList.add("is-empty");
-        word.textContent = getMemorizeModeWordDisplay(entry.word || "");
+        word.textContent = getMemorizeModeWordDisplay(entry);
         const ex = String(entry.example ?? "").trim();
-        example.textContent = ex;
+        renderTextWithFurigana(example, ex);
+        if (example.querySelector("ruby")){
+          example.classList.add("hasFurigana");
+        }
         if (!ex){
           example.classList.add("is-empty");
         }
@@ -5511,6 +5607,7 @@ async function openFlashCards(grade, lesson, stage){
 requestAnimationFrame(fitFlashModalWidth);
   FLASH.jpMaskStep = -1;
   FLASH.zhMaskStep = -1;
+  FLASH.useChineseLabels = usesChineseBeginnerUi(grade, lesson, stage);
 
   let list = [];
   try{
@@ -6315,6 +6412,7 @@ function ensureSessionWordStats(){
   if (!SESSION.wordPoolReady){
     const ids = STAGE_POOL.words.map(w=>String(w.id ?? "")).filter(Boolean);
     const shouldUseRandomStage =
+      !isOrderedQuestionStage(SELECTED_GRADE, SESSION.lesson, SESSION.stage) &&
       ids.length >= QUIZ_SESSION_RULES.randomStageMinWords &&
       Number.isFinite(SESSION.savedStageRate) &&
       SESSION.savedStageRate >= QUIZ_SESSION_RULES.randomStageMinRate;
@@ -6690,11 +6788,13 @@ function applyReviewPromptLayout(){
   if (!quizWord) return;
 
   const isReview = (CURRENT.stage === "pre2");
+  const isOrderedPre1 = isOrderedQuestionStage(SELECTED_GRADE, CURRENT.lesson, CURRENT.stage);
+  const useSingleLine = isReview || isOrderedPre1;
 
   // reset
-  quizWord.classList.toggle("oneLine", isReview);
+  quizWord.classList.toggle("oneLine", useSingleLine);
 
-  if (!isReview){
+  if (!useSingleLine){
     // 通常は元の見た目に戻す
     quizWord.style.fontSize = "";
     quizWord.style.whiteSpace = "";
@@ -6709,7 +6809,7 @@ function applyReviewPromptLayout(){
     return;
   }
 
-  // review：1行固定＋縮小
+  // reviewとⅠ-1 pre1：1行固定＋縮小
   quizWord.style.whiteSpace = "nowrap";
   quizWord.style.overflow = "hidden";
   quizWord.style.textOverflow = "ellipsis";
@@ -6720,13 +6820,14 @@ function applyReviewPromptLayout(){
 
   // 収まるまで縮小（scrollWidth > clientWidth の間）
   // ※ +1 は小数誤差の保険
-  while (fs > REVIEW_WORD_MIN_PX && (quizWord.scrollWidth > quizWord.clientWidth + 1)){
+  const minPx = isReview ? REVIEW_WORD_MIN_PX : 12;
+  while (fs > minPx && (quizWord.scrollWidth > quizWord.clientWidth + 1)){
     fs -= 1;
     quizWord.style.fontSize = `${fs}px`;
   }
 
   // 例文
-  const ex = String(CURRENT.currentQ?.example ?? "").trim();
+  const ex = isReview ? String(CURRENT.currentQ?.example ?? "").trim() : "";
   if (quizExample){
     if (ex){
       quizExample.textContent = ex;
@@ -6868,6 +6969,7 @@ lessonListBox.addEventListener("pointerdown", (e)=>{
 
 /* ========= クイズ ========= */
 const QT_MS = 4000;
+const BEGINNER_QT_MS = 7000;
 const ANSWER_FEEDBACK_MS = {
   correct: 260,
   incorrect: 1200,
@@ -6877,6 +6979,12 @@ let _qtRAF = null;
 let _qtStart = 0;
 let _qtActive = false;
 let _questionShownAt = 0;
+
+function currentQuestionTimeMs(){
+  return usesChineseBeginnerUi(SELECTED_GRADE, CURRENT.lesson, CURRENT.stage)
+    ? BEGINNER_QT_MS
+    : QT_MS;
+}
 
 function initCircle(){
   const r = 18;
@@ -7090,7 +7198,11 @@ function renderQuestionJson(j){
 const example = (j.example != null) ? String(j.example) : "";
 
 CURRENT.currentQ = { raw:j, word_id: wordId, word, correct, example };
-quizWord.textContent = word || "（no word）";
+if (word){
+  renderTextWithFurigana(quizWord, word);
+} else {
+  quizWord.textContent = "（no word）";
+}
 markWordShown(wordId);
 if (SESSION) SESSION.lastWordId = wordId;
 
@@ -7123,7 +7235,7 @@ requestAnimationFrame(applyReviewPromptLayout);
 
   requestAnimationFrame(applyReviewOptionLayout);
   _questionShownAt = performance.now();
-  startQuestionTimer(QT_MS);
+  startQuestionTimer(currentQuestionTimeMs());
 }
 
 async function loadQuestion(){
