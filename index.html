@@ -318,14 +318,16 @@
 
     .gradeFab{
       position:fixed;
-      right:16px; bottom:16px;
-      transform: translateX(-64px); /* 戻る↻の左に並べる */
+      right:80px;
+      bottom:max(16px, env(safe-area-inset-bottom, 0px));
       display:flex; gap:8px;
-      z-index:999;
+      z-index:1200;
       user-select:none;
-      flex-wrap:wrap;
-      max-width: 240px;
+      flex-wrap:nowrap;
+      width:max-content;
+      max-width:calc(100vw - 112px);
       justify-content:flex-end;
+      pointer-events:none;
       display:none;
     }
     .gbtn{
@@ -337,6 +339,7 @@
       display:flex; align-items:center; justify-content:center;
       font-weight:900;
       cursor:pointer;
+      pointer-events:auto;
       box-shadow:0 10px 22px rgba(0,0,0,.35);
       backdrop-filter: blur(6px);
     }
