@@ -5407,8 +5407,8 @@ function cycleFlashMasking(target){
   if (FLASH[key] < 0){
     FLASH[key] = 0;
   } else if (FLASH[key] >= total){
-    // 一番下まで開いた次は、次ページへ進んで先頭の語から再開する。
-    FLASH[key] = 1;
+    // 一番下まで開いた次は、次ページを全語隠した状態で表示する。
+    FLASH[key] = 0;
     flashGo(1, true);
     return;
   } else {
@@ -6775,11 +6775,13 @@ function applyReviewPromptLayout(){
   if (!quizWord) return;
 
   const isReview = (CURRENT.stage === "pre2");
+  const isOrderedPre1 = isOrderedQuestionStage(SELECTED_GRADE, CURRENT.lesson, CURRENT.stage);
+  const useSingleLine = isReview || isOrderedPre1;
 
   // reset
-  quizWord.classList.toggle("oneLine", isReview);
+  quizWord.classList.toggle("oneLine", useSingleLine);
 
-  if (!isReview){
+  if (!useSingleLine){
     // 通常は元の見た目に戻す
     quizWord.style.fontSize = "";
     quizWord.style.whiteSpace = "";
@@ -6794,7 +6796,7 @@ function applyReviewPromptLayout(){
     return;
   }
 
-  // review：1行固定＋縮小
+  // reviewとⅠ-1 pre1：1行固定＋縮小
   quizWord.style.whiteSpace = "nowrap";
   quizWord.style.overflow = "hidden";
   quizWord.style.textOverflow = "ellipsis";
@@ -6805,13 +6807,14 @@ function applyReviewPromptLayout(){
 
   // 収まるまで縮小（scrollWidth > clientWidth の間）
   // ※ +1 は小数誤差の保険
-  while (fs > REVIEW_WORD_MIN_PX && (quizWord.scrollWidth > quizWord.clientWidth + 1)){
+  const minPx = isReview ? REVIEW_WORD_MIN_PX : 12;
+  while (fs > minPx && (quizWord.scrollWidth > quizWord.clientWidth + 1)){
     fs -= 1;
     quizWord.style.fontSize = `${fs}px`;
   }
 
   // 例文
-  const ex = String(CURRENT.currentQ?.example ?? "").trim();
+  const ex = isReview ? String(CURRENT.currentQ?.example ?? "").trim() : "";
   if (quizExample){
     if (ex){
       quizExample.textContent = ex;
