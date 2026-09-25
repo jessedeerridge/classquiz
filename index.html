@@ -2035,7 +2035,7 @@ const WORDS = Object.freeze({
         "老师・せんせい・がくせい・かいしゃいん：先生（せんせい）、すみません。（老师，不好意思。）",
         "是的。・はい・いいえ・こんにちは：はい、学生（がくせい）です。（是的，我是学生。）",
         "不是。・いいえ・はい・ありがとう：いいえ、会社員（かいしゃいん）じゃないです。（不是，我不是公司职员。）",
-        "我不是（会社員（かいしゃいん））・じゃないです・です・ですか：会社員（かいしゃいん）じゃないです。（我不是公司职员。）",
+        "我不是公司职员 （会社員（かいしゃいん）…）・じゃないです・です・ですか：会社員（かいしゃいん）じゃないです。（我不是公司职员。）",
         "出身地・しゅっしん・くに・なまえ：出身（しゅっしん）はどちらですか。（您是哪里人？）",
         "国家・くに・しゅっしん・なまえ：お国（くに）はどちらですか。（您来自哪个国家？）",
         "中国人・ちゅうごくじん・がくせい・かいしゃいん：中国人（ちゅうごくじん）です。（我是中国人。）",
@@ -5177,6 +5177,12 @@ function formatStageProgressText(meta, stage){
   return `${Math.round(clamp(n, 0, 1) * 100)}%`;
 }
 
+function usesChineseBeginnerUi(grade, lesson, stage){
+  const normalizedStage = String(stage || "pre1");
+  return Number(grade) === 1 && normLesson(lesson) === "1" &&
+    (normalizedStage === "pre1" || normalizedStage === "pre2");
+}
+
 /* =========================
    ✅ 追加：pre1/pre2 40%未満なら lowRateポップ
 ========================= */
@@ -5218,10 +5224,11 @@ async function fetchRandomExamples(grade, lesson, stage, n=3){
 async function openLowRatePop(lesson, stage, meta){
   _lowRatePending = { lesson:normLesson(lesson), stage:String(stage||"pre1"), meta: meta || null };
 
-  const useChineseLabels =
-    Number(SELECTED_GRADE) === 1 &&
-    _lowRatePending.lesson === "1" &&
-    (_lowRatePending.stage === "pre1" || _lowRatePending.stage === "pre2");
+  const useChineseLabels = usesChineseBeginnerUi(
+    SELECTED_GRADE,
+    _lowRatePending.lesson,
+    _lowRatePending.stage
+  );
   if (lowRateExampleLabel) lowRateExampleLabel.textContent = useChineseLabels ? "例如……" : "たとえば...";
   if (btnLowRateStart) btnLowRateStart.textContent = useChineseLabels ? "好像会了！🥛" : "できそう！🥛";
   if (btnLowRateMem) btnLowRateMem.textContent = useChineseLabels ? "记一记👀" : "おぼえる👀";
@@ -5244,10 +5251,16 @@ async function openLowRatePop(lesson, stage, meta){
     } else {
       ex.forEach(({word, meaning})=>{
         const li = document.createElement("li");
-        li.innerHTML =
-          `<span class="lrWord">${escapeHtml(word)}</span>` +
-          `<span class="lrDash">-</span>` +
-          `<span class="lrMean">${escapeHtml(meaning)}</span>`;
+        const wordEl = document.createElement("span");
+        wordEl.className = "lrWord";
+        renderTextWithFurigana(wordEl, word);
+        const dashEl = document.createElement("span");
+        dashEl.className = "lrDash";
+        dashEl.textContent = "-";
+        const meaningEl = document.createElement("span");
+        meaningEl.className = "lrMean";
+        renderTextWithFurigana(meaningEl, meaning);
+        li.append(wordEl, dashEl, meaningEl);
         lowRateList.appendChild(li);
       });
     }
@@ -5290,6 +5303,7 @@ const FLASH = {
   lastCountedIndex: -1,
   jpMaskStep: -1,
   zhMaskStep: -1,
+  useChineseLabels: false,
 };
 const FLASH_PAGE_SIZE = 6;
 
@@ -5317,7 +5331,7 @@ function clearFlashTimer(){
 function getMemorizeModeWordDisplay(entry){
   const raw = String(entry?.word ?? "");
   if (String(entry?.meaning || "").trim() === "じゃないです"){
-    return raw.replace(/（会社員（かいしゃいん））/g, "公司职员").trim();
+    return raw.replace(/（会社員（かいしゃいん）…）/g, "").trim();
   }
   return raw
     .replace(/(\p{Script=Han}+)[（(]([^（）()]+)[）)]/gu, "$1")
@@ -5353,7 +5367,7 @@ function applyFlashMasking(){
   });
 }
 
-function updateSingleFlashModeButton(button, maskStep, hideLabel){
+function updateSingleFlashModeButton(button, maskStep, hideLabel, nextLabel="次のことばを見る"){
   if (!button) return;
   const label = button.querySelector(".flashModeLabel");
   const total = getFlashMaskRows().length;
@@ -5365,12 +5379,23 @@ function updateSingleFlashModeButton(button, maskStep, hideLabel){
     label.textContent = hideLabel;
     return;
   }
-  label.textContent = active ? "次のことばを見る" : hideLabel;
+  label.textContent = active ? nextLabel : hideLabel;
 }
 
 function updateFlashModeButton(){
-  updateSingleFlashModeButton(flashModeJp, FLASH.jpMaskStep, "日本語をかくす");
-  updateSingleFlashModeButton(flashModeZh, FLASH.zhMaskStep, "中国語をかくす");
+  const nextLabel = FLASH.useChineseLabels ? "看下一个词" : "次のことばを見る";
+  updateSingleFlashModeButton(
+    flashModeJp,
+    FLASH.jpMaskStep,
+    FLASH.useChineseLabels ? "隐藏日语" : "日本語をかくす",
+    nextLabel
+  );
+  updateSingleFlashModeButton(
+    flashModeZh,
+    FLASH.zhMaskStep,
+    FLASH.useChineseLabels ? "隐藏中文" : "中国語をかくす",
+    nextLabel
+  );
 }
 
 function cycleFlashMasking(target){
@@ -5405,6 +5430,7 @@ function closeFlash(){
   FLASH.lastCountedIndex = -1;
   FLASH.jpMaskStep = -1;
   FLASH.zhMaskStep = -1;
+  FLASH.useChineseLabels = false;
 
   // ✅ 途中状態を完全リセット（カクつき防止）
   flashCard.classList.remove("flashInRight","flashOutLeft","flashOutRight","flashInLeft");
@@ -5568,6 +5594,7 @@ async function openFlashCards(grade, lesson, stage){
 requestAnimationFrame(fitFlashModalWidth);
   FLASH.jpMaskStep = -1;
   FLASH.zhMaskStep = -1;
+  FLASH.useChineseLabels = usesChineseBeginnerUi(grade, lesson, stage);
 
   let list = [];
   try{
