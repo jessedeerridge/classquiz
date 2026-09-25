@@ -5372,11 +5372,13 @@ function cycleFlashMasking(target){
   FLASH[otherKey] = -1;
   if (FLASH[key] < 0){
     FLASH[key] = 0;
+  } else if (FLASH[key] >= total){
+    // 一番下まで開いた次は、次ページへ進んで先頭の語から再開する。
+    FLASH[key] = 1;
+    flashGo(1, true);
+    return;
   } else {
     FLASH[key] += 1;
-    if (FLASH[key] > total){
-      FLASH[key] = 0;
-    }
   }
   applyFlashMasking();
   updateFlashModeButton();
