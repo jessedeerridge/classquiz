@@ -608,6 +608,8 @@ font-size: var(--reviewWordMaxPx);
     .stagePop .sbtn:hover{ border-color:#999; }
     .stagePop .sbtn.pre1{ background:#f6f8ff; }
     .stagePop .sbtn.pre2{ background:#f6fff8; }
+    .stagePop .sbtn.extra-stage{ background:#fffaf0; }
+    .stagePop .sbtn.extra-stage[hidden]{ display:none; }
     .stagePop .sbtn:disabled{ opacity:.35; cursor:default; }
 
     .sbtn .label{
@@ -1656,6 +1658,18 @@ font-size: var(--reviewWordMaxPx);
               <span class="dots5" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
               <span class="progress" id="stagePre2Progress">--%</span>
             </button>
+            <button class="sbtn extra-stage" id="btnStageDates" type="button" hidden>
+              <span class="label">月/日</span><span class="progress" id="stageDatesProgress">--%</span>
+            </button>
+            <button class="sbtn extra-stage" id="btnStageLargeNumbers" type="button" hidden>
+              <span class="label">大きい数字</span><span class="progress" id="stageLargeNumbersProgress">--%</span>
+            </button>
+            <button class="sbtn extra-stage" id="btnStageWeekdays" type="button" hidden>
+              <span class="label">曜日</span><span class="progress" id="stageWeekdaysProgress">--%</span>
+            </button>
+            <button class="sbtn extra-stage" id="btnStageTime" type="button" hidden>
+              <span class="label">時間</span><span class="progress" id="stageTimeProgress">--%</span>
+            </button>
           </div>
         </div>
       </div>
@@ -2067,6 +2081,57 @@ const WORDS = Object.freeze({
         "28岁・にじゅう はっ さい・にじゅう いっ さい・にじゅっ さい：私は28歳です。（我28岁。）",
         "30岁・さんじゅっ さい・さんじゅう っさい・はたち：私は30歳です。（我30岁。）",
         "20岁・はたち・にじゅう さい・さんじゅっさい：私ははたちです。（我20岁。）",
+      ],
+      dates: [
+        "1月・一月（いちがつ）・二月（にがつ）・四月（しがつ）",
+        "2月・二月（にがつ）・一月（いちがつ）・三月（さんがつ）",
+        "3月・三月（さんがつ）・二月（にがつ）・四月（しがつ）",
+        "4月・四月（しがつ）・七月（しちがつ）・九月（くがつ）",
+        "7月・七月（しちがつ）・四月（しがつ）・九月（くがつ）",
+        "9月・九月（くがつ）・七月（しちがつ）・一月（いちがつ）",
+        "12日・十二日（じゅうににち）・十三日（じゅうさんにち）・二十日（はつか）",
+        "13日・十三日（じゅうさんにち）・十二日（じゅうににち）・三日（みっか）",
+        "1日・一日（ついたち）・二日（ふつか）・三日（みっか）",
+        "2日・二日（ふつか）・一日（ついたち）・四日（よっか）",
+        "3日・三日（みっか）・二日（ふつか）・五日（いつか）",
+        "4日・四日（よっか）・三日（みっか）・八日（ようか）",
+        "5日・五日（いつか）・四日（よっか）・九日（ここのか）",
+      ],
+      largeNumbers: [
+        "100・百（ひゃく）・二百（にひゃく）・千（せん）",
+        "200・二百（にひゃく）・三百（さんびゃく）・八百（はっぴゃく）",
+        "300・三百（さんびゃく）・六百（ろっぴゃく）・二百（にひゃく）",
+        "600・六百（ろっぴゃく）・三百（さんびゃく）・八百（はっぴゃく）",
+        "800・八百（はっぴゃく）・六百（ろっぴゃく）・千（せん）",
+        "1000・千（せん）・百（ひゃく）・二千（にせん）",
+        "1200・千二百（せんにひゃく）・千三百（せんさんびゃく）・二千（にせん）",
+        "1300・千三百（せんさんびゃく）・千二百（せんにひゃく）・千六百（せんろっぴゃく）",
+        "1600・千六百（せんろっぴゃく）・千八百（せんはっぴゃく）・六百（ろっぴゃく）",
+        "1800・千八百（せんはっぴゃく）・千六百（せんろっぴゃく）・八百（はっぴゃく）",
+        "1000・千（せん）・千二百（せんにひゃく）・二千（にせん）",
+        "2000・二千（にせん）・千（せん）・千八百（せんはっぴゃく）",
+      ],
+      weekdays: [
+        "月曜日・月曜日（げつようび）・火曜日（かようび）・金曜日（きんようび）",
+        "火曜日・火曜日（かようび）・月曜日（げつようび）・水曜日（すいようび）",
+        "水曜日・水曜日（すいようび）・火曜日（かようび）・木曜日（もくようび）",
+        "木曜日・木曜日（もくようび）・水曜日（すいようび）・金曜日（きんようび）",
+        "金曜日・金曜日（きんようび）・木曜日（もくようび）・月曜日（げつようび）",
+      ],
+      time: [
+        "1時・一時（いちじ）・二時（にじ）・四時（よじ）", "2時・二時（にじ）・一時（いちじ）・三時（さんじ）",
+        "3時・三時（さんじ）・二時（にじ）・四時（よじ）", "4時・四時（よじ）・七時（しちじ）・九時（くじ）",
+        "7時・七時（しちじ）・四時（よじ）・八時（はちじ）", "8時・八時（はちじ）・七時（しちじ）・九時（くじ）",
+        "9時・九時（くじ）・八時（はちじ）・四時（よじ）",
+        "1分・一分（いっぷん）・二分（にふん）・三分（さんぷん）", "2分・二分（にふん）・一分（いっぷん）・四分（よんぷん）",
+        "3分・三分（さんぷん）・二分（にふん）・四分（よんぷん）", "4分・四分（よんぷん）・三分（さんぷん）・五分（ごふん）",
+        "5分・五分（ごふん）・四分（よんぷん）・六分（ろっぷん）", "6分・六分（ろっぷん）・五分（ごふん）・七分（ななふん）",
+        "7分・七分（ななふん）・六分（ろっぷん）・八分（はっぷん）", "8分・八分（はっぷん）・七分（ななふん）・九分（きゅうふん）",
+        "9分・九分（きゅうふん）・八分（はっぷん）・十分（じゅっぷん）", "10分・十分（じゅっぷん）・九分（きゅうふん）・十一分（じゅういっぷん）",
+        "11分・十一分（じゅういっぷん）・十分（じゅっぷん）・十二分（じゅうにふん）", "12分・十二分（じゅうにふん）・十一分（じゅういっぷん）・二十分（にじゅっぷん）",
+        "20分・二十分（にじゅっぷん）・十二分（じゅうにふん）・十分（じゅっぷん）",
+        "午前・午前（ごぜん）・午後（ごご）・正午（しょうご）", "午後・午後（ごご）・午前（ごぜん）・正午（しょうご）",
+        "一時半・一時半（いちじはん）・一時（いちじ）・二時半（にじはん）",
       ],
       review: [],
     },
@@ -2851,7 +2916,7 @@ function fillStageWordsFromPrevious(grade, lesson, stage, words, targetCount=30)
 function isOrderedQuestionStage(grade, lesson, stage){
   const normalizedStage = String(stage);
   return Number(grade) === 1 && String(lesson) === "1" &&
-    (normalizedStage === "pre1" || normalizedStage === "pre2");
+    ["pre1","pre2","dates","largeNumbers","weekdays","time"].includes(normalizedStage);
 }
 function readLessonCache(){
   try{ return JSON.parse(localStorage.getItem(LESSON_CACHE_KEY) || "{}") || {}; }
@@ -3496,6 +3561,12 @@ const btnStagePre1 = document.getElementById("btnStagePre1");
 const btnStagePre2 = document.getElementById("btnStagePre2");
 const stagePre1Progress = document.getElementById("stagePre1Progress");
 const stagePre2Progress = document.getElementById("stagePre2Progress");
+const EXTRA_STAGE_CONTROLS = Object.freeze({
+  dates: { button:document.getElementById("btnStageDates"), progress:document.getElementById("stageDatesProgress") },
+  largeNumbers: { button:document.getElementById("btnStageLargeNumbers"), progress:document.getElementById("stageLargeNumbersProgress") },
+  weekdays: { button:document.getElementById("btnStageWeekdays"), progress:document.getElementById("stageWeekdaysProgress") },
+  time: { button:document.getElementById("btnStageTime"), progress:document.getElementById("stageTimeProgress") },
+});
 
 const quizBox = document.getElementById("quizBox");
 const lessonInfo = document.getElementById("lessonInfo");
@@ -4962,6 +5033,9 @@ function calc(lesson, stage){
     const outLessons = lessons.map(lesson=>{
       const pre1 = calc(lesson,"pre1");
       const pre2 = calc(lesson,"pre2");
+      const extraStages = (g === 1 && String(lesson) === "1")
+        ? Object.fromEntries(Object.keys(EXTRA_STAGE_CONTROLS).map(stage=>[stage, calc(lesson, stage)]))
+        : {};
 
 // ジュースの目盛りは単語1（pre1）だけで0〜100%まで表示する。
 const achieveRate = pre1.rate != null ? clamp(pre1.rate, 0, 1) : 0;
@@ -4969,11 +5043,13 @@ const achieveRate = pre1.rate != null ? clamp(pre1.rate, 0, 1) : 0;
       const stage_status = {
         pre1: { completed_at: done.pre1?.completedAt || null },
         pre2: { completed_at: done.pre2?.completedAt || null },
+        ...Object.fromEntries(Object.keys(extraStages).map(stage=>[stage, { completed_at:done[stage]?.completedAt || null }])),
       };
 
       const stage_rates = {
         pre1: { rate: pre1.rate, mastered: pre1.mastered, total: pre1.total },
         pre2: { rate: pre2.rate, mastered: pre2.mastered, total: pre2.total },
+        ...Object.fromEntries(Object.entries(extraStages).map(([stage,value])=>[stage, value])),
       };
 
       return { lesson, achieveRate, stage_status, stage_rates };
@@ -5198,9 +5274,7 @@ function formatStageProgressText(meta, stage){
 }
 
 function usesChineseBeginnerUi(grade, lesson, stage){
-  const normalizedStage = String(stage || "pre1");
-  return Number(grade) === 1 && normLesson(lesson) === "1" &&
-    (normalizedStage === "pre1" || normalizedStage === "pre2");
+  return Number(grade) === 1 && normLesson(lesson) === "1";
 }
 
 /* =========================
@@ -6227,11 +6301,16 @@ function readStageStats(x){
     pre1:{ rate:null, mastered:null, total:null },
     pre2:{ rate:null, mastered:null, total:null },
     review:{ rate:null, mastered:null, total:null },
+    dates:{ rate:null, mastered:null, total:null },
+    largeNumbers:{ rate:null, mastered:null, total:null },
+    weekdays:{ rate:null, mastered:null, total:null },
+    time:{ rate:null, mastered:null, total:null },
   };
+  const stages = Object.keys(out);
 
   const sr = x.stage_rates || x.stageRates || x.stage_rate || x.stageRate || null;
   if (sr && typeof sr === "object"){
-    ["pre1","pre2","review"].forEach(s=>{
+    stages.forEach(s=>{
       const o = sr[s];
       if (o && typeof o === "object"){
         if (out[s].rate == null && o.rate != null) out[s].rate = toRate01(o.rate);
@@ -6243,7 +6322,7 @@ function readStageStats(x){
     });
   }
 
-  ["pre1","pre2","review"].forEach(s=>{
+  stages.forEach(s=>{
     const m = out[s].mastered, t = out[s].total;
     if (out[s].rate == null && Number.isFinite(m) && Number.isFinite(t) && t > 0){
       out[s].rate = clamp(m / t, 0, 1);
@@ -6338,6 +6417,10 @@ function stageLabel(s){
   if (s === "pre1") return "単語1";
   if (s === "pre2") return "単語2";
   if (s === "review") return "復習";
+  if (s === "dates") return "月/日";
+  if (s === "largeNumbers") return "大きい数字";
+  if (s === "weekdays") return "曜日";
+  if (s === "time") return "時間";
   return s || "";
 }
 
@@ -6892,6 +6975,12 @@ function openStagePop(lesson, meta, anchorX, anchorY){
   if (stagePre1Progress) stagePre1Progress.textContent = formatStageProgressText(meta, "pre1");
   if (stagePre2Progress) stagePre2Progress.textContent = formatStageProgressText(meta, "pre2");
 
+  const showExtraStages = SELECTED_GRADE === 1 && lesson === "1";
+  Object.entries(EXTRA_STAGE_CONTROLS).forEach(([stage,control])=>{
+    control.button.hidden = !showExtraStages;
+    control.progress.textContent = formatStageProgressText(meta, stage);
+  });
+
   btnStagePre1.disabled = false;
   btnStagePre2.disabled = (hasInfo ? !pre1Done : false);
 
@@ -6962,8 +7051,10 @@ async function startStage(stage){
   if (!_pendingLesson) return;
   if (stage === "pre2" && btnStagePre2.disabled) return;
 
-  // ✅ pre1/pre2 は常に lowRateポップを表示
-  if (stage === "pre1" || stage === "pre2"){
+  // Ⅰ-1の教材ステージは、開始前にふりがな付きの覚える帳を表示する。
+  const usesMemorizeBook = stage === "pre1" || stage === "pre2" ||
+    (SELECTED_GRADE === 1 && normLesson(_pendingLesson) === "1" && Object.hasOwn(EXTRA_STAGE_CONTROLS, stage));
+  if (usesMemorizeBook){
     await ensureLessonMetaForLowRate(_pendingLesson);
     const lesson = normLesson(_pendingLesson);
     const meta = _pendingLessonMeta || null;
@@ -6978,6 +7069,9 @@ async function startStage(stage){
 
 btnStagePre1.onclick = ()=> startStage("pre1");
 btnStagePre2.onclick = ()=> startStage("pre2");
+Object.entries(EXTRA_STAGE_CONTROLS).forEach(([stage,control])=>{
+  control.button.onclick = ()=>startStage(stage);
+});
 
 lessonListBox.addEventListener("pointerdown", (e)=>{
   if (stagePop.style.display === "block" && !stagePop.contains(e.target)){
