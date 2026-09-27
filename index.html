@@ -1495,6 +1495,9 @@ font-size: var(--reviewWordMaxPx);
 #flashBack .flashExampleLine.hasFurigana{
   margin-top:6px;
 }
+#flashBack .flashExampleLine.flashMasked{
+  visibility:hidden;
+}
 #flashBack .flashExampleLine.is-empty{
   background: transparent;
   opacity: 0;
@@ -5321,6 +5324,7 @@ const FLASH = {
   jpMaskStep: -1,
   zhMaskStep: -1,
   useChineseLabels: false,
+  hideExamplesWithMaskedWords: false,
 };
 const FLASH_PAGE_SIZE = 6;
 
@@ -5376,11 +5380,18 @@ function applyFlashMasking(){
     const word = row.querySelector(".flashWord");
     const furigana = row.querySelector(".flashFurigana");
     const meaning = row.querySelector(".flashMeaning");
+    const example = row.querySelector(".flashExampleLine");
     const shouldMaskJp = (FLASH.jpMaskStep >= 0) && (index >= FLASH.jpMaskStep) && (index < total);
     const shouldMaskZh = (FLASH.zhMaskStep >= 0) && (index >= FLASH.zhMaskStep) && (index < total);
     if (meaning) meaning.classList.toggle("flashMasked", shouldMaskJp);
     if (furigana) furigana.classList.toggle("flashMasked", shouldMaskJp);
     if (word) word.classList.toggle("flashMasked", shouldMaskZh);
+    if (example){
+      example.classList.toggle(
+        "flashMasked",
+        FLASH.hideExamplesWithMaskedWords && (shouldMaskJp || shouldMaskZh)
+      );
+    }
   });
 }
 
@@ -5448,6 +5459,7 @@ function closeFlash(){
   FLASH.jpMaskStep = -1;
   FLASH.zhMaskStep = -1;
   FLASH.useChineseLabels = false;
+  FLASH.hideExamplesWithMaskedWords = false;
 
   // ✅ 途中状態を完全リセット（カクつき防止）
   flashCard.classList.remove("flashInRight","flashOutLeft","flashOutRight","flashInLeft");
@@ -5612,6 +5624,8 @@ requestAnimationFrame(fitFlashModalWidth);
   FLASH.jpMaskStep = -1;
   FLASH.zhMaskStep = -1;
   FLASH.useChineseLabels = usesChineseBeginnerUi(grade, lesson, stage);
+  FLASH.hideExamplesWithMaskedWords =
+    Number(grade) === 1 && normLesson(lesson) === "1" && String(stage) === "pre2";
 
   let list = [];
   try{
