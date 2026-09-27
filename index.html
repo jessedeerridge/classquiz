@@ -2819,6 +2819,8 @@ function getPreviousStageRef(grade, lesson, stage){
 }
 
 function fillStageWordsFromPrevious(grade, lesson, stage, words, targetCount=30){
+  // Ⅰ-1のpre1/pre2は、それぞれ専用教材だけを順番に出題する。
+  if (isOrderedQuestionStage(grade, lesson, stage)) return words;
   if (!Array.isArray(words) || words.length >= targetCount) return words;
   const previous = getPreviousStageRef(grade, lesson, stage);
   if (!previous) return words;
@@ -2844,7 +2846,9 @@ function fillStageWordsFromPrevious(grade, lesson, stage, words, targetCount=30)
 }
 
 function isOrderedQuestionStage(grade, lesson, stage){
-  return Number(grade) === 1 && String(lesson) === "1" && String(stage) === "pre1";
+  const normalizedStage = String(stage);
+  return Number(grade) === 1 && String(lesson) === "1" &&
+    (normalizedStage === "pre1" || normalizedStage === "pre2");
 }
 function readLessonCache(){
   try{ return JSON.parse(localStorage.getItem(LESSON_CACHE_KEY) || "{}") || {}; }
@@ -6788,8 +6792,8 @@ function applyReviewPromptLayout(){
   if (!quizWord) return;
 
   const isReview = (CURRENT.stage === "pre2");
-  const isOrderedPre1 = isOrderedQuestionStage(SELECTED_GRADE, CURRENT.lesson, CURRENT.stage);
-  const useSingleLine = isReview || isOrderedPre1;
+  const isOrderedStage = isOrderedQuestionStage(SELECTED_GRADE, CURRENT.lesson, CURRENT.stage);
+  const useSingleLine = isReview || isOrderedStage;
 
   // reset
   quizWord.classList.toggle("oneLine", useSingleLine);
