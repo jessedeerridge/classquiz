@@ -351,14 +351,19 @@
       画面下に操作ボタン用の行を作らないことで、ゲーム領域の高さを保つ。
     */
     @media (max-width:600px){
+      .game-screen{
+        position:relative;
+        width:min(var(--gameW), calc(100vw - 32px));
+        margin:0 auto;
+      }
       .gradeFab,
       .backFab{
-        position:fixed;
+        position:absolute;
         bottom:max(12px, env(safe-area-inset-bottom, 0px));
       }
       .gradeFab{
-        right:72px;
-        max-width:calc(100vw - 88px);
+        right:62px;
+        max-width:calc(100% - 72px);
         gap:6px;
         z-index:1200;
       }
@@ -1664,6 +1669,7 @@ font-size: var(--reviewWordMaxPx);
       <div id="stuStatus" class="muted" style="text-align:center"></div>
     </div>
 
+    <div class="game-screen">
     <div id="lessonListBox" style="display:none">
       <div class="lesson-stage" id="lessonList">
         <svg class="lesson-svg" id="lessonSvg" aria-label="lesson menu"></svg>
@@ -1716,14 +1722,15 @@ font-size: var(--reviewWordMaxPx);
         </div>
       </div>
     </div>
+
+    <!-- ✅ 右下：学年ボタン（課選択中だけ表示） -->
+    <div class="gradeFab" id="gradeFab" aria-label="grade selector"></div>
+
+    <!-- ✅ 右下：戻る↻（課選択/クイズで表示） -->
+    <div class="backFab" id="backFab" title="戻る"><span>↻</span></div>
+    </div>
   </section>
 </main>
-
-<!-- ✅ 右下：学年ボタン（課選択中だけ表示） -->
-<div class="gradeFab" id="gradeFab" aria-label="grade selector"></div>
-
-<!-- ✅ 右下：戻る↻（課選択/クイズで表示） -->
-<div class="backFab" id="backFab" title="戻る"><span>↻</span></div>
 
 <!-- ✅ セッション結果モーダル（要求仕様版） -->
 <div class="modalBack" id="sessionBack" aria-label="session result">
