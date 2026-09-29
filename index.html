@@ -2935,6 +2935,10 @@ function getEmbeddedStageWords(grade, lesson, stage){
     .filter(Boolean);
 }
 
+function hasEmbeddedStageWords(grade, lesson, stage){
+  return getEmbeddedStageWords(grade, lesson, stage).length > 0;
+}
+
 function getPreviousStageRef(grade, lesson, stage){
   const lessons = COURSE[Number(grade)]?.lessons || [];
   const lessonIndex = lessons.indexOf(String(lesson));
@@ -5433,6 +5437,7 @@ btnLowRateStart.onclick = ()=>{
 
 
   if (!p) return;
+  if (!hasEmbeddedStageWords(SELECTED_GRADE, p.lesson, p.stage)) return;
   // ✅ 通常の開始処理（閾値チェック無し）へ
   startStageCore(p.stage, p.meta, p.lesson);
 };
@@ -7019,11 +7024,14 @@ function openStagePop(lesson, meta, anchorX, anchorY){
   const hasInfo = !!(meta && meta.stageDone && (meta.stageDone.pre1 || meta.stageDone.pre2));
   const pre1Done = hasInfo ? !!meta.stageDone.pre1 : null;
 
-  if (stagePre1Progress) stagePre1Progress.textContent = formatStageProgressText(meta, "pre1");
-  if (stagePre2Progress) stagePre2Progress.textContent = formatStageProgressText(meta, "pre2");
+  const hasPre1Words = hasEmbeddedStageWords(SELECTED_GRADE, lesson, "pre1");
+  const hasPre2Words = hasEmbeddedStageWords(SELECTED_GRADE, lesson, "pre2");
 
-  btnStagePre1.disabled = false;
-  btnStagePre2.disabled = (hasInfo ? !pre1Done : false);
+  if (stagePre1Progress) stagePre1Progress.textContent = hasPre1Words ? formatStageProgressText(meta, "pre1") : "データなし";
+  if (stagePre2Progress) stagePre2Progress.textContent = hasPre2Words ? formatStageProgressText(meta, "pre2") : "データなし";
+
+  btnStagePre1.disabled = !hasPre1Words;
+  btnStagePre2.disabled = !hasPre2Words || (hasInfo ? !pre1Done : false);
 
   const rect = lessonList.getBoundingClientRect();
   let x = anchorX;
@@ -7051,6 +7059,8 @@ function startStageCore(stage, metaOverride=null, lessonOverride=null){
   const lesson = normLesson(lessonOverride ?? _pendingLesson);
 
   if (!lesson) return;
+  // 現在のステージに教材がない場合、前のステージから補充される30語だけでは開始しない。
+  if (!hasEmbeddedStageWords(SELECTED_GRADE, lesson, stage)) return;
 
   CURRENT.lesson = lesson;
   CURRENT.stage = stage;
@@ -7091,6 +7101,7 @@ function startStageCore(stage, metaOverride=null, lessonOverride=null){
 async function startStage(stage){
   if (!_pendingLesson) return;
   if (stage === "pre2" && btnStagePre2.disabled) return;
+  if (!hasEmbeddedStageWords(SELECTED_GRADE, _pendingLesson, stage)) return;
 
   // ✅ pre1/pre2 は常に lowRateポップを表示
   if (stage === "pre1" || stage === "pre2"){
