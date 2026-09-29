@@ -5231,6 +5231,8 @@ async function apiAnswer(name, word_id, chosen){
       else base.wrongCount = (base.wrongCount||0) + 1;
       base.lastAt = now;
       if (is_correct) base.mastered = true;
+      /* 管理画面で正解した語を確認できるよう、語と正答も回答履歴に残す。 */
+      base.word = w.word;
       base.lastChosen = c;
       base.lastCorrect = correct;
       return base;
