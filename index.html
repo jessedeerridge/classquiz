@@ -5333,7 +5333,8 @@ function formatStageProgressText(meta, stage){
 
 function usesChineseBeginnerUi(grade, lesson, stage){
   const normalizedStage = String(stage || "pre1");
-  return Number(grade) === 1 && normLesson(lesson) === "1" &&
+  const normalizedLesson = normLesson(lesson);
+  return Number(grade) === 1 && (normalizedLesson === "1" || normalizedLesson === "2") &&
     (normalizedStage === "pre1" || normalizedStage === "pre2");
 }
 
