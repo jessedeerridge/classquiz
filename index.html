@@ -2196,6 +2196,47 @@ const WORDS = Object.freeze({
       ],
       review: [],
     },
+    "3": {
+      pre1: [
+        "去・行（い）きます・たべます・かえります：学校へ行きます。（去学校。）",
+        "来・来（き）ます・のみます・します：友達がうちに来ます。（朋友来我家。）",
+        "回家・帰（かえ）ります・のみます・みます：六時にうちへ帰ります。（六点回家。）",
+        "吃・食（た）べます・のみます・みます：朝ご飯を食べます。（吃早饭。）",
+        "喝・飲（の）みます・たべます・ききます：水を飲みます。（喝水。）",
+        "看・見（み）ます・ききます・よみます：映画を見ます。（看电影。）",
+        "读・読（よ）みます・します・ききます：本を読みます。（读书。）",
+        "听・聞（き）きます・みます・よみます：音楽を聞きます。（听音乐。）",
+        "学习・勉強（べんきょう）します・うんどうします・そうじします：日本語を勉強します。（学习日语。）",
+        "做・します・みます・ききます：週末に何をしますか。（周末做什么？）",
+        "拍照・写真（しゃしん）を とります・しゃしんを みます・しゃしんを かいます：公園で写真を撮ります。（在公园拍照。）",
+        "购物・買（か）い物（もの） します・うんどう します・べんきょう します：スーパーで買い物します。（在超市购物。）",
+        "运动・運動（うんどう） します・べんきょう します・かいもの します：毎日、運動します。（每天运动。）",
+        "散步・散歩（さんぽ） します・うんどう します・かいもの します：公園を散歩します。（在公园散步。）",
+        "起床・起（お）きます・ねます・たべます：毎朝七時に起きます。（每天早上七点起床。）",
+        "睡觉・寝（ね）ます・よみます・のみます：十一時に寝ます。（十一点睡觉。）",
+        "现在・今（いま）・きょう・あした：今、九時です。（现在九点。）",
+        "上午・午前（ごぜん）・ごご・よる：午前九時に学校へ行きます。（上午九点去学校。）",
+        "下午・午後（ごご）・ごぜん・あさ：午後四時にうちへ帰ります。（下午四点回家。）",
+        "周末・週末（しゅうまつ）・へいじつ・まいにち：週末はうちで休みます。（周末在家休息。）",
+        "星期一・月曜日（げつようび）・どようび・にちようび：月曜日に学校へ行きます。（星期一去学校。）",
+        "星期二・火曜日（かようび）・げつようび・すいようび：火曜日に日本語を勉強します。（星期二学习日语。）",
+        "星期三・水曜日（すいようび）・かようび・もくようび：水曜日に運動します。（星期三运动。）",
+        "星期四・木曜日（もくようび）・きんようび・げつようび：木曜日に図書館へ行きます。（星期四去图书馆。）",
+        "星期五・金曜日（きんようび）・もくようび・どようび：金曜日に買い物します。（星期五购物。）",
+        "星期六・土曜日（どようび）・きんようび・にちようび：土曜日に映画を見ます。（星期六看电影。）",
+        "星期日・日曜日（にちようび）・どようび・げつようび：日曜日にうちで休みます。（星期日在家休息。）",
+        "一点半・一時半（いちじはん）・いちじばん・いちじかん：一時半にうちへ帰ります。（一点半回家。）",
+        "四点・四時（よじ）・よんじ・ろくじ：四時に買い物します。（四点去购物。）",
+        "九点・九時（くじ）・きゅうじ・じゅうじ：九時に学校へ行きます。（九点去学校。）",
+        "一分钟・一分（いっぷん）・いちふん・はっぷん：一分待ちます。（等一分钟。）",
+        "两分钟・二分（にふん）・にぷん・ごふん：駅まで二分です。（到车站要两分钟。）",
+        "六分钟・六分（ろっぷん）・ろくふん・ななふん：駅まで六分です。（到车站要六分钟。）",
+        "八分钟・八分（はっぷん）・はちふん・きゅうふん：学校まで八分です。（到学校要八分钟。）",
+        "十分钟・十分（じゅっぷん）・じゅうふん・じゅんぷん：十分休みます。（休息十分钟。）",
+      ],
+      pre2: [],
+      review: [],
+    },
   },
 2: {
 "8": {
@@ -2984,6 +3025,7 @@ function isOrderedQuestionStage(grade, lesson, stage){
   const orderedStages = {
     "1": ["pre1", "pre2"],
     "2": ["pre1"],
+    "3": ["pre1"],
   };
   return orderedStages[String(lesson)]?.includes(normalizedStage) || false;
 }
@@ -5162,9 +5204,12 @@ async function apiQuestion(name, grade, lesson, stage){
     let w;
     if (isOrderedQuestionStage(grade, lesson, stage)){
       const candidateIds = new Set(candidates.map(item=>String(item.id ?? "")));
-      const lastIndex = STAGE_POOL.words.findIndex(item=>String(item.id ?? "") === lastId);
-      for (let offset = 1; offset <= STAGE_POOL.words.length; offset += 1){
-        const item = STAGE_POOL.words[(lastIndex + offset) % STAGE_POOL.words.length];
+      const orderedWords = (SESSION?.wordIds || STAGE_POOL.words.map(item=>String(item.id ?? "")))
+        .map(id=>STAGE_POOL.words.find(item=>String(item.id ?? "") === id))
+        .filter(Boolean);
+      const lastIndex = orderedWords.findIndex(item=>String(item.id ?? "") === lastId);
+      for (let offset = 1; offset <= orderedWords.length; offset += 1){
+        const item = orderedWords[(lastIndex + offset) % orderedWords.length];
         if (candidateIds.has(String(item.id ?? ""))){
           w = item;
           break;
@@ -6565,6 +6610,11 @@ function ensureSessionWordStats(){
   if (!SESSION.wordStats) SESSION.wordStats = new Map();
   if (!SESSION.wordPoolReady){
     const ids = STAGE_POOL.words.map(w=>String(w.id ?? "")).filter(Boolean);
+    if (Number(SELECTED_GRADE) === 1 && String(SESSION.lesson) === "3" && SESSION.stage === "pre1"){
+      const verbs = ids.slice(0, 16);
+      shuffleInPlace(verbs);
+      ids.splice(0, 16, ...verbs);
+    }
     const shouldUseRandomStage =
       !isOrderedQuestionStage(SELECTED_GRADE, SESSION.lesson, SESSION.stage) &&
       ids.length >= QUIZ_SESSION_RULES.randomStageMinWords &&
@@ -7141,7 +7191,9 @@ let _qtActive = false;
 let _questionShownAt = 0;
 
 function currentQuestionTimeMs(){
-  return usesChineseBeginnerUi(SELECTED_GRADE, CURRENT.lesson, CURRENT.stage)
+  return (usesChineseBeginnerUi(SELECTED_GRADE, CURRENT.lesson, CURRENT.stage) ||
+    (Number(SELECTED_GRADE) === 1 && normLesson(CURRENT.lesson) === "3" &&
+      (CURRENT.stage === "pre1" || CURRENT.stage === "pre2")))
     ? BEGINNER_QT_MS
     : QT_MS;
 }
