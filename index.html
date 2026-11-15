@@ -5330,6 +5330,7 @@ function renderGradeButtons(){
 
 /* ========= DB（Firebase） ========= */
 let STAGE_POOL = null;
+let stagePoolLoad = null;
 
 async function enterStudent(name){
   const sk = STUDENT.studentKey;
@@ -5356,9 +5357,28 @@ async function ensureStagePool(grade, lesson, stage){
   grade = Number(grade)||1;
   lesson = String(lesson||"");
   stage = String(stage||"pre1");
-  if (STAGE_POOL && STAGE_POOL.grade===grade && STAGE_POOL.lesson===lesson && STAGE_POOL.stage===stage) return STAGE_POOL;
-
   const sk = STUDENT.studentKey;
+  const key = JSON.stringify([sk, grade, lesson, stage]);
+  if (STAGE_POOL && STAGE_POOL.key === key){
+    stagePoolLoad = null;
+    return STAGE_POOL;
+  }
+  // 同じ教材の準備は共有し、ランダムな補充単語を作り直さない。
+  if (stagePoolLoad?.key === key) return stagePoolLoad.promise;
+  const load = { key, promise:null };
+  stagePoolLoad = load;
+  load.promise = buildStagePool(sk, grade, lesson, stage, key).then(pool=>{
+    // 別の教材へ移った後に、古い読み込みで上書きしない。
+    if (stagePoolLoad !== load) throw new Error("stage_changed");
+    STAGE_POOL = pool;
+    return pool;
+  }).finally(()=>{
+    if (stagePoolLoad === load) stagePoolLoad = null;
+  });
+  return load.promise;
+}
+
+async function buildStagePool(sk, grade, lesson, stage, key){
   let wordsObj = getEmbeddedStageWords(grade, lesson, stage);
   wordsObj = fillStageWordsFromPrevious(grade, lesson, stage, wordsObj, QUIZ_SESSION_RULES.randomStageSize);
   let progObj = getCachedStageProgress(sk, grade, lesson, stage);
@@ -5406,12 +5426,11 @@ words.push({ id:String(v.id), word, meaning, meaningFurigana, wrongs, wrongFurig
     }
   }
 
-  STAGE_POOL = {
-    grade, lesson, stage,
+  return {
+    key, grade, lesson, stage,
     words,
     prog: (progObj && typeof progObj==="object") ? progObj : {}
   };
-  return STAGE_POOL;
 }
 
 function optionDisplayForWord(w, optionText){
@@ -7741,7 +7760,9 @@ async function pickUniqueQuestion(forceFresh=false){
 }
 
 async function nextQuestionFast(forceFresh=false){
+  const session = SESSION;
   const j = await pickUniqueQuestion(forceFresh);
+  if (SESSION !== session) return;
   renderQuestionJson(j);
 }
 
